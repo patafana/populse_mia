@@ -1099,8 +1099,12 @@ class PipelineManagerTab(QWidget):
         self.tags_menu.addAction(self.save_pipeline_action)
         if Config().get_clinical_mode():
             self.save_pipeline_action.setDisabled(True)
+            self.pipelineEditorTabs.get_current_editor(
+            ).disable_overwrite = True
         else:
             self.save_pipeline_action.setEnabled(True)
+            self.pipelineEditorTabs.get_current_editor(
+            ).disable_overwrite = False
         self.tags_menu.addAction(self.save_pipeline_as_action)
         self.tags_menu.addSeparator()
         self.tags_menu.addAction(self.load_pipeline_parameters_action)
@@ -1509,8 +1513,12 @@ class PipelineManagerTab(QWidget):
         # and the user cannot save a pipeline
         if config.get_clinical_mode():
             self.save_pipeline_action.setDisabled(True)
+            self.pipelineEditorTabs.get_current_editor(
+            ).disable_overwrite = True
         else:
             self.save_pipeline_action.setDisabled(False)
+            self.pipelineEditorTabs.get_current_editor(
+            ).disable_overwrite = False
 
         # If the clinical mode is chosen, the process library is not available
         # and the user cannot save a pipeline
