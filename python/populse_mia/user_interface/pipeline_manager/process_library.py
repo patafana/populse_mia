@@ -1658,13 +1658,17 @@ class PackageLibraryDialog(QDialog):
 
         """
 
+        if _2add is False:
+            _2add = self.line_edit.text()
+
         if self.is_path:  # Currently the self.is_path = False
             # (Need to pass by the method browse_package to initialise to
             # True and the Browse button is commented.
             # Could be interesting to permit a backdoor to pass
             # the absolute path in the field for add package,
             # to be continued... )
-            path, package = os.path.split(self.line_edit.text())
+
+            path, package = os.path.split(_2add)
             # Adding the module path to the system path
             sys.path.append(path)
             self.add_package(package)
@@ -1674,12 +1678,10 @@ class PackageLibraryDialog(QDialog):
             #self.package_library.package_tree = self.load_config(
             #       )['Packages']
             old_status = self.status_label.text()
-            # if _2add is False:
-            self.status_label.setText(
-                "Adding {0}. Please wait.".format(self.line_edit.text()))
-            QApplication.processEvents()
 
-            _2add = self.line_edit.text()
+            self.status_label.setText(
+                "Adding {0}. Please wait.".format(_2add))
+            QApplication.processEvents()
 
             if os.path.splitext(_2add)[1]:
                 part = ''
@@ -1726,21 +1728,29 @@ class PackageLibraryDialog(QDialog):
             if len(errors) == 0:
                 self.status_label.setText(
                     "{0} added to the Package Library.".format(
-                        self.line_edit.text()))
+                        _2add))
                 if update_view:
-                    if self.line_edit.text() not in self.add_dic:
-                        self.add_list.addItem(self.line_edit.text())
+                    if _2add not in self.add_dic:
+                        self.add_list.addItem(_2add)
                         self.add_dic[
-                            self.line_edit.text()] = self.add_list.count(
+                            _2add] = self.add_list.count(
                         ) - 1
-                if self.line_edit.text() in self.remove_dic:
+                if _2add in self.remove_dic:
+                    index = self.remove_dic[_2add]
                     self.remove_list.takeItem(self.remove_dic[
-                                                self.line_edit.text()])
-                    self.remove_dic.pop(self.line_edit.text())
-                if self.line_edit.text() in self.delete_dic:
+                                                _2add])
+                    self.remove_dic.pop(_2add)
+                    for key in self.remove_dic:
+                        if self.remove_dic[key] > index:
+                            self.remove_dic[key] = self.remove_dic[key] -1
+                if _2add in self.delete_dic:
+                    index = self.delete_dic[_2add]
                     self.del_list.takeItem(self.delete_dic[
-                                                self.line_edit.text()])
-                    self.delete_dic.pop(self.line_edit.text())
+                                                _2add])
+                    self.delete_dic.pop(_2add)
+                    for key in self.delete_dic:
+                        if self.delete_dic[key] > index:
+                            self.delete_dic[key] = self.delete_dic[key] -1
                 # if self.line_edit.text() in self.remove_list:
                 #     self.remove_list.
 
@@ -1792,23 +1802,31 @@ class PackageLibraryDialog(QDialog):
                 "Deleting {0}. Please wait.".format(_2del))
             QApplication.processEvents()
 
-        if self.line_edit.text() not in self.delete_dic:
+        if _2del not in self.delete_dic:
             package_removed = self.remove_package(_2del)
         else:
             package_removed = True
 
         if package_removed is True:
             if update_view:
-                if self.line_edit.text() not in self.delete_dic:
+                if _2del not in self.delete_dic:
                     self.del_list.addItem(_2del)
                     self.delete_dic[
-                        self.line_edit.text()] = self.del_list.count() - 1
-            if self.line_edit.text() in self.add_dic:
+                        _2del] = self.del_list.count() - 1
+            if _2del in self.add_dic:
+                index = self.add_dic[_2del]
                 self.add_list.takeItem(self.add_dic[_2del])
                 self.add_dic.pop(_2del)
-            if self.line_edit.text() in self.remove_dic:
+                for key in self.add_dic:
+                    if self.add_dic[key] > index:
+                        self.add_dic[key] = self.add_dic[key] - 1
+            if _2del in self.remove_dic:
+                index = self.remove_dic[_2del]
                 self.remove_list.takeItem(self.remove_dic[_2del])
                 self.remove_dic.pop(_2del)
+                for key in self.remove_dic:
+                    if self.remove_dic[key] > index:
+                        self.remove_dic[key] = self.remove_dic[key] - 1
             self.status_label.setText(
                 "{0} deleted from Package Library.".format(
                     _2del))
@@ -2023,7 +2041,7 @@ class PackageLibraryDialog(QDialog):
             QApplication.processEvents()
 
         #package_removed = self.remove_package(_2rem, check_flag)
-        if self.line_edit.text() not in self.delete_dic:
+        if _2rem not in self.delete_dic:
             package_removed = self.remove_package(_2rem)
         else:
             package_removed = True
@@ -2032,13 +2050,21 @@ class PackageLibraryDialog(QDialog):
             if update_view:
                 self.remove_list.addItem(_2rem)
                 self.remove_dic[
-                    self.line_edit.text()] = self.remove_list.count() - 1
-            if self.line_edit.text() in self.add_dic:
+                    _2rem] = self.remove_list.count() - 1
+            if _2rem in self.add_dic:
+                index = self.add_dic[_2rem]
                 self.add_list.takeItem(self.add_dic[_2rem])
                 self.add_dic.pop(_2rem)
-            if self.line_edit.text() in self.delete_dic:
+                for key in self.add_dic:
+                    if self.add_dic[key] > index:
+                        self.add_dic[key] = self.add_dic[key] - 1
+            if _2rem in self.delete_dic:
+                index = self.delete_dic[_2rem]
                 self.del_list.takeItem(self.delete_dic[_2rem])
                 self.delete_dic.pop(_2rem)
+                for key in self.delete_dic:
+                    if self.delete_dic[key] > index:
+                        self.delete_dic[key] = self.delete_dic[key] - 1
             self.status_label.setText(
                 "{0} removed from Package Library.".format(
                     _2rem))
@@ -2116,11 +2142,10 @@ class PackageLibraryDialog(QDialog):
         
         for i in itemlist.selectedItems():
             if add is True:
-                #self.remove_package_with_text(i.text(), False, False)
-                self.remove_package_with_text(i.text(), False)
+                self.remove_package_with_text(i.text(), update_view=False)
 
             else:
-                self.add_package_with_text(i.text(), False)
+                self.add_package_with_text(i.text(), update_view=False)
 
     def save(self, close=True):
         """Save the tree to the process_config.yml file."""
