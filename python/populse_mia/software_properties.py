@@ -107,6 +107,8 @@ class Config:
           version)
         - get_use_matlab: returns the value of "use matlab" checkbox in the
           preferences
+        - get_use_matlab_standalone: returns the value of "use matlab
+          standalone" checkbox in the preferences
         - get_mri_conv_path: sets the MRIManager.jar path
         - get_use_spm: returns the value of "use spm" checkbox in the
           preferences
@@ -143,6 +145,8 @@ class Config:
         - set_spm_standalone_path: sets the path of SPM12 (standalone version)
         - set_use_matlab: sets the value of "use matlab" checkbox in the
           preferences
+        - set_use_matlab_standalone: sets the value of "use matlab standalone"
+          checkbox in the preferences
         - set_use_spm: sets the value of "use spm" checkbox in the preferences
         - set_use_spm_standalone: sets the value of "use spm standalone"
           checkbox in the preferences
@@ -371,6 +375,18 @@ class Config:
         except KeyError:
             return False
 
+    def get_use_matlab_standalone(self):
+        """Get the value of "use matlab standalone" checkbox in the
+        preferences.
+
+        :return: boolean
+
+        """
+        try:
+            return self.config["use_matlab standalone"]
+        except KeyError:
+            return False
+
     def get_use_spm(self):
         """Get the value of "use spm" checkbox in the preferences.
 
@@ -590,6 +606,17 @@ class Config:
 
         """
         self.config["use_matlab"] = use_matlab
+        # Then save the modification
+        self.saveConfig()
+
+    def set_use_matlab_standalone(self, use_matlab_standalone):
+        """Set the value of "use matlab standalone" checkbox in the
+        preferences.
+
+        :param: use_matlab: boolean
+
+        """
+        self.config["use_matlab standalone"] = use_matlab_standalone
         # Then save the modification
         self.saveConfig()
 

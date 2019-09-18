@@ -1966,10 +1966,10 @@ class PopUpPreferences(QDialog):
             self.use_matlab_checkbox.setChecked(True)
             self.use_spm_checkbox.setChecked(True)
         elif config.get_use_matlab():
-            if config.get_matlab_path() != "":
-                self.use_matlab_checkbox.setChecked(True)
-            else:
+            if config.get_use_matlab_standalone():
                 self.use_matlab_standalone_checkbox.setChecked(True)
+            else:
+                self.use_matlab_checkbox.setChecked(True)
         else:
             self.use_matlab_checkbox.setChecked(False)
             self.use_matlab_standalone_checkbox.setChecked(False)
@@ -2212,6 +2212,7 @@ class PopUpPreferences(QDialog):
                     config.get_spm_path():
                 config.set_use_spm(True)
                 config.set_use_matlab(True)
+                config.set_use_matlab_standalone(False)
             elif os.path.isdir(spm_input):
                 try:
                     matlab_cmd = ('restoredefaultpath; '
@@ -2229,6 +2230,7 @@ class PopUpPreferences(QDialog):
                     if err == b'':
                         config.set_matlab_path(matlab_input)
                         config.set_use_matlab(True)
+                        config.set_use_matlab_standalone(False)
                         config.set_use_spm(True)
                         config.set_spm_path(spm_input)
                     elif "spm" in str(err):
@@ -2248,6 +2250,7 @@ class PopUpPreferences(QDialog):
             matlab_input = self.matlab_choice.text()
             if matlab_input == config.get_matlab_path():
                 config.set_use_matlab(True)
+                config.set_use_matlab_standalone(False)
             elif os.path.isfile(matlab_input):
                 try:
                     matlab_cmd = 'ver; exit'
@@ -2261,6 +2264,7 @@ class PopUpPreferences(QDialog):
                     if err == b'':
                         config.set_matlab_path(matlab_input)
                         config.set_use_matlab(True)
+                        config.set_use_matlab_standalone(False)
                     else:
                         self.wrong_path(matlab_input, "Matlab")
                         return
@@ -2281,6 +2285,7 @@ class PopUpPreferences(QDialog):
                     spm_input == config.get_spm_standalone_path():
                 config.set_use_spm_standalone(True)
                 config.set_use_matlab(True)
+                config.set_use_matlab_standalone(True)
             elif os.path.isdir(spm_input):
                 mcr = glob.glob(os.path.join(spm_input, 'run_spm*.sh'))
                 if mcr:
@@ -2319,6 +2324,7 @@ class PopUpPreferences(QDialog):
             matlab_input = self.matlab_standalone_choice.text()
             if os.path.isdir(matlab_input):
                 config.set_use_matlab(True)
+                config.set_use_matlab_standalone(True)
                 config.set_matlab_standalone_path(matlab_input)
             else:
                 self.wrong_path(matlab_input, "Matlab standalone")
