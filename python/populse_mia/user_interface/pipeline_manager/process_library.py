@@ -2019,6 +2019,9 @@ class PackageLibraryDialog(QDialog):
                                      QMessageBox.NoToAll)
             if reply == QMessageBox.YesToAll or reply == QMessageBox.Yes:
                 self.delete_package(to_delete=i, remove=False, loop=True)
+            # TODO Do we want to reinitialize the initial state ?
+            elif reply == QMessageBox.NoToAll or reply == QMessageBox.No:
+                self.add_package_with_text(i)
             if reply == QMessageBox.No or reply == QMessageBox.Yes:
                 reply = None
         self.save()
@@ -2094,8 +2097,12 @@ class PackageLibraryDialog(QDialog):
             path_list = package.split('.')
             pkg_iter = self.packages
 
-            for element in path_list:
+            if package in self.remove_dic or package in self.delete_dic:
+                check_flag = True
+            else:
+                check_flag = False
 
+            for element in path_list:
                 if element in pkg_iter.keys():
 
                     if element is not path_list[-1]:
@@ -2106,7 +2113,9 @@ class PackageLibraryDialog(QDialog):
                             '.'.join(path_list[:path_list.index(element)]),
                                      element))
 
-                #elif check_flag is True:
+                elif check_flag is True:
+                    pass
+
                 else:
                     msg = QMessageBox()
                     msg.setIcon(QMessageBox.Warning)
