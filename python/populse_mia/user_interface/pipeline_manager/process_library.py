@@ -2050,7 +2050,7 @@ class PackageLibraryDialog(QDialog):
             package_removed = True
 
         if package_removed is True:
-            if update_view:
+            if update_view and _2rem not in self.remove_dic:
                 self.remove_list.addItem(_2rem)
                 self.remove_dic[
                     _2rem] = self.remove_list.count() - 1
