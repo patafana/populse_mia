@@ -2021,7 +2021,7 @@ class PopUpPreferences(QDialog):
         # Disabling widgets
         self.use_spm_changed()
         self.use_matlab_changed()
-        self.use_matlab_changed()
+        self.use_matlab_standalone_changed()
         self.use_spm_standalone_changed()
 
         # Signals
@@ -2179,6 +2179,7 @@ class PopUpPreferences(QDialog):
         if not self.use_matlab_checkbox.isChecked(
         ) and not self.use_matlab_standalone_checkbox.isChecked():
             config.set_use_matlab(False)
+            config.set_use_matlab_standalone(False)
 
         # Use SPM
         if not self.use_spm_checkbox.isChecked():
