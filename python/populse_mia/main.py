@@ -141,7 +141,6 @@ subpackages/modules, to construct the mia's pipeline library.
 
                                     if element is path_list[-1]:
                                         pkg_iter[element] = 'process_enabled'
-
                                     else:
                                         pkg_iter[element] = {}
                                         pkg_iter = pkg_iter[element]
@@ -565,42 +564,24 @@ def verify_processes():
                **param new_dic**: the dic representation of the new package \
                   configuration
 
-               **param level**: the index level in the package (0: root,
-                   +1: in a subpackage/pipeline)
-
                :returns: True if the current level is a pipeline that existed
                    in the old configuration, False if the
                    package/subpackage/pipeline did not exist
 
     """
 
-    def _deepCompDic(old_dic, new_dic, level="0"):
-
-        PY3 = sys.version_info[0] == 3
-
-        if PY3:
-
-            if isinstance(old_dic, str):
-                return True
-
-        else:
-            if isinstance(old_dic, basestring):
-                return True
+    def _deepCompDic(old_dic, new_dic):
+        if isinstance(old_dic, str):
+            return True
 
         for key in old_dic:
-
             if key not in new_dic:
-
-                if level == "0":
-                    pass
-
-                elif level == "+1":
-                    return False
+                pass
 
             # keep the same configuration for the pipeline in new and old dic
-            elif (_deepCompDic(old_dic[str(key)], new_dic[str(key)],
-                               level="+1")):
+            elif _deepCompDic(old_dic[str(key)], new_dic[str(key)]):
                 new_dic[str(key)] = old_dic[str(key)]
+
 
     proc_content = False
     nipypeVer = False
@@ -839,7 +820,7 @@ def verify_processes():
             print('\n** Upgrading the {0} library processes to {1} version ...'
                   .format(pckg, miaProcVer))
 
-    if pack2install:
+    if pack2install is not None:
 
         if not any("nipype" in s for s in pack2install):
             print('\n** The nipype library processes in mia use already the '
@@ -855,7 +836,6 @@ def verify_processes():
                 final_pckgs["Paths"] = proc_content['Paths']
 
         if (isinstance(proc_content, dict)) and ('Versions' in proc_content):
-
             for item in proc_content['Versions']:
 
                 if item not in final_pckgs['Versions']:
@@ -866,9 +846,7 @@ def verify_processes():
         # of the packages
         if (isinstance(proc_content, dict)) and ('Packages' in proc_content):
             _deepCompDic(proc_content['Packages'], final_pckgs['Packages'])
-
             for item in proc_content['Packages']:
-
                 if item not in final_pckgs['Packages']:
                     final_pckgs['Packages'][item] = proc_content[
                         'Packages'][item]
