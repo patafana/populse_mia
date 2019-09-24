@@ -25,9 +25,7 @@ import uuid
 import inspect
 import re
 
-from copy import deepcopy
 from collections import OrderedDict
-
 from PyQt5 import QtCore
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.trait_errors import TraitError
