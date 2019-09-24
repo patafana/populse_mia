@@ -25,6 +25,7 @@ import uuid
 import inspect
 import re
 
+from copy import deepcopy
 from collections import OrderedDict
 
 from PyQt5 import QtCore
@@ -786,11 +787,19 @@ class PipelineManagerTab(QWidget):
             # to its inputs
             try:
                 self.inheritance_dict = None
-                (process_outputs,                               #########
-                 self.inheritance_dict) = process.list_outputs()
-                #(process_outputs,                              #########
-                # self.inheritance_dict) = process.list_outputs(plugs=
-                #                                pipeline.nodes[node_name].plugs)
+                # (process_outputs,
+                # self.inheritance_dict) = process.list_outputs()
+                pipeline_plugs = {}
+                for key in pipeline.nodes[node_name].plugs:
+                    pipeline_plugs[key] = False
+                    if pipeline.nodes[node_name].plugs[key].links_to:
+                        pipeline_plugs[key] = True
+                    elif pipeline.nodes[node_name].plugs[key].links_from:
+                        pipeline_plugs[key] = True
+
+                (process_outputs,
+                self.inheritance_dict) = process.list_outputs(plugs=
+                                               pipeline_plugs)
             except TraitError as error:
                 print("TRAIT ERROR for node {0}".format(node_name))
                 print(error)
