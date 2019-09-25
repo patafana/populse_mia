@@ -788,16 +788,13 @@ class PipelineManagerTab(QWidget):
                 # (process_outputs,
                 # self.inheritance_dict) = process.list_outputs()
                 pipeline_plugs = {}
-                for key in pipeline.nodes[node_name].plugs:
-                    pipeline_plugs[key] = False
-                    if pipeline.nodes[node_name].plugs[key].links_to:
-                        pipeline_plugs[key] = True
-                    elif pipeline.nodes[node_name].plugs[key].links_from:
-                        pipeline_plugs[key] = True
-
+                is_plugged = {key: (bool(plug.links_to)
+                                    or bool(plug.links_from))
+                              for key, plug in node.plugs.items()}
                 (process_outputs,
-                self.inheritance_dict) = process.list_outputs(plugs=
-                                               pipeline_plugs)
+                 self.inheritance_dict) = process.list_outputs(is_plugged=
+                                                                     is_plugged)
+
             except TraitError as error:
                 print("TRAIT ERROR for node {0}".format(node_name))
                 print(error)
