@@ -787,7 +787,6 @@ class PipelineManagerTab(QWidget):
                 self.inheritance_dict = None
                 # (process_outputs,
                 # self.inheritance_dict) = process.list_outputs()
-                pipeline_plugs = {}
                 is_plugged = {key: (bool(plug.links_to)
                                     or bool(plug.links_from))
                               for key, plug in node.plugs.items()}
