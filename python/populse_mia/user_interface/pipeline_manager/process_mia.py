@@ -16,7 +16,6 @@ Module used by MIA bricks to run processes.
 # for details.
 ##########################################################################
 
-
 import datetime
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
@@ -25,15 +24,15 @@ from traits.trait_handlers import TraitListObject
 from capsul.api import Process
 
 # Populse_MIA imports
-from populse_mia.data_manager.project import COLLECTION_BRICK, BRICK_EXEC, \
-    BRICK_EXEC_TIME, TAG_BRICKS, COLLECTION_INITIAL, COLLECTION_CURRENT, \
-    BRICK_OUTPUTS
+from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
+                                              BRICK_OUTPUTS,COLLECTION_BRICK,
+                                              COLLECTION_CURRENT,
+                                              COLLECTION_INITIAL, TAG_BRICKS)
 
 
 class ProcessMIA(Process):
-    """
-    Class overriding the default capsul Process class, in order to personalize
-       the run for MIA bricks.
+    """Class overriding the default capsul Process class, in order to
+    personalise the run for MIA bricks.
 
    This class is mainly used by MIA bricks.
 
@@ -59,6 +58,7 @@ class ProcessMIA(Process):
 
     """
 
+    
     def __init__(self):
         super(ProcessMIA, self).__init__()
         # self.filters = {}  # use if the filters are set on plugs
@@ -69,7 +69,6 @@ class ProcessMIA(Process):
         :param run_process_result: Result of the run process
         :return: the result of the run process
         """
-
         self.manage_brick_after_run()
         return run_process_result
 
@@ -78,7 +77,6 @@ class ProcessMIA(Process):
 
         Add the exec status Not Done and exec time to the process history
         """
-
         self.manage_brick_before_run()
 
     def get_brick_to_update(self, bricks):
@@ -87,7 +85,6 @@ class ProcessMIA(Process):
         :param bricks: list of scan bricks
         :return: Brick to update
         """
-
         if bricks is None:
             return
 
@@ -149,7 +146,6 @@ class ProcessMIA(Process):
 
     def manage_brick_before_run(self):
         """Updates process history, before running the process."""
-
         outputs = self.get_outputs()
         for output_name in outputs:
             output_value = outputs[output_name]
@@ -165,7 +161,6 @@ class ProcessMIA(Process):
 
         :param output_value: output value
         """
-
         scan_bricks_history = self.get_scan_bricks(output_value)
         brick_to_update = self.get_brick_to_update(scan_bricks_history)
         if brick_to_update is not None:
@@ -178,7 +173,6 @@ class ProcessMIA(Process):
 
         :param output_value: output value
         """
-
         scan_bricks_history = self.get_scan_bricks(output_value)
         brick_to_update = self.get_brick_to_update(scan_bricks_history)
         if brick_to_update is not None:
@@ -194,7 +188,6 @@ class ProcessMIA(Process):
 
         Called in bricks.
         """
-
         if hasattr(self, "process"):
             self.process.inputs.use_mcr = self.use_mcr
             self.process.inputs.paths = self.paths
@@ -207,21 +200,22 @@ class ProcessMIA(Process):
         :param output: output
         :param brick: brick
         """
-
         if type(output) in [list, TraitListObject]:
             for single_value in output:
                 self.remove_brick_output(brick, single_value)
             return
 
-        for scan in self.project.session.get_documents_names(COLLECTION_CURRENT):
+        for scan in self.project.session.get_documents_names(
+                                                            COLLECTION_CURRENT):
+
             if scan in output:
                 output_bricks = self.project.session.get_value(
-                    COLLECTION_CURRENT, scan, TAG_BRICKS)
+                                           COLLECTION_CURRENT, scan, TAG_BRICKS)
                 output_bricks.remove(brick)
                 self.project.session.set_value(
-                    COLLECTION_CURRENT, scan, TAG_BRICKS, output_bricks)
+                            COLLECTION_CURRENT, scan, TAG_BRICKS, output_bricks)
                 self.project.session.set_value(
-                    COLLECTION_INITIAL, scan, TAG_BRICKS, output_bricks)
+                            COLLECTION_INITIAL, scan, TAG_BRICKS, output_bricks)
                 self.project.saveModifications()
 
 

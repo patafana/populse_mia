@@ -77,21 +77,47 @@ class Filter:
         :param tags: List of tags to search in
         :returns: The list of scans matching the filter
         """
-
         rapid_filter = data_browser.rapid_search.RapidSearch.prepare_filter(
-            self.search_bar, tags, scans)
+                                                                self.search_bar,
+                                                                tags, scans)
         rapid_result = current_project.session.filter_documents(
-            project.COLLECTION_CURRENT, rapid_filter)
-        rapid_list = [getattr(
-            scan, project.TAG_FILENAME) for scan in rapid_result]
-        advanced_filter = \
-            data_browser.advanced_search.AdvancedSearch.prepare_filters(
-                self.links, self.fields, self.conditions, self.values,
-                self.nots, rapid_list)
-        advanced_result = current_project.session.filter_documents(
-            project.COLLECTION_CURRENT, advanced_filter)
-        final_result = [getattr(
-            scan, project.TAG_FILENAME) for scan in advanced_result]
+                                                     project.COLLECTION_CURRENT,
+                                                     rapid_filter)
+        rapid_list = [getattr(scan, project.TAG_FILENAME)
+                                                       for scan in rapid_result]
+        advanced_filter = (data_browser.advanced_search.AdvancedSearch
+                                               .prepare_filters(self.links,
+                                                                self.fields,
+                                                                self.conditions,
+                                                                self.values,
+                                                                self.nots,
+                                                                rapid_list)
+        )
+
+
+        print('\nprout advanced_filter: ', advanced_filter)
+
+
+
+        
+        
+        advanced_result = (current_project.session
+                                   .filter_documents(project.COLLECTION_CURRENT,
+                                                     advanced_filter)
+        )
+
+
+        print('\nprout advanced_result: ', advanced_result)
+
+
+
+        
+        final_result = [getattr(scan, project.TAG_FILENAME)
+                                                    for scan in advanced_result]
+
+
+        print('\nprout final_result: ', final_result)
+        
         return final_result
 
     def json_format(self):
@@ -99,7 +125,6 @@ class Filter:
 
         :returns: the filter as a dictionary
         """
-
         # Filter dictionary
         data = {
             "name": self.name,
