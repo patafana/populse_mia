@@ -64,7 +64,6 @@ main_window = None
 
 
 class PackagesInstall:
-    
     """Help to make available a pipeline package in the mia pipeline library,
 in a recursive way.
 

@@ -18,53 +18,55 @@ Contains:
 # for details.
 ##########################################################################
 
-import datetime
-import os
-import sys
-import uuid
-import inspect
-import re
-
-from collections import OrderedDict
-
-from PyQt5 import QtCore
-from matplotlib.backends.qt_compat import QtWidgets
-from traits.trait_errors import TraitError
-from traits.api import TraitListObject, Undefined
-
-# PyQt5 imports
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
-                             QApplication, QToolBar, QAction, QHBoxLayout,
-                             QScrollArea, QMessageBox, QProgressDialog,
-                             QPushButton)
-
-# Capsul imports
-from capsul.api import (get_process_instance, StudyConfig, PipelineNode,
-                        Switch, NipypeProcess, Pipeline)
-from capsul.qt_gui.widgets.pipeline_developper_view import (
-    PipelineDevelopperView)
-
 # Populse_MIA imports
 from populse_mia.user_interface.pipeline_manager.process_mia import ProcessMIA
 from populse_mia.user_interface.pop_ups import (PopUpSelectIteration,
                                                 PopUpInheritanceDict)
 from populse_mia.user_interface.pipeline_manager.iteration_table import (
-    IterationTable)
-
-from populse_mia.data_manager.project import (
-    COLLECTION_CURRENT, COLLECTION_INITIAL, COLLECTION_BRICK, BRICK_NAME,
-    BRICK_OUTPUTS, BRICK_INPUTS, TAG_BRICKS, BRICK_INIT, BRICK_INIT_TIME,
-    TAG_TYPE, TAG_EXP_TYPE, TAG_FILENAME, TAG_CHECKSUM, TYPE_NII, TYPE_MAT,
-    TYPE_TXT, TYPE_UNKNOWN)
+                                                                 IterationTable)
+from populse_mia.data_manager.project import (COLLECTION_CURRENT,
+                                              COLLECTION_INITIAL,
+                                              COLLECTION_BRICK, BRICK_NAME,
+                                              BRICK_OUTPUTS, BRICK_INPUTS,
+                                              TAG_BRICKS, BRICK_INIT,
+                                              BRICK_INIT_TIME, TAG_TYPE,
+                                              TAG_EXP_TYPE, TAG_FILENAME,
+                                              TAG_CHECKSUM, TYPE_NII, TYPE_MAT,
+                                              TYPE_TXT, TYPE_UNKNOWN)
 from populse_mia.user_interface.pipeline_manager.node_controller import (
-    NodeController)
+                                                                 NodeController)
 from populse_mia.user_interface.pipeline_manager.pipeline_editor import (
-    PipelineEditorTabs)
+                                                             PipelineEditorTabs)
 from populse_mia.user_interface.pipeline_manager.process_library import (
-    ProcessLibraryWidget)
+                                                           ProcessLibraryWidget)
 from populse_mia.software_properties import Config
+
+# Capsul imports
+from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
+                        PipelineNode, StudyConfig, Switch)
+from capsul.qt_gui.widgets.pipeline_developper_view import (
+                                                         PipelineDevelopperView)
+
+# PyQt5 imports
+from PyQt5.QtCore import Signal, Qt, QThread
+from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
+                             QApplication, QToolBar, QAction, QHBoxLayout,
+                             QScrollArea, QMessageBox, QProgressDialog,
+                             QPushButton)
+
+# Other import
+import datetime
+import inspect
+import os
+import re
+import sys
+import uuid
+from collections import OrderedDict
+from matplotlib.backends.qt_compat import QtWidgets
 from modulefinder import ModuleFinder
+from traits.trait_errors import TraitError
+from traits.api import TraitListObject, Undefined
+
 
 if sys.version_info[0] >= 3:
     unicode = str
@@ -83,9 +85,6 @@ class PipelineManagerTab(QWidget):
     .. Methods:
         - add_plug_value_to_database: add the plug value to the database.
         - add_process_to_preview: add a process to the pipeline
-        - check_dependencies: check if a process has its dependencies defined
-        - check_matlab_dependencies: check if a process needs matlab or not
-        - check_spm_dependencies: check if a process needs spm or not
         - controller_value_changed: update history when a pipeline node is
           changed
         - displayNodeParameters: display the node controller when a node is
@@ -114,7 +113,7 @@ class PipelineManagerTab(QWidget):
         - update_scans_list: update the user-selected list of scans
     """
 
-    item_library_clicked = QtCore.Signal(str)
+    item_library_clicked = Signal(str)
 
     def __init__(self, project, scan_list, main_window):
         """
@@ -247,7 +246,6 @@ class PipelineManagerTab(QWidget):
         :param node_name: name of the node
         :param plug_name: name of the plug
         """
-
         if type(p_value) in [list, TraitListObject]:
             for elt in p_value:
                 self.add_plug_value_to_database(elt, brick, node_name, 
@@ -318,9 +316,10 @@ class PipelineManagerTab(QWidget):
             # Automatically fill inheritance dictionary if empty
             if self.ignore_node:
                 pass
-            elif (self.inheritance_dict is None or old_value not in
-                    self.inheritance_dict) and node_name not in self.ignore \
-                    and node_name + plug_name not in self.ignore:
+            elif ((self.inheritance_dict is None or old_value not in
+                    self.inheritance_dict) and
+                  (node_name not in self.ignore) and
+                  (node_name + plug_name not in self.ignore)):
                 values = {}
                 for key in inputs:
                     paths = []
@@ -369,7 +368,7 @@ class PipelineManagerTab(QWidget):
                                 self.inheritance_dict[old_value] = value
 
             # Adding inherited tags
-            if self.inheritance_dict:
+            if self.inheritance_dict:                
                 database_parent_file = None
                 parent_file = self.inheritance_dict[old_value]
                 for scan in self.project.session.get_documents_names(
@@ -433,52 +432,6 @@ class PipelineManagerTab(QWidget):
         # gnode = self.scene.add_node(node_name, node)
 
         return node, node_name
-
-    def check_dependencies(self, process):
-        """Check if a process has its dependencies defined.
-        :param process: the process to check
-        :return: boolean
-        """
-        lines = process.__doc__.split("\n")
-        for line in lines:
-            if re.search("\*.Dependencies:", line):
-                return True
-        return False
-
-    def check_matlab_dependencies(self, process):
-        """Check if a process needs matlab or not.
-        :param process: the process to check
-        :return: boolean
-        """
-        lines = process.__doc__.split("\n")
-        for line in lines:
-            if re.search("\*.Dependencies:", line):
-                use_matlab = re.sub(".*?Use_Matlab:","", line)
-                use_matlab = re.sub(";.*","", use_matlab)
-                use_matlab = use_matlab.replace(" ", "")
-                if use_matlab == "True":
-                    return True
-                elif use_matlab == "False":
-                    return False
-                else:
-                    return None
-
-    def check_spm_dependencies(self, process):
-        """Check if a process needs spm or not.
-        :param process: the process to check
-        :return: boolean
-        """
-        lines = process.__doc__.split("\n")
-        for line in lines:
-            if re.search("\*.Dependencies:", line):
-                use_spm = re.sub(".*?Use_SPM:", "", line)
-                use_spm = use_spm.replace(" ", "")
-                if use_spm == "True":
-                    return True
-                elif use_spm == "False":
-                    return False
-                else:
-                    return None
 
     def controller_value_changed(self, signal_list):
         """
@@ -573,10 +526,8 @@ class PipelineManagerTab(QWidget):
         :param pipeline: not None if this method call a sub-pipeline
         :param pipeline_name: name of the parent pipeline
         """
-
         # Should we add a progress bar for the initialization?
         # self.enable_progress_bar = True
-
         # if self.enable_progress_bar:
         #     self.progress = InitProgress(
         #         self.project, self.pipelineEditorTabs, pipeline)
@@ -584,6 +535,7 @@ class PipelineManagerTab(QWidget):
         #     self.progress.exec()
         #
         # else:
+        
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -592,51 +544,72 @@ class PipelineManagerTab(QWidget):
         QApplication.processEvents()
 
         config = Config()
-        main_pipeline = False
-        conf_failure = False
-        dependencies_missing = False
-        matlab_enabled = True
-        spm_enabled = True
-        # If the initialisation is launch for the main pipeline
+        
+        # nodes_requir_issue is a dictionary whose keys are the names of the
+        # nodes and whose values are the compatibility of the requirements of
+        # this node with the current configuration of MIA.
+        # - If no requirement defined in the process:
+        #   nodes_requir_issue[node_name] == 'MISSING'
+        # - If requirement does not match the current MIA configuration:
+        #   nodes_requir_issue[node_name] = [NameOfTheThirdPartiesWithProblem]
+        # - If requirement matches the current MIA configuration:
+        #   nodes_requir_issue have no key corresponding to node_name
+        nodes_requir_issue ={}
 
-        if not pipeline:
-            pipeline = get_process_instance(
-                self.pipelineEditorTabs.get_current_pipeline())
-            main_pipeline = True
-
-        # Test, if it works, comment.
-        if hasattr(pipeline, 'pipeline_steps'):
-            pipeline.pipeline_steps.on_trait_change(
-                self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-                remove=True)
-        pipeline.on_trait_change(
-            self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-            'selection_changed', remove=True)
-        pipeline.on_trait_change(
-            self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-            'user_traits_changed', remove=True)
-
+        # nodes_requir_miss == [] if all processes have a defined requirement
+        # object or is a list of node names that do not have a defined
+        # requirement 
+        nodes_requir_miss = None
+        
+        # nodes_requir_fail == [] if all processes have requirements
+        # corresponding to the current mia configuration or nodes_requir_fail
+        # is a list of node names that requirements do not match the current
+        # mia's configuration
+        nodes_requir_fail = None
+        
         # nodes_to_check contains the node names that need to be update
         nodes_to_check = []
-
+        
         # nodes_inputs_ratio is a dictionary whose keys are the node names
         # and whose values are a list of two elements: the first one being
         # the number of activated mandatory input plugs, the second one being
         # the total number of mandatory input plugs of the corresponding node
-
-        nodes_inputs_ratio = {}
         # nodes_inputs_ratio = OrderedDict()
+        nodes_inputs_ratio = {}
 
         # nodes_inputs_ratio_list contains the ratio between the number of
         # activated mandatory input plugs and the total number of mandatory
         # input plugs of the corresponding node (the order is the same as
         # nodes_to_check)
         nodes_inputs_ratio_list = []
+        
+        # If the initialisation is launch for the main pipeline
+        if not pipeline:
+            pipeline = get_process_instance(
+                self.pipelineEditorTabs.get_current_pipeline())
+            main_pipeline = True
+
+        else:
+            main_pipeline = False
+
+        # Test, if it works, comment.
+        #if hasattr(pipeline, 'pipeline_steps'):
+        #    pipeline.pipeline_steps.on_trait_change(
+        #        self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #        remove=True)
+        #pipeline.on_trait_change(
+        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #    'selection_changed', remove=True)
+        #pipeline.on_trait_change(
+        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #    'user_traits_changed', remove=True)
 
         for node_name, node in pipeline.nodes.items():
+            
             # Updating the project attribute of the processes
             if hasattr(node, 'process'):
                 process = node.process
+                
                 if hasattr(process, 'use_project') and process.use_project:
                     process.project = self.project
 
@@ -644,15 +617,20 @@ class PipelineManagerTab(QWidget):
             nb_plugs = 0
 
             for plug_name, plug in node.plugs.items():
-                if plug.links_from and not plug.output and not plug.optional:
+                
+                if ((plug.links_from) and
+                    (not plug.output) and
+                    (not plug.optional)):
                     nb_plugs += 1
-                    # If the link come from the pipeline "global" inputs, it is
+                    
+                    # If the link comes from the pipeline "global" inputs, it is
                     # added to compute the ratio
                     if list(plug.links_from)[0][0] == "":
                         nb_plugs_from_in += 1
 
             if nb_plugs == 0:
                 ratio = 0
+                
             else:
                 ratio = nb_plugs_from_in / nb_plugs
 
@@ -663,15 +641,16 @@ class PipelineManagerTab(QWidget):
         # Sorting the nodes_to_check list as the order (the nodes having
         # the highest ratio
         # being at the end of the list)
-        nodes_to_check = [x for _, x in sorted(
-            zip(nodes_inputs_ratio_list, nodes_to_check))]
+        nodes_to_check = [x for _, x in sorted(zip(nodes_inputs_ratio_list,
+                                                   nodes_to_check))]
 
         while nodes_to_check:
             # Finding one node that has a ratio of 1,
             # which means that all of its mandatory
             # inputs are "connected"
             key_name = [key for key, value in nodes_inputs_ratio.items() if
-                        value[0] == value[1]]
+                                                           value[0] == value[1]]
+
             if key_name:
                 # This node can be initialized so it is placed at the
                 # end of the nodes_to_check list
@@ -681,13 +660,11 @@ class PipelineManagerTab(QWidget):
                 del nodes_inputs_ratio[key_name[0]]
 
             # Reversing the list so that the node to be initialized is
-            # at the first place
-            # Using OrderedDict allows to remove the duplicate in the list
-            # without losing the order. So if key_name[0] appears twice,
-            # it will stay at the first place
-            nodes_to_check = list(
-                OrderedDict(
-                    (x, True) for x in nodes_to_check[::-1]).keys())
+            # at the first place. Using OrderedDict allows to remove the
+            # duplicate in the list without losing the order. So if
+            # key_name[0] appears twice, it will stay at the first place
+            nodes_to_check = list(OrderedDict((x, True) for x in
+                                              nodes_to_check[::-1]).keys())
             # print(nodes_to_check)
             node_name = nodes_to_check.pop(0)
 
@@ -702,6 +679,7 @@ class PipelineManagerTab(QWidget):
             # If the node is a pipeline node,
             # each of its nodes has to be initialised
             node = pipeline.nodes[node_name]
+
             if isinstance(node, PipelineNode):
                 sub_pipeline = node.process
                 self.init_pipeline(sub_pipeline, node_name)
@@ -709,16 +687,16 @@ class PipelineManagerTab(QWidget):
                 for plug_name in node.plugs.keys():
 
                     # If the plug is an output and is
+                    # connected to another one
                     if hasattr(node.plugs[plug_name], 'links_to'):
-                        # connected to another one
                         list_info_link = list(
                             node.plugs[plug_name].links_to)
 
                         for info_link in list_info_link:
 
                             # The third element of info_link contains the
+                            # destination node object
                             if info_link[2] in pipeline.nodes.values():
-                                # destination node object
                                 dest_node_name = info_link[0]
 
                                 if dest_node_name:
@@ -757,18 +735,14 @@ class PipelineManagerTab(QWidget):
             # TODO 'except' instead of 'if' to test matlab launch ?
             # Test for matlab launch
             if config.get_use_spm_standalone():
-                pipeline.nodes[node_name].process.use_mcr = True
-                pipeline.nodes[node_name].process.paths = \
-                    config.get_spm_standalone_path().split()
-                pipeline.nodes[node_name].process.matlab_cmd = \
-                    config.get_matlab_command()
+                node.process.use_mcr = True
+                node.process.paths = config.get_spm_standalone_path().split()
+                node.process.matlab_cmd = config.get_matlab_command()
 
             elif config.get_use_spm():
-                pipeline.nodes[node_name].process.use_mcr = False
-                pipeline.nodes[node_name].process.paths = \
-                    config.get_spm_path().split()
-                pipeline.nodes[node_name].process.matlab_cmd = \
-                    config.get_matlab_command()
+                node.process.use_mcr = False
+                node.process.paths = config.get_spm_path().split()
+                node.process.matlab_cmd = config.get_matlab_command()
 
             # Test for matlab launch
             if not os.path.isdir(
@@ -777,118 +751,173 @@ class PipelineManagerTab(QWidget):
                 os.mkdir(os.path.abspath(
                     self.project.folder + os.sep + 'scripts'))
 
-            pipeline.nodes[node_name].process.output_directory = \
-                os.path.abspath(
-                    self.project.folder + os.sep + 'scripts')
-            pipeline.nodes[node_name].process.mfile = True
+            node.process.output_directory = os.path.abspath(
+                                       self.project.folder + os.sep + 'scripts')
+            node.process.mfile = True
 
-            # Getting the list of the outputs of the node according
-            # to its inputs
+            # Getting the inheritance_dict, the requirement (dict) and the node
+            # outputs list according to its inputs: initResult_dic.
+            # - initResult_dic['requirement']:
+            # the requirement for the process (list)
+            # - initResult_dic['outputs']:
+            # a dictionary whose keys are the output plugs name and whose keys
+            # are the correponding value
+            # - initResult_dic['inheritance_dict']:
+            # a dictionary whose keys are the names of the scans in the output
+            # plugs and whose values are the names of the scans in the input
+            # plugs from that the output scans will inherit the tags
+            initResult_dict = {}
+
             try:
-                self.inheritance_dict = None
-                (process_outputs,                               #########
-                 self.inheritance_dict) = process.list_outputs()
-                #(process_outputs,                              #########
-                # self.inheritance_dict) = process.list_outputs(plugs=
-                #                                pipeline.nodes[node_name].plugs)
-            except TraitError as error:
-                print("TRAIT ERROR for node {0}".format(node_name))
-                print(error)
+                # The state, linked or not, of the plugs is passed to the
+                # list_outputs method, only for nodes not coming from nipype
+                # (so those coming from mia_processes and those created
+                # by the user): is_plugged object.
+                is_plugged = {key: (bool(plug.links_to)
+                                    or bool(plug.links_from))
+                                            for key, plug in node.plugs.items()}
+                initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
-            except ValueError:
-                process_outputs = process.list_outputs()
-                print("No inheritance dict for the "
-                      "process {0}.".format(node_name))
+                try:
+ 
+                    if not initResult_dict['outputs']:
+                         print("\nInitialisation failed to determine the "
+                               "outputs for the process {0}, did you correctly "
+                               "define the inputs ...?".format(node_name))
+                         
+                except KeyError as e:
+                    print('\nDue to "{0}" error,\nthe initialisation failed to '
+                          'determine the outputs for the node '
+                          '{1}...'.format(e, node_name))
+
+                except Exception as e:
+                    print('\nThe outputs determination for the node "{0}" '
+                          'failed during the initialisation step, due to:\n'
+                          '"{1}"...'.format(node_name, e))
+                    
+            except TraitError as e:
+                print('\nTrait error for node "{0}":\n'
+                      '"{1}" ...'.format(node_name, e))
 
             # If the process has no "list_outputs" method,
             # which is the case for Nipype's
             except AttributeError:
-                # interfaces
+
                 try:
-                    process_outputs = process._nipype_interface._list_outputs()
                     # The Nipype Process outputs are always
                     # "private" for Capsul
+                    initResult_dict['outputs'] = (process._nipype_interface
+                                                  ._list_outputs())
                     tmp_dict = {}
-                    for key, value in process_outputs.items():
-                        tmp_dict['_' + key] = process_outputs[key]
-                    process_outputs = tmp_dict
-                # TODO: test which kind of error can generate Nipype interface
-                except Exception:
-                    print("No output list method for "
-                          "the process {0}.".format(node_name))
-                    process_outputs = {}
+                    
+                    for key, value in initResult_dict['outputs'].items():
+                        tmp_dict['_' + key] = initResult_dict['outputs'][key]
+                        
+                    initResult_dict['outputs'] = tmp_dict
+
+                except TypeError:
+                    print('\nInitialisation failed to determine the outputs '
+                          'for the process "{0}":\nDid you correctly defined '
+                          'the inputs ...?'.format(node_name))
+      
+                except Exception as e:
+                    print('Initialisation failed to determine the outputs '
+                          'for the process "{0}", due to:\n'
+                          '"{1}"...'.format(node_name, e))
+                    
+            # Management of the requirement object in initResult_dict
+            if '_nipype_interface' in dir(process):
+
+                if 'spm' in str(process._nipype_interface):
+
+                    if 'requirement' not in initResult_dict:
+                        initResult_dict['requirement'] = ['MATLAB', 'SPM']
+
+                elif 'requirement' not in initResult_dict:
+                    initResult_dict['requirement'] = []
+
+            if initResult_dict['requirement'] is not None:
+                
+                for n, i in enumerate(initResult_dict['requirement']):
+
+                    if re.search('MATLAB', i,  re.IGNORECASE):
+                        initResult_dict['requirement'][n] = 'MATLAB'
+
+                    if re.search('SPM', i,  re.IGNORECASE):
+                        initResult_dict['requirement'][n] = 'SPM'
+                    
+            # Management of the outputs and the inheritance_dict objects
+            # in the initResult_dict
+            if 'outputs' not in initResult_dict:
+                    initResult_dict['outputs'] = {}
+
+            if ('inheritance_dict' in initResult_dict and
+                initResult_dict['inheritance_dict'] != {}):
+                self.inheritance_dict = initResult_dict['inheritance_dict']
+
+            # Here, third-party softwares are managed according to the
+            # requirement defined in the bricks.
+            # Third-party software currently managed:
+            # Matlab - SPM - ...
+            if initResult_dict['requirement'] is None:
+                nodes_requir_issue[node_name] = 'MISSING'
+
+            elif initResult_dict['requirement']:
+
+                if (('MATLAB' in initResult_dict['requirement']) and
+                    (not config.get_use_matlab())):
+                    nodes_requir_issue.setdefault(node_name,
+                                                  []).append('MATLAB')
+
+                if (('SPM' in initResult_dict['requirement']) and
+                    ((not config.get_use_spm()) and
+                     (not config.get_use_spm_standalone()))):
+                    nodes_requir_issue.setdefault(node_name,
+                                                  []).append('SPM')
 
             # Adding I/O to database history
             inputs = process.get_inputs()
             self.inputs = inputs
 
-            if 'NipypeProcess' not in str(process.__class__):
-                if not (config.get_use_matlab()
-                        and (config.get_use_spm() or
-                             config.get_use_spm_standalone())):
-                    if self.check_dependencies(process):
-                        check_spm = self.check_spm_dependencies(process)
-                        if check_spm:
-                            conf_failure = True
-                            node_failure = node_name
-                            spm_enabled = False
-                        check_matlab = self.check_matlab_dependencies(process)
-                        if check_matlab and not config.get_use_matlab():
-                            conf_failure = True
-                            node_failure = node_name
-                            matlab_enabled = False
-                        if check_spm is None or check_matlab is None:
-                            dependencies_missing = True
-                            node_failure = node_name
-                    else:
-                        dependencies_missing = True
-                        node_failure = node_name
-
             for key in inputs:
 
                 if inputs[key] is Undefined:
                     inputs[key] = "<undefined>"
+                        
+            # Automatically fills few plugs. Only for the nipype process
+            if 'NipypeProcess' in str(process.__class__):
+                print('\nUpdating the launching parameters for nipype '
+                      'process node: {0} ...'.format(node_name))
+                # plugs to be filled automatically
+                keys2consider = ['use_mcr', 'paths',
+                                 'matlab_cmd', 'output_directory']
 
-                # Could be cleaner to do some tests with warning pop up if
-                # necessary (ex. if config.get_spm_standalone_path() is
-                # None, etc ...)
-
-                # if (isinstance(process, NipypeProcess)) and (key in
-                # keys2consider) and (inputs[key] == "<undefined>"):
-
-                # update launching parameters for IRMaGe_processes bricks
-                # Test for matlab launch
-                if 'NipypeProcess' in str(process.__class__):
-                    if not (config.get_use_matlab() and (config.get_use_spm()
-                                         or config.get_use_spm_standalone())):
-                        conf_failure = True
-                        node_failure = node_name
-                    print('\nUpdating the launching parameters for nipype '
-                          'process node: {0} ...'.format(node_name))
-                    # plugs to be filled automatically
-                    keys2consider = ['use_mcr', 'paths',
-                                     'matlab_cmd', 'output_directory']
+                for key in inputs:
+                    
                     # use_mcr parameter
                     if (key == keys2consider[0]) and (
-                            config.get_use_spm_standalone() is True):
+                            config.get_use_spm_standalone()):
                         inputs[key] = True
+                        
                     elif (key == keys2consider[0]) and (
-                            config.get_use_spm_standalone() is False):
+                            not config.get_use_spm_standalone()):
                         inputs[key] = False
+                        
                     # paths parameter
                     if (key == keys2consider[1]) and (
-                            config.get_use_spm_standalone() is True):
-                        inputs[
-                            key] = config.get_spm_standalone_path().split()
-                    elif (key == keys2consider[1]) and (
-                            config.get_use_spm() is True):
+                            config.get_use_spm_standalone()):
+                        inputs[key] = config.get_spm_standalone_path().split()
+                        
+                    elif (key == keys2consider[1]) and (config.get_use_spm()):
                         inputs[key] = config.get_spm_path().split()
+                        
                     # matlab_cmd parameter
                     if (key == keys2consider[2]) and (
-                            config.get_use_spm_standalone() is True):
+                            config.get_use_spm_standalone()):
                         inputs[key] = config.get_matlab_command()
-                    elif key == keys2consider[2] and \
-                            config.get_use_spm_standalone() is False:
+                        
+                    elif (key == keys2consider[2]) and (
+                            not config.get_use_spm_standalone()):
                         inputs[key] = config.get_matlab_path()
 
                     # output_directory parameter
@@ -896,15 +925,14 @@ class PipelineManagerTab(QWidget):
 
                         if not os.path.isdir(os.path.abspath(
                                 self.project.folder + '/scripts')):
-                            os.mkdir(os.path.abspath(
-                                self.project.folder + '/scripts'))
+                            os.mkdir(os.path.abspath(self.project.folder
+                                                     + '/scripts'))
 
-                        inputs[key] = os.path.abspath(
-                            self.project.folder + '/scripts')
+                        inputs[key] = os.path.abspath(self.project.folder
+                                                      + '/scripts')
 
                     try:
-                        pipeline.nodes[node_name].set_plug_value(
-                            key, inputs[key])
+                        node.set_plug_value(key, inputs[key])
 
                     except TraitError:
 
@@ -915,31 +943,41 @@ class PipelineManagerTab(QWidget):
                                 pipeline.nodes[key].set_plug_value(
                                     key, inputs[key][0])
 
-                            except TraitError:
-                                print("Trait error for {0} plug of {1} "
-                                      "node".format(key, inputs[key]))
+                            except TraitError as e:
+                                print('Trait error for the "{0}" plug ({1}):\n'
+                                      '{2} ...'.format(key, inputs[key], e))
 
-            outputs = process.get_outputs()
+            outputs = process.get_outputs() 
+
             for key in outputs:
                 value = outputs[key]
+                
                 if value is Undefined:
                     outputs[key] = "<undefined>"
+                    
             self.project.saveModifications()
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_INPUTS, inputs)
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_OUTPUTS, outputs)
 
-            if process_outputs:
-                for plug_name, plug_value in process_outputs.items():
-                    node = pipeline.nodes[node_name]
+            # Update the database with output values obtained
+            # from initialisation
+            if initResult_dict['outputs']:
+                
+                for plug_name, plug_value in initResult_dict['outputs'].items():
+ 
                     if plug_name not in node.plugs.keys():
                         continue
+                    
                     if plug_value not in ["<undefined>", Undefined]:
+                        
                         if pipeline_name != "":
                             full_name = pipeline_name + "." + node_name
+                            
                         else:
                             full_name = node_name
+                            
                         self.add_plug_value_to_database(plug_value,
                                                         self.brick_id,
                                                         node_name,
@@ -951,131 +989,208 @@ class PipelineManagerTab(QWidget):
                     # the latter is added to nodes_to_check
                     for info_link in list_info_link:
                         dest_node_name = info_link[0]
+                        
                         if dest_node_name:
                             # Adding the destination node name and incrementing
                             # the input counter of the latter
                             nodes_to_check.append(dest_node_name)
+                            
                             if dest_node_name in nodes_inputs_ratio:
                                 nodes_inputs_ratio[dest_node_name][0] += 1
 
                     try:
-                        pipeline.nodes[node_name].set_plug_value(plug_name,
-                                                                 plug_value)
+                        node.set_plug_value(plug_name, plug_value)
+                        
                     except TraitError:
+                        
                         if type(plug_value) is list and len(
                                 plug_value) == 1:
+                            
                             try:
-                                pipeline.nodes[node_name].set_plug_value(
-                                    plug_name, plug_value[0])
-                            except TraitError:
-                                print("Trait error for {0} plug of {1} "
-                                      "node".format(plug_name, node_name))
-                                pass
+                                node.set_plug_value(plug_name, plug_value[0])
+                                
+                            except TraitError as e:
+                                print('Trait error for the "{0}" plug of the '
+                                      '"{1}" node:\n'
+                                      '{2} ...'.format(plug_name, node_name, e))
 
                     pipeline.update_nodes_and_plugs_activation()
 
             # Adding I/O to database history again to update outputs
             inputs = process.get_inputs()
+            
             for key in inputs:
                 value = inputs[key]
+                
                 if value is Undefined:
                     inputs[key] = "<undefined>"
+    
             outputs = process.get_outputs()
+
             for key in outputs:
                 value = outputs[key]
+
                 if value is Undefined:
                     outputs[key] = "<undefined>"
+
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_INPUTS, inputs)
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_OUTPUTS, outputs)
-
             # Setting brick init state if init finished correctly
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_INIT, "Done")
+     
             self.project.saveModifications()
 
         # Test, if it works, comment.
-        pipeline.on_trait_change(
-            self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-            'selection_changed', dispatch='ui')
-        pipeline.on_trait_change(
-            self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-            'user_traits_changed', dispatch='ui')
-        if hasattr(pipeline, 'pipeline_steps'):
-            pipeline.pipeline_steps.on_trait_change(
-                self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-                dispatch='ui')
+        #pipeline.on_trait_change(
+        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #    'selection_changed', dispatch='ui')
+        #pipeline.on_trait_change(
+        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #    'user_traits_changed', dispatch='ui')
+        #if hasattr(pipeline, 'pipeline_steps'):
+        #    pipeline.pipeline_steps.on_trait_change(
+        #        self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
+        #        dispatch='ui')
 
         # Updating the node controller
+        # Display the updated parameters in right part of
+        # the Pipeline Manager (controller)
         if main_pipeline:
-            node_controller_node_name = self.nodeController.node_name
+            node_controller_node_name = self.nodeController.node_name     #### Todo: Fix the problem of the controller that
+                                                                          #### keeps the name of the old brick deleted until
+                                                                          #### a click on the new one. This can cause a mia
+                                                                          #### crash during the initialisation, for example.
+
             if node_controller_node_name in ['inputs', 'outputs']:
                 node_controller_node_name = ''
+  
             self.nodeController.display_parameters(
                 self.nodeController.node_name,
                 pipeline.nodes[node_controller_node_name].process,
                 pipeline)
-        if dependencies_missing:
-            self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" has been initialized.'.format(
-                    name))
+            
+        nodes_requir_miss = [nodeName for nodeName in nodes_requir_issue
+                                   if nodes_requir_issue[nodeName] == 'MISSING']
+        nodes_requir_fail = [nodeName for nodeName in nodes_requir_issue
+                              if isinstance(nodes_requir_issue[nodeName], list)]
+
+        if ((nodes_requir_miss or nodes_requir_fail) and
+            not (config.get_use_matlab() and
+                (config.get_use_spm() or config.get_use_spm_standalone()))):
+            
+            if ((config.get_use_matlab()) and
+                (not config.get_use_matlab_standalone())):
+
+                if config.get_use_spm():
+                    message_conf = ("The current MIA configuration uses "
+                                    "Matlab and SPM.\n")
+                else:
+                    message_conf = ("The current MIA configuration uses "
+                                    "Matlab but not SPM.\n")
+                        
+            elif ((config.get_use_matlab()) and
+                  (config.get_use_matlab_standalone())):
+
+                if config.get_use_spm_standalone():
+                    message_conf = ("The current MIA configuration uses Matlab "
+                                    "Compiler Runtime and SPM standalone.\n")
+                else:
+                    message_conf = ("The current MIA configuration uses Matlab "
+                                    "Compiler Runtime but not SPM standalone."
+                                    "\n")
+
+            elif not config.get_use_matlab():
+                message_conf = ("The current MIA configuration does not use "
+                                "Matlab (including the Compiler Runtime "
+                                "version) or SPM (including the standalone "
+                                "version).\n")
+            
+            message_base1 = ''
+        
+            if nodes_requir_miss: # So, initResult_dict['requirement'] is None
+
+                if len(nodes_requir_miss) == 1:
+                    message_base1 = ('-'*90 + '\nThe required third-party '
+                                     'products are not properly defined in the '
+                                     'following process:\n- {0}\n'
+                                     .format(nodes_requir_miss[0]))
+
+                else:
+                    message_base1 = ('-'*90 + '\nThe required third-party '
+                                     'products are not properly defined in the '
+                                     'following processes:\n')
+
+                    for nodeName in nodes_requir_miss:
+                        message_base1 = message_base1 + ("- {0}\n"
+                                                         .format(nodeName))
+
+                message_end = ('\nPlease, update your configuration in the MIA '
+                               'preferences, if necessary ...')
+            
+            mess_base2 = ''
+        
+            if nodes_requir_fail: 
+                message_end = ('\nPlease, update your configuration in the MIA '
+                               'preferences to meet the requirements of '
+                               'the pipeline ...')
+
+                if not nodes_requir_miss:
+                    mess_base2 =  mess_base2 + '-'*90 + '\nThe '
+                
+                else:
+                    mess_base2 =  mess_base2 + '\nIn addition, the '
+
+                mess_base2 =  mess_base2 + ('following bricks have '
+                                            'requirements that do not '
+                                            'correspond to the current MIA '
+                                            'configuration (problematic third-'
+                                            'party software(s) is(are) '
+                                            'specified):\n')
+                
+                for nodeName in nodes_requir_fail:
+                    mess_base2 = mess_base2 + ('- {0}: {1}\n'
+                                               .format(nodeName,
+                                                       ', '.join(
+                                                           nodes_requir_issue[
+                                                               nodeName])))
+
             self.msg = QMessageBox()
             self.msg.setIcon(QMessageBox.Critical)
-            if config.get_use_matlab() is True:
-                self.msg.setText(
-                    "Matlab and SPM dependencies were not correctly defined "
-                    "in the process {0}.\nYour current MIA configuration use "
-                    "Matlab but not SPM. Please update your configuration in "
-                    "MIA preferences if necessary.".format(
-                        node_failure))
-            else:
-                self.msg.setText(
-                    "Matlab and SPM dependencies were not correctly defined "
-                    "in the process {0}.\nYour current MIA configuration "
-                    "use neither Matlab or SPM. Please update your "
-                    "configuration in MIA preferences if necessary.".format(
-                        node_failure))
-            self.msg.setWindowTitle("Warning")
-            ok_button = self.msg.addButton(QMessageBox.Ok)
+            self.msg.setWindowTitle("MIA configuration warning!")
+            self.msg.setText(message_conf + message_base1 +
+                             mess_base2 + message_end)
+            
             yes_button = self.msg.addButton("Open MIA preferences",
                                             QMessageBox.YesRole)
+
+            if (nodes_requir_miss) and (not nodes_requir_fail):
+                ok_button = self.msg.addButton(QMessageBox.Ok)
+
             self.msg.exec()
+            
             if self.msg.clickedButton() == yes_button:
                 self.main_window.software_preferences_pop_up()
                 self.msg.close()
+                
             else:
                 self.msg.close()
-        elif conf_failure:
-            self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" was not initialized successfully.'.format(
-                    name))
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Critical)
-            if matlab_enabled is False and spm_enabled is False:
-                self.msg.setText("Matlab and SPM are required to use {"
-                                 "0}.".format(
-                    node_failure))
-                start = "Matlab and SPM "
-            elif matlab_enabled is False:
-                self.msg.setText("Matlab is required to use {0}.".format(
-                    node_failure))
-                start = "Matlab "
+
+            if nodes_requir_fail:
+                self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" was not initialised successfully.'.format(name))
+
             else:
-                self.msg.setText("SPM is required to use {0}.".format(
-                    node_failure))
-                start = "SPM "
-            self.msg.setInformativeText(
-                start + "must be configured to use {0}.\n"
-                "(See File > MIA preferences to configure) ...".format(
-                    node_failure))
-            self.msg.setWindowTitle("Warning")
-            self.msg.setStandardButtons(QMessageBox.Ok)
-            self.msg.buttonClicked.connect(self.msg.close)
-            self.msg.show()
+                self.main_window.statusBar().showMessage(
+                    'The pipeline "{0}" has been initialised, but the '
+                    'requirements of some bricks must be verified.'
+                    .format(name))
+
         else:
             self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" has been initialized.'.format(name))
+                'Pipeline "{0}" has been initialised.'.format(name))
 
     def initialize(self):
         """Clean previous initialization then initialize the current
@@ -1100,9 +1215,8 @@ class PipelineManagerTab(QWidget):
         # ** populse_mia/user_interface/pipeline_manager/pipeline_manager_tab.py
         #    class PipelineManagerTab(QWidget):
         #    method init_pipeline(self, pipeline=None, pipeline_name=""):
-        #      use: (process_outputs,
-        #            self.inheritance_dict) = process.list_outputs(plugs=
-        #                                       pipeline.nodes[node_name].plugs)
+        #      use: initResult_dict = process.list_outputs(
+        #                                                 is_plugged=is_plugged)
         #      info1: process is the brick (node, process, etc.)
         #             <User_processes.preprocess.spm.spatial_preprocessing
         #             .Smooth object at ...> object
@@ -1110,6 +1224,8 @@ class PipelineManagerTab(QWidget):
         # ** User_processes/preprocess/spm/spatial_preprocessing.py
         #    class Smooth(Process_Mia)
         #    list_outputs method:
+        #      use: super(Smooth, self).list_outputs(). Using the inheritance
+        #           to ProcessMIA class, list_outputs method.
         #      info1: here we are in the place where we deal with plugs.
         #
         #** Some characteristics for the pipeline object
@@ -1375,7 +1491,9 @@ class PipelineManagerTab(QWidget):
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
                     name, iterated_tag, tag_values))
+
         else:
+            
             try:
                 self.progress = RunProgress(self.pipelineEditorTabs)
                 self.progress.show()
@@ -1700,7 +1818,7 @@ class RunProgress(QProgressDialog):
 
         super(RunProgress, self).__init__("Please wait while the pipeline is "
                                           "running...", None, 0, 0)
-
+        
         if settings:
             self.setWindowTitle(
                 "Pipeline is running ({0}/{1})".format(
@@ -1710,6 +1828,7 @@ class RunProgress(QProgressDialog):
                                                     settings['tag']))
         else:
             self.setWindowTitle("Pipeline running")
+            
         self.setWindowFlags(
             Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self.setModal(True)
@@ -1723,8 +1842,7 @@ class RunProgress(QProgressDialog):
         self.worker = RunWorker(self.diagramView)
         self.worker.finished.connect(self.close)
         self.worker.start()
-
-
+        
 class RunWorker(QThread):
     """Run the pipeline"""
 
@@ -1783,8 +1901,6 @@ class RunWorker(QThread):
             study_config = StudyConfig(use_spm=False)
 
         study_config.reset_process_counter()
-
-        
 
         try:
             study_config.run(pipeline, verbose=1)
@@ -1860,14 +1976,28 @@ class RunWorker(QThread):
             #                                  PipelineManagerTab class, this
             #                                  module
            
-        except OSError as e:
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Critical)
-            self.msg.setText("SPM standalone is not set")
-            self.msg.setInformativeText(
-                "SPM processes cannot be run with SPM standalone not set.\n"
-                "You can activate it and set the paths in MIA preferences.")
-            self.msg.setWindowTitle("Error")
-            self.msg.setStandardButtons(QMessageBox.Ok)
-            self.msg.buttonClicked.connect(self.msg.close)
-            self.msg.show()
+        except (OSError, ValueError, Exception) as e:
+            print('\n{0} has not been launched:\n{1}\n'.format(pipeline.name,
+                                                               e))
+        # haven't yet found how to raise the exception in the try block in
+        # PipelineManagerTab.runPipeline() above. So the
+        # self.main_window.statusBar().showMessage() gives the
+        # "has been correctly run" message even if a problem has occurred here!
+
+            #self.diagramView.main_window.statusBar().showMessage(
+            #        'Pipeline "{0}" has not been correctly run.'.format(pipeline.name))
+            
+            #self.msg = QMessageBox()
+            #self.msg.setIcon(QMessageBox.Critical)
+            #self.msg.setText("SPM standalone is not set")
+            #self.msg.setInformativeText(
+            #    "SPM processes cannot be run with SPM standalone not set.\n"
+            #    "You can activate it and set the paths in MIA preferences.")
+            #self.msg.setWindowTitle("Error")
+            #self.msg.setStandardButtons(QMessageBox.Ok)
+            #self.msg.buttonClicked.connect(self.msg.close)
+            #self.msg.show()
+
+            #except ValueError as e:
+            #    print("\n{0} has not been launched:\n{1}\n".format(pipeline.name,
+            #                                                       e))
