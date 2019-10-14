@@ -93,31 +93,13 @@ class Filter:
                                                                 self.nots,
                                                                 rapid_list)
         )
-
-
-        print('\nprout advanced_filter: ', advanced_filter)
-
-
-
-        
-        
         advanced_result = (current_project.session
                                    .filter_documents(project.COLLECTION_CURRENT,
                                                      advanced_filter)
         )
 
-
-        print('\nprout advanced_result: ', advanced_result)
-
-
-
-        
         final_result = [getattr(scan, project.TAG_FILENAME)
                                                     for scan in advanced_result]
-
-
-        print('\nprout final_result: ', final_result)
-        
         return final_result
 
     def json_format(self):
