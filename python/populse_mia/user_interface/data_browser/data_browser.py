@@ -753,7 +753,7 @@ class TableDataBrowser(QTableWidget):
 
         # Adding a custom context menu
         self.setContextMenuPolicy(Qt.CustomContextMenu)
-        if self.activate_selection:
+        if self.activate_selection and link_viewer:
             self.customContextMenuRequested.connect(self.context_menu_table)
         self.itemChanged.connect(self.change_cell_color)
         if activate_selection:
