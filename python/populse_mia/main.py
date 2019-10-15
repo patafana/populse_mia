@@ -109,7 +109,7 @@ subpackages/modules, to construct the mia's pipeline library.
                 for _, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
 
                     if ispkg:
-                        print('\nExploring subpackages  of {0} ...'
+                        print('\nExploring subpackages of {0} ...'
                               .format(module_name))
                         print('- ', str(module_name + '.' + modname))
                         self.add_package(str(module_name + '.' + modname),
@@ -819,7 +819,7 @@ def verify_processes():
             print('\n** Upgrading the {0} library processes to {1} version ...'
                   .format(pckg, miaProcVer))
 
-    if pack2install is not None:
+    if pack2install:
 
         if not any("nipype" in s for s in pack2install):
             print('\n** The nipype library processes in mia use already the '
