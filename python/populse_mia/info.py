@@ -5,8 +5,8 @@ import sys
 
 # Current version
 version_major = 1
-version_minor = 2
-version_micro = 1
+version_minor = 3
+version_micro = 0
 version_extra = ""
 
 # Expected by setup.py: string of form "X.Y.Z"
@@ -58,7 +58,7 @@ if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
         'matplotlib<3.1',
-        'mia-processes>=1.2.1',
+        'mia-processes>=1.3.0',
         'nibabel',
         'nipype',
         'pillow',
@@ -81,7 +81,7 @@ elif sys.version_info >= (3 , 6):
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
         'matplotlib',
-        'mia-processes>=1.2.1',
+        'mia-processes>=1.3.0',
         'nibabel',
         'nipype',
         'pillow',
