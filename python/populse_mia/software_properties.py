@@ -91,7 +91,7 @@ class Config:
     Object that handles the configuration of the software
 
     .. Methods:
-        - get_clinical_mode: returns the value of "clinical mode" checkbox
+        - get_user_mode: returns the value of "user mode" checkbox
           in the preferences
         - get_matlab_command: returns Matlab command
         - get_matlab_path: returns the path of Matlab's executable
@@ -132,7 +132,7 @@ class Config:
         - saveConfig: saves the config to the config.yml file
         - setAutoSave: sets the auto-save mode
         - setBackgroundColor: sets the background color
-        - set_clinical_mode: sets the value of "clinical mode" checkbox in
+        - set_user_mode: sets the value of "user mode" checkbox in
           the preferences
         - set_matlab_path: sets the path of Matlab's executable
         - set_matlab_standalone_path: sets the path of Matlab Compiler Runtime
@@ -169,14 +169,14 @@ class Config:
             self.config["mia_user_path"] = self.get_mia_path()
             self.saveConfig()
 
-    def get_clinical_mode(self):
-        """Get if clinical mode is disabled or enabled in the preferences.
+    def get_user_mode(self):
+        """Get if user mode is disabled or enabled in the preferences.
 
         :return: boolean
 
         """
         try:
-            return self.config["clinical_mode"]
+            return self.config["user_mode"]
         except KeyError:
             return True
 
@@ -237,7 +237,7 @@ class Config:
 
         During the mia installation, the mia_path is defined and stored in the
         configuration.yml file, located in the .populse_mia folder (himself
-        located in the user's home). If mia is launched in developer mode,
+        located in the user's home). If mia is launched in admin mode,
         mia path is the cloned git repository. If mia is launched in user
         mode, mia path must compulsorily be returned from the mia_path
         parameter of the configuration.yml
@@ -261,7 +261,7 @@ class Config:
 
                     if ("dev_mode" in mia_home_config.keys() and
                             mia_home_config["dev_mode"] == True):
-                        # Only for developer mode
+                        # Only for admin mode
                         self.dev_mode = True
                         config_path = os.path.dirname(os.path.realpath(
                             __file__))
@@ -293,7 +293,7 @@ class Config:
                           'the properties and resources folders) has not '
                           'been found ...')
 
-        else:  # Only for developer mode
+        else:  # Only for admin mode
             
             try:
                 return self.config["mia_user_path"]
@@ -509,13 +509,13 @@ class Config:
             yaml.dump(self.config, configfile, default_flow_style=False,
                       allow_unicode=True)
 
-    def set_clinical_mode(self, clinical_mode):
-        """Enable of disable clinical mode.
+    def set_user_mode(self, user_mode):
+        """Enable of disable user mode.
 
-        :param: clinical_mode: boolean
+        :param: user_mode: boolean
 
         """
-        self.config["clinical_mode"] = clinical_mode
+        self.config["user_mode"] = user_mode
         # Then save the modification
         self.saveConfig()
 

@@ -268,7 +268,7 @@ class MainWindow(QMainWindow):
             self.saved_projects_actions.append(QAction(self, visible=False,
                                             triggered=self.open_recent_project)
                                                )
-        # if Config().get_clinical_mode() == True:
+        # if Config().get_user_mode() == True:
         #     self.action_package_library.setDisabled(True)
         # else:
         #     self.action_package_library.setEnabled(True)
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
 
         self.action_redo.setShortcut('Ctrl+Y')
 
-        # if Config().get_clinical_mode() == True:
+        # if Config().get_user_mode() == True:
         #     self.action_install_processes.setDisabled(True)
         # else:
         #     self.action_install_processes.setEnabled(True)
@@ -359,7 +359,7 @@ class MainWindow(QMainWindow):
         text_color = self.config.getTextColor()
 
         if self.config.dev_mode:
-            self.windowName += " (Developer mode)"
+            self.windowName += " (Admin mode)"
         self.windowName += " - "
 
         self.setStyleSheet("background-color:" + background_color +
@@ -876,13 +876,13 @@ class MainWindow(QMainWindow):
         self.pop_up_preferences = PopUpPreferences(self)
         self.pop_up_preferences.setGeometry(300, 200, 800, 600)
         self.pop_up_preferences.show()
-        self.pop_up_preferences.use_clinical_mode_signal.connect(
+        self.pop_up_preferences.use_user_mode_signal.connect(
             self.add_clinical_tags)
 
         # Modifying the options in the Pipeline Manager
-        # (verify if clinical mode)
+        # (verify if user mode)
         self.pop_up_preferences.signal_preferences_change.connect(
-            self.pipeline_manager.update_clinical_mode)
+            self.pipeline_manager.update_user_mode)
         # self.pop_up_preferences.signal_preferences_change.connect(
         #     self.update_package_library_action)
 
@@ -1107,7 +1107,7 @@ class MainWindow(QMainWindow):
 
     # def update_package_library_action(self):
     #     """Update the package library action depending on the mode."""
-    #     if Config().get_clinical_mode() == True:
+    #     if Config().get_user_mode() == True:
     #         self.action_package_library.setDisabled(True)
     #         # self.action_install_processes.setDisabled(True)
     #     else:

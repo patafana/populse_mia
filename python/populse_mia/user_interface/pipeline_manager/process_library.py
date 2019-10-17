@@ -1365,10 +1365,10 @@ class PackageLibraryDialog(QDialog):
 
         config = Config()
 
-        if config.get_clinical_mode():
-            self.setWindowTitle("Package library manager [clinical mode]")
+        if config.get_user_mode():
+            self.setWindowTitle("Package library manager [user mode]")
         else:
-            self.setWindowTitle("Package library manager [developer mode]")
+            self.setWindowTitle("Package library manager [admin mode]")
         # True if the path specified in the line edit is a path with '/'
         self.is_path = False
 
@@ -1467,7 +1467,7 @@ class PackageLibraryDialog(QDialog):
         h_box_buttons = QHBoxLayout()
         h_box_buttons.addWidget(push_button_add_pkg)
         h_box_buttons.addWidget(push_button_rm_pkg)
-        if config.get_clinical_mode() is False:
+        if config.get_user_mode() is False:
             h_box_buttons.addWidget(push_button_del_pkg)
 
         group_import = QGroupBox("Added packages")
@@ -2276,7 +2276,7 @@ class ProcessLibrary(QTreeView):
         """Event when the delete key is pressed."""
         config = Config()
         if event.key() == QtCore.Qt.Key_Delete and \
-                not config.get_clinical_mode():
+                not config.get_user_mode():
             for idx in self.selectedIndexes():
                 if idx.isValid:
                     model = idx.model()
@@ -2321,7 +2321,7 @@ class ProcessLibrary(QTreeView):
                     self.menu = QMenu(self)
                     self.remove = self.menu.addAction(
                         "Remove package")
-                    if config.get_clinical_mode() is False :
+                    if config.get_user_mode() is False :
                         self.action_delete = self.menu.addAction(
                             "Delete package")
                     else:

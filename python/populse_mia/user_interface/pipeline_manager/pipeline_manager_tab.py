@@ -106,7 +106,7 @@ class PipelineManagerTab(QWidget):
         - undo: undo the last action made on the current pipeline editor
         - updateProcessLibrary: update the library of processes when a
           pipeline is saved
-        - update_clinical_mode: update the visibility of widgets/actions
+        - update_user_mode: update the visibility of widgets/actions
           depending of the chosen mode
         - update_project: update the project attribute of several objects
         - update_scans_list: update the user-selected list of scans
@@ -208,7 +208,7 @@ class PipelineManagerTab(QWidget):
         self.run_pipeline_action = QAction("Run pipeline", self)
         self.run_pipeline_action.triggered.connect(self.runPipeline)
 
-        # if config.get_clinical_mode() == True:
+        # if config.get_user_mode() == True:
         #     self.save_pipeline_action.setDisabled(True)
         #     self.save_pipeline_as_action.setDisabled(True)
         #     self.processLibrary.setHidden(True)
@@ -1261,7 +1261,7 @@ class PipelineManagerTab(QWidget):
         # Toolbar
         self.tags_menu.addAction(self.load_pipeline_action)
         self.tags_menu.addAction(self.save_pipeline_action)
-        if Config().get_clinical_mode():
+        if Config().get_user_mode():
             self.save_pipeline_action.setDisabled(True)
             self.pipelineEditorTabs.get_current_editor(
             ).disable_overwrite = True
@@ -1668,16 +1668,16 @@ class PipelineManagerTab(QWidget):
             c_e.scene.pipeline.update_nodes_and_plugs_activation()
             self.nodeController.update_parameters()
 
-    def update_clinical_mode(self):
+    def update_user_mode(self):
         """
         Update the visibility of widgets/actions depending of the chosen mode
 
         """
         config = Config()
 
-        # If the clinical mode is chosen, the process library is not available
+        # If the user mode is chosen, the process library is not available
         # and the user cannot save a pipeline
-        if config.get_clinical_mode():
+        if config.get_user_mode():
             self.save_pipeline_action.setDisabled(True)
             self.pipelineEditorTabs.get_current_editor(
             ).disable_overwrite = True
@@ -1686,9 +1686,9 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.get_current_editor(
             ).disable_overwrite = False
 
-        # If the clinical mode is chosen, the process library is not available
+        # If the user mode is chosen, the process library is not available
         # and the user cannot save a pipeline
-        # if config.get_clinical_mode() == True:
+        # if config.get_user_mode() == True:
         #     self.processLibrary.setHidden(True)
         #     self.previewBlock.setHidden(True)
         #     self.save_pipeline_action.setDisabled(True)

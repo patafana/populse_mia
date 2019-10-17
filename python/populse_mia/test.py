@@ -65,7 +65,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # All the tests are run in regular mode
         config = Config()
-        config.set_clinical_mode(False)
+        config.set_user_mode(False)
 
         self.app = QApplication.instance()
         if self.app is None:
@@ -1074,7 +1074,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         # All the tests are run in regular mode
         config = Config()
-        config.set_clinical_mode(False)
+        config.set_user_mode(False)
 
         self.app = QApplication.instance()
         if self.app is None:
@@ -2239,10 +2239,10 @@ class TestMIADataBrowser(unittest.TestCase):
                                 "properties/config.yml")
         self.assertEqual(os.path.exists(mia_path), True)
 
-        self.assertEqual(config.get_clinical_mode(), False)
-        config.set_clinical_mode(True)
-        self.assertEqual(config.get_clinical_mode(), True)
-        config.set_clinical_mode(False)
+        self.assertEqual(config.get_user_mode(), False)
+        config.set_user_mode(True)
+        self.assertEqual(config.get_user_mode(), True)
+        config.set_user_mode(False)
 
         self.assertEqual(config.get_mri_conv_path(), "")
 

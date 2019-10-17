@@ -241,8 +241,8 @@ class Project():
                                    FIELD_TYPE_DATETIME, "Brick exec time",
                                    False, TAG_ORIGIN_BUILTIN, None, None)
 
-            # Adding default tags for the clinical mode
-            if config.get_clinical_mode() == True:
+            # Adding default tags for the user mode
+            if config.get_user_mode() == True:
                 for clinical_tag in CLINICAL_TAGS:
                     if clinical_tag == "Age":
                         field_type = FIELD_TYPE_INTEGER

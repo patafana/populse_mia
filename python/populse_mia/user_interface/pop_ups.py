@@ -1654,7 +1654,7 @@ class PopUpPreferences(QDialog):
         - browse_spm: called when spm browse button is clicked
         - browse_spm_standalone: called when spm standalone browse button
           is clicked
-        - clinical_mode_switch: called when the clinical mode checkbox
+        - user_mode_switch: called when the user mode checkbox
           is clicked
         - ok_clicked: saves the modifications to the config file and apply them
         - use_matlab_changed: called when the use_matlab checkbox is changed
@@ -1667,7 +1667,7 @@ class PopUpPreferences(QDialog):
     # Signal that will be emitted at the end to tell that the project
     # has been created
     signal_preferences_change = pyqtSignal()
-    use_clinical_mode_signal = pyqtSignal()
+    use_user_mode_signal = pyqtSignal()
 
     def __init__(self, main_window):
         """Initialization.
@@ -1710,26 +1710,26 @@ class PopUpPreferences(QDialog):
         h_box_auto_save.addWidget(self.save_label)
         h_box_auto_save.addStretch(1)
 
-        self.clinical_mode_checkbox = QCheckBox('', self)
-        self.clinical_mode_checkbox.clicked.connect(self.clinical_mode_switch)
-        self.clinical_mode_label = QLabel("Clinical mode")
+        self.user_mode_checkbox = QCheckBox('', self)
+        self.user_mode_checkbox.clicked.connect(self.user_mode_switch)
+        self.user_mode_label = QLabel("User mode")
 
-        if config.get_clinical_mode() == True:
-            self.clinical_mode_checkbox.setChecked(1)
+        if config.get_user_mode() == True:
+            self.user_mode_checkbox.setChecked(1)
 
         else:
-            self.clinical_mode_checkbox.setChecked(1)
-            self.clinical_mode_checkbox.setChecked(0)
+            self.user_mode_checkbox.setChecked(1)
+            self.user_mode_checkbox.setChecked(0)
 
-        h_box_clinical_mode = QtWidgets.QHBoxLayout()
-        h_box_clinical_mode.addWidget(self.clinical_mode_checkbox)
-        # h_box_clinical_mode.addWidget(self.clinical_mode_trap)
-        h_box_clinical_mode.addWidget(self.clinical_mode_label)
-        h_box_clinical_mode.addStretch(1)
+        h_box_user_mode = QtWidgets.QHBoxLayout()
+        h_box_user_mode.addWidget(self.user_mode_checkbox)
+        # h_box_user_mode.addWidget(self.user_mode_trap)
+        h_box_user_mode.addWidget(self.user_mode_label)
+        h_box_user_mode.addStretch(1)
 
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
-        v_box_global.addLayout(h_box_clinical_mode)
+        v_box_global.addLayout(h_box_user_mode)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2091,19 +2091,6 @@ class PopUpPreferences(QDialog):
         if fname:
             self.spm_standalone_choice.setText(fname)
 
-    def clinical_mode_switch(self):
-        """Called when the clinical mode checkbox is clicked."""
-        
-        self.clicked += 1
-        if self.clicked % 6 == 0:
-            self.clinical_mode_checkbox.setChecked(1)
-            self.clinical_mode_checkbox.setChecked(0)
-            self.clinical_mode_checkbox.setVisible(False)
-            self.clinical_mode_label.setText("Developer mode")
-        else:
-            self.clinical_mode_checkbox.setChecked(1)
-            self.clinical_mode_label.setText("Clinical mode")
-
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
 
@@ -2189,14 +2176,14 @@ class PopUpPreferences(QDialog):
         if not self.use_spm_standalone_checkbox.isChecked():
             config.set_use_spm_standalone(False)
 
-        # Clinical mode
+        # User mode
         main_window.windowName = "MIA - Multiparametric Image Analysis"
-        if self.clinical_mode_checkbox.isChecked():
-            config.set_clinical_mode(True)
-            self.use_clinical_mode_signal.emit()
+        if self.user_mode_checkbox.isChecked():
+            config.set_user_mode(True)
+            self.use_user_mode_signal.emit()
         else:
-            config.set_clinical_mode(False)
-            main_window.windowName += " (Developer mode)"
+            config.set_user_mode(False)
+            main_window.windowName += " (Admin mode)"
 
         main_window.windowName += " - "
         main_window.setWindowTitle(main_window.windowName +
@@ -2417,6 +2404,19 @@ class PopUpPreferences(QDialog):
             self.use_spm_checkbox.setChecked(False)
             self.use_matlab_checkbox.setChecked(False)
 
+    def user_mode_switch(self):
+        """Called when the user mode checkbox is clicked."""
+
+        self.clicked += 1
+        if self.clicked % 6 == 0:
+            self.user_mode_checkbox.setChecked(1)
+            self.user_mode_checkbox.setChecked(0)
+            self.user_mode_checkbox.setVisible(False)
+            self.user_mode_label.setText("Admin mode")
+        else:
+            self.user_mode_checkbox.setChecked(1)
+            self.user_mode_label.setText("User mode")
+
     def wrong_path(self, path, tool):
         QApplication.restoreOverrideCursor()
         self.status_label.setText("")
@@ -2429,6 +2429,7 @@ class PopUpPreferences(QDialog):
         self.msg.setStandardButtons(QMessageBox.Ok)
         self.msg.buttonClicked.connect(self.msg.close)
         self.msg.show()
+
 
 class PopUpProperties(QDialog):
     """Is called when the user wants to change the current project's

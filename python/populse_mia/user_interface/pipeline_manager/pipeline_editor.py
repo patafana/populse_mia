@@ -737,7 +737,7 @@ class PipelineEditor(PipelineDevelopperView):
                 msg.exec()
                 filename = os.path.splitext(filename)[0] + '.py'
 
-            if os.path.exists(filename) and config.get_clinical_mode():
+            if os.path.exists(filename) and config.get_user_mode():
                 msg = QtWidgets.QMessageBox()
                 msg.setIcon(QtWidgets.QMessageBox.Warning)
                 msg.setText('This file already exists, you do not have the '
@@ -817,7 +817,7 @@ class PipelineEditor(PipelineDevelopperView):
     #         msg.exec()
     #         filename = os.path.splitext(filename)[0] + '.json'
     #
-    #     if os.path.exists(filename) and config.get_clinical_mode():
+    #     if os.path.exists(filename) and config.get_user_mode():
     #         msg = QtWidgets.QMessageBox()
     #         msg.setIcon(QtWidgets.QMessageBox.Warning)
     #         msg.setText('This file already exists, you do not have the '
@@ -858,7 +858,6 @@ class PipelineEditor(PipelineDevelopperView):
             else:
                 with open(filename, 'w') as file:
                     json.dump(jsonstring, file)
-
 
     def update_history(self, history_maker, from_undo, from_redo):
         """Update the history for undos and redos.
