@@ -599,20 +599,20 @@ def verify_processes():
         __import__('nipype')
         nipypeVer = sys.modules['nipype'].__version__
         
-    except ImportError as e:
+    except (ModuleNotFoundError, ImportError, AttributeError) as e:
         pkg_error.append('nipype')
         print('\n' + '*' * 37)
-        print('MIA warning: {0}'.format(e))
+        print('MIA warning {0}: {1}'.format(e.__class__, e))
         print('*' * 37 + '\n')
 
     try:
         __import__('mia_processes')
         miaProcVer = sys.modules['mia_processes'].__version__
 
-    except ImportError as e:
+    except (ModuleNotFoundError, ImportError, AttributeError) as e:
         pkg_error.append('mia_processes')
         print('\n' + '*' * 37)
-        print('MIA warning: {0}'.format(e))
+        print('MIA warning {0}: {1}'.format(e.__class__, e))
         print('*' * 37 + '\n')
    
     if len(pkg_error) > 0:
