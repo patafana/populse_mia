@@ -1405,7 +1405,7 @@ class PackageLibraryDialog(QDialog):
             partial(self.install_processes_pop_up, True))
 
         push_button_add_pkg = QPushButton(default=False, autoDefault=False)
-        push_button_add_pkg.setText("Add package")
+        push_button_add_pkg.setText("Add/Update package")
         push_button_add_pkg.clicked.connect(self.add_package_with_text)
 
         push_button_rm_pkg = QPushButton(default=False, autoDefault=False)
