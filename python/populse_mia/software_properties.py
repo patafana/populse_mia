@@ -91,6 +91,7 @@ class Config:
     Object that handles the configuration of the software
 
     .. Methods:
+        - get_admin_hash: returns the value of the hash of the admin password
         - get_user_mode: returns the value of "user mode" checkbox
           in the preferences
         - get_matlab_command: returns Matlab command
@@ -169,6 +170,17 @@ class Config:
             self.config["mia_user_path"] = self.get_mia_path()
             self.saveConfig()
 
+    def get_admin_hash(self):
+        """Get the value of the hash of the admin password.
+
+        :return: string
+
+        """
+        try:
+            return self.config["admin_hash"]
+        except KeyError:
+            return False
+
     def get_user_mode(self):
         """Get if user mode is disabled or enabled in the preferences.
 
@@ -178,7 +190,7 @@ class Config:
         try:
             return self.config["user_mode"]
         except KeyError:
-            return True
+            return False
 
     def get_matlab_command(self):
         """Get Matlab command.
@@ -508,6 +520,16 @@ class Config:
 
             yaml.dump(self.config, configfile, default_flow_style=False,
                       allow_unicode=True)
+
+    def set_admin_hash(self, hash):
+        """Set the password hash.
+
+        :param: path: string of hash
+
+        """
+        self.config["admin_hash"] = hash
+        # Then save the modification
+        self.saveConfig()
 
     def set_user_mode(self, user_mode):
         """Enable of disable user mode.

@@ -59,7 +59,8 @@ from PyQt5.QtWidgets import (
     QCheckBox, QComboBox, QLineEdit, QFileDialog, QTableWidget,
     QTableWidgetItem, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem,
     QMessageBox, QHeaderView, QWidget, QHBoxLayout, QVBoxLayout,
-    QDialogButtonBox, QDialog, QApplication, QRadioButton, QScrollArea)
+    QDialogButtonBox, QDialog, QApplication, QRadioButton, QScrollArea,
+    QInputDialog, QFormLayout)
 
 # Populse_db imports
 from populse_db.database import (
@@ -1688,6 +1689,7 @@ class PopUpPreferences(QDialog):
 
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.tab_widget.setEnabled(True)
+        self.salt = "P0pulseM1@"
 
         config = Config()
 
@@ -1712,14 +1714,19 @@ class PopUpPreferences(QDialog):
 
         self.user_mode_checkbox = QCheckBox('', self)
         self.user_mode_checkbox.clicked.connect(self.user_mode_switch)
-        self.user_mode_label = QLabel("User mode")
+        self.user_mode_label = QLabel("Admin mode")
+        self.change_psswd = QPushButton("Change password", default=False,
+                                         autoDefault=False)
+        self.change_psswd.clicked.connect(self.change_admin_psswd)
 
-        if config.get_user_mode() == True:
+        if not config.get_user_mode():
             self.user_mode_checkbox.setChecked(1)
+            self.change_psswd.setVisible(True)
 
         else:
             self.user_mode_checkbox.setChecked(1)
             self.user_mode_checkbox.setChecked(0)
+            self.change_psswd.setVisible(False)
 
         h_box_user_mode = QtWidgets.QHBoxLayout()
         h_box_user_mode.addWidget(self.user_mode_checkbox)
@@ -1730,6 +1737,7 @@ class PopUpPreferences(QDialog):
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
+        v_box_global.addWidget(self.change_psswd)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2091,6 +2099,46 @@ class PopUpPreferences(QDialog):
         if fname:
             self.spm_standalone_choice.setText(fname)
 
+    def change_admin_psswd(self):
+        change = QDialog()
+        change.old_psswd = QLineEdit()
+        change.new_psswd = QLineEdit()
+        change.new_psswd_conf = QLineEdit()
+
+        change.old_psswd.setEchoMode(QLineEdit.Password)
+        change.new_psswd.setEchoMode(QLineEdit.Password)
+        change.new_psswd_conf.setEchoMode(QLineEdit.Password)
+
+        buttonBox = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+
+        layout = QFormLayout()
+        layout.addRow("Old password", change.old_psswd)
+        layout.addRow("New password", change.new_psswd)
+        layout.addRow("Confirm new password", change.new_psswd_conf)
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(change.accept)
+        buttonBox.rejected.connect(change.reject)
+        change.setLayout(layout)
+
+        event = change.exec()
+
+        if not event:
+            change.close()
+        else:
+            config = Config()
+            old_psswd = self.salt + change.old_psswd.text()
+            hash_psswd = hashlib.sha256(old_psswd.encode()).hexdigest()
+            if hash_psswd == config.get_admin_hash() and change.new_psswd.text(
+                ) == change.new_psswd_conf.text():
+                new_psswd = self.salt + change.new_psswd.text()
+                config.set_admin_hash(hashlib.sha256(
+                    new_psswd.encode()).hexdigest())
+            elif hash_psswd != config.get_admin_hash():
+                self.change_admin_psswd()
+            elif change.new_psswd.text() != change.new_psswd_conf.text():
+                self.change_admin_psswd()
+
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
 
@@ -2179,11 +2227,11 @@ class PopUpPreferences(QDialog):
         # User mode
         main_window.windowName = "MIA - Multiparametric Image Analysis"
         if self.user_mode_checkbox.isChecked():
-            config.set_user_mode(True)
-            self.use_user_mode_signal.emit()
-        else:
             config.set_user_mode(False)
             main_window.windowName += " (Admin mode)"
+        else:
+            config.set_user_mode(True)
+            self.use_user_mode_signal.emit()
 
         main_window.windowName += " - "
         main_window.setWindowTitle(main_window.windowName +
@@ -2406,16 +2454,22 @@ class PopUpPreferences(QDialog):
 
     def user_mode_switch(self):
         """Called when the user mode checkbox is clicked."""
-
-        self.clicked += 1
-        if self.clicked % 6 == 0:
-            self.user_mode_checkbox.setChecked(1)
-            self.user_mode_checkbox.setChecked(0)
-            self.user_mode_checkbox.setVisible(False)
-            self.user_mode_label.setText("Admin mode")
+        config = Config()
+        if self.user_mode_checkbox.isChecked():
+            psswd, ok = QInputDialog.getText(self, 'Password Input Dialog',
+                                            'Enter the admin password:',
+                                            QLineEdit.Password)
+            if ok:
+                salt_psswd = self.salt + psswd
+                hash_psswd = hashlib.sha256(salt_psswd.encode()).hexdigest()
+                if hash_psswd != config.get_admin_hash():
+                    self.user_mode_checkbox.setChecked(False)
+                else:
+                    self.change_psswd.setVisible(True)
+            else:
+                self.user_mode_checkbox.setChecked(False)
         else:
-            self.user_mode_checkbox.setChecked(1)
-            self.user_mode_label.setText("User mode")
+            self.change_psswd.setVisible(False)
 
     def wrong_path(self, path, tool):
         QApplication.restoreOverrideCursor()

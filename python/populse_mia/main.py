@@ -44,13 +44,13 @@ from soma.qt_gui.qt_backend.Qt import QMessageBox
 
 # Adding populse_mia path to the sys.path if in admin mode
 if not os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))) in sys.path:           # "developer" mode
+        os.path.realpath(__file__))) in sys.path:  # "developer" mode
     print('\nPopulse_MIA in "admin" mode')
     sys.path.insert(0, os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))))
     ADMIN_MODE = True
 
-else:                                                       # "user" mode
+else:  # "user" mode
     ADMIN_MODE = False
 
 # populse_mia imports
@@ -76,7 +76,7 @@ in a recursive way.
 
     def __init__(self):
         """Initialise the packages instance attribute."""
-        
+
         self.packages = {}
 
     def add_package(self, module_name, class_name=None):
@@ -261,10 +261,10 @@ def launch_mia():
 
 
 def check_python_version():
-    
     if sys.version_info[:2] < (3, 5):
         raise AssertionError("The populse_mia is ensured to work with Python "
                              ">= 3.5")
+
 
 def main():
     """Make basic configuration check then actual launch of mia.
@@ -299,9 +299,10 @@ def main():
                 The user define the mia_path parameter.
 
                 This method, used only if the mia configuration parameters are
-                not accessible, goes with the _verify_miaConfig function, which 
-                will use the value of the mia_path parameter, defined here. 
-                
+                not accessible, goes with the _verify_miaConfig function,
+                which
+                will use the value of the mia_path parameter, defined here.
+
                 :Parameters dialog: QtWidgets.QDialog object ('msg' in the main
                    function)
 
@@ -322,7 +323,8 @@ def main():
                 dev_mode=False and mia_path parameters are saved in the
                 ~/.populse_mia/configuration.yml file (the mia_user_path
                 parameter is mandatory in the user mode). Then the data in the
-                mia_path/properties/config.yml file are checked. If an exception
+                mia_path/properties/config.yml file are checked. If an
+                exception
                 is raised during the  _verify_miaConfig function, the "MIA path
                 selection" window is not closed and the user is prompted again
                 to set the mia_user_path parameter.
@@ -342,20 +344,23 @@ def main():
     def _verify_miaConfig(dialog=None):
 
         save_flag = False
-        
-        if ADMIN_MODE:                     # "developer" mode
+
+        if ADMIN_MODE:  # "developer" mode
 
             try:
                 config = Config()
-
+                if not config.get_admin_hash():
+                    config.set_admin_hash(
+                        "60cfd1916033576b0f2368603fe612fb"
+                        "78b8c20e4f5ad9cf39c9cf7e912dd282")
             except Exception as e:
                 print('\nMIA configuration settings could not be '
                       'recovered: {0} ...'.format(e))
                 print('\nMIA is exiting ...\n')
                 sys.exit(1)
-                    
-        elif dialog is not None:         # "user" mode only if problem
-            
+
+        elif dialog is not None:  # "user" mode only if problem
+
             mia_home_config = dict()
             mia_home_config["dev_mode"] = False
             mia_home_config["mia_user_path"] = dialog.file_line_edit.text()
@@ -365,9 +370,10 @@ def main():
                 print('- {0}: {1}'.format(key, value))
 
             print()
-                      
+
             with open(dot_mia_config, 'w', encoding='utf8') as configfile:
-                yaml.dump(mia_home_config, configfile, default_flow_style=False,
+                yaml.dump(mia_home_config, configfile,
+                          default_flow_style=False,
                           allow_unicode=True)
 
             try:
@@ -388,17 +394,17 @@ def main():
                 msg.buttonClicked.connect(msg.close)
                 msg.exec()
 
-        else:                            # "user" mode (initial pass)
+        else:  # "user" mode (initial pass)
             config = Config()
 
         if 'config' in locals():
-            
+
             for key, value in config.config.items():
-                
+
                 if value == 'no':
                     save_flag = True
                     config.config[key] = False
-                    
+
                 if value == 'yes':
                     save_flag = True
                     config.config[key] = True
@@ -409,17 +415,17 @@ def main():
     dot_mia_config = os.path.join(os.path.expanduser("~"), ".populse_mia",
                                   "configuration.yml")
 
-    if ADMIN_MODE:                         # "developer" mode
+    if ADMIN_MODE:  # "developer" mode
 
         if os.path.isfile(dot_mia_config):
             print('\n{0} has been detected.'.format(dot_mia_config))
 
             with open(dot_mia_config, 'r') as stream:
-                
+
                 if verCmp(yaml.__version__, '5.1', 'sup'):
                     mia_home_config = yaml.load(stream,
                                                 Loader=yaml.FullLoader)
-                else:    
+                else:
                     mia_home_config = yaml.load(stream)
 
             mia_home_config["dev_mode"] = True
@@ -435,31 +441,30 @@ def main():
 
         _verify_miaConfig()
 
-    else:                                # "user" mode
-  
+    else:  # "user" mode
+
         try:
-            
+
             if not os.path.exists(os.path.dirname(dot_mia_config)):
                 os.mkdir(os.path.dirname(dot_mia_config))
                 print('\nThe {0} directory is created ...'
                       .format(os.path.exists(os.path.dirname(dot_mia_config))))
 
             with open(dot_mia_config, 'r') as stream:
-                
+
                 if verCmp(yaml.__version__, '5.1', 'sup'):
                     mia_home_config = yaml.load(stream,
                                                 Loader=yaml.FullLoader)
-                else:    
+                else:
                     mia_home_config = yaml.load(stream)
 
-
             mia_home_config["dev_mode"] = False
-            
+
             with open(dot_mia_config, 'w', encoding='utf8') as configfile:
                 yaml.dump(mia_home_config, configfile,
                           default_flow_style=False,
                           allow_unicode=True)
-                
+
             _verify_miaConfig()
 
         except Exception as e:  # the configuration.yml file does not exist
@@ -495,7 +500,7 @@ def main():
             msg.setLayout(vbox_layout)
             msg.exec()
             del app
-      
+
     verify_processes()
     check_python_version()
     launch_mia()
@@ -503,13 +508,13 @@ def main():
     # set the dev_mode to False when exiting mia,
     # if ~/.populse_mia/configuration.yml file exists
     if os.path.isfile(dot_mia_config):
-        
+
         with open(dot_mia_config, 'r') as stream:
-            
+
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 mia_home_config = yaml.load(stream,
                                             Loader=yaml.FullLoader)
-            else:    
+            else:
                 mia_home_config = yaml.load(stream)
 
         mia_home_config["dev_mode"] = False
@@ -581,7 +586,6 @@ def verify_processes():
             elif _deepCompDic(old_dic[str(key)], new_dic[str(key)]):
                 new_dic[str(key)] = old_dic[str(key)]
 
-
     proc_content = False
     nipypeVer = False
     miaProcVer = False
@@ -594,11 +598,11 @@ def verify_processes():
     print('\nChecking the installed versions of nipype and mia_processes ...')
     print('***************************************************************')
     pkg_error = []
-    
+
     try:
         __import__('nipype')
         nipypeVer = sys.modules['nipype'].__version__
-        
+
     except (ModuleNotFoundError, ImportError, AttributeError) as e:
         pkg_error.append('nipype')
         print('\n' + '*' * 37)
@@ -614,7 +618,7 @@ def verify_processes():
         print('\n' + '*' * 37)
         print('MIA warning {0}: {1}'.format(e.__class__, e))
         print('*' * 37 + '\n')
-   
+
     if len(pkg_error) > 0:
         app = QApplication(sys.argv)
         msg = QMessageBox()
@@ -636,13 +640,13 @@ def verify_processes():
         sys.exit(1)
 
     if os.path.isfile(proc_config):
-        
+
         with open(proc_config, 'r') as stream:
 
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 proc_content = yaml.load(stream,
                                          Loader=yaml.FullLoader)
-            else:    
+            else:
                 proc_content = yaml.load(stream)
 
     if (isinstance(proc_content, dict)) and ('Packages' in proc_content):
@@ -652,7 +656,7 @@ def verify_processes():
     if 'othPckg' in dir():
         # othPckg: a list containing all packages, other than nipype and
         # mia_processes, used during the previous launch of mia.
-        
+
         for pckg in othPckg:
 
             try:
@@ -663,9 +667,9 @@ def verify_processes():
                 # currently used
 
                 if (not (os.path.relpath(os.path.join(config.get_mia_path(),
-                                                     'processes')) in
-                        sys.path)) and (not (os.path.abspath(os.path.join(
-                        config.get_mia_path(), 'processes')) in sys.path)):
+                                                      'processes')) in
+                         sys.path)) and (not (os.path.abspath(os.path.join(
+                    config.get_mia_path(), 'processes')) in sys.path)):
                     sys.path.append(os.path.abspath(os.path.join(
                         config.get_mia_path(), 'processes')))
 
