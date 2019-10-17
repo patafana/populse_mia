@@ -41,6 +41,7 @@ import traceback
 from datetime import datetime
 from functools import partial
 from zipfile import ZipFile, is_zipfile
+from copy import deepcopy
 
 import yaml
 # PyQt5 import
@@ -1374,6 +1375,8 @@ class PackageLibraryDialog(QDialog):
         self.process_config = self.load_config()
         self.load_packages()
 
+        self.pkg_config = deepcopy(self.packages)
+
         self.package_library = PackageLibrary(self.packages, self.paths)
 
         self.status_label = QLabel()
@@ -2027,11 +2030,13 @@ class PackageLibraryDialog(QDialog):
         self.save()
 
     #def remove_package_with_text(self, _2rem=None, update_view=True, check_flag=True):
-    def remove_package_with_text(self, _2rem=None, update_view=True):
+    def remove_package_with_text(self, _2rem=None, update_view=True,
+                                 tree_remove=True):
         """Remove the package in the line edit from the package tree.
 
         :param _2rem: name of package
         :param update_view: boolean to update the QListWidget
+        :param tree_remove: boolean, remove from the tree
 
         """
 
@@ -2044,7 +2049,7 @@ class PackageLibraryDialog(QDialog):
             QApplication.processEvents()
 
         #package_removed = self.remove_package(_2rem, check_flag)
-        if _2rem not in self.delete_dic:
+        if _2rem not in self.delete_dic and tree_remove:
             package_removed = self.remove_package(_2rem)
         else:
             package_removed = True
@@ -2151,7 +2156,18 @@ class PackageLibraryDialog(QDialog):
         
         for i in itemlist.selectedItems():
             if add is True:
-                self.remove_package_with_text(i.text(), update_view=False)
+                in_config = True
+                for pkg in i.text().split("."):
+                    if pkg in self.pkg_config:
+                        self.pkg_config = self.pkg_config[pkg]
+                    else:
+                        in_config = False
+                if in_config:
+                    self.remove_package_with_text(i.text(),
+                                                  update_view=False,
+                                                  tree_remove=False)
+                else:
+                    self.remove_package_with_text(i.text(), update_view=False)
 
             else:
                 self.add_package_with_text(i.text(), update_view=False)
