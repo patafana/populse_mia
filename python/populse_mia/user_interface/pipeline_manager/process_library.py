@@ -1342,7 +1342,7 @@ class PackageLibraryDialog(QDialog):
         - add_package_with_text: add a package from the line edit's text
         - add_package: add a package and its modules to the package tree
         - browse_package: open a browser to select a package
-        - delete_package: delete a package, only available to developers
+        - delete_package: delete a package, only available to administrators
         - import_file: import a python module from a path
         - load_config: update the config and loads the corresponding packages
         - load_packages: update the tree of the process library
@@ -1837,7 +1837,7 @@ class PackageLibraryDialog(QDialog):
             self.status_label.setText(old_status)
 
     def delete_package(self, index=1, to_delete=None, remove=True, loop=False):
-        """Delete a package, only available to developers.
+        """Delete a package, only available to administrators.
 
         Remove the package from the package library tree, update the
         __init__ file and delete the package directory and files if there
