@@ -1717,7 +1717,7 @@ class PopUpPreferences(QDialog):
         self.user_mode_label = QLabel("Admin mode")
         self.change_psswd = QPushButton("Change password", default=False,
                                          autoDefault=False)
-        self.change_psswd.clicked.connect(self.change_admin_psswd)
+        self.change_psswd.clicked.connect(partial(self.change_admin_psswd, ""))
 
         if not config.get_user_mode():
             self.user_mode_checkbox.setChecked(1)
@@ -2099,11 +2099,18 @@ class PopUpPreferences(QDialog):
         if fname:
             self.spm_standalone_choice.setText(fname)
 
-    def change_admin_psswd(self):
+    def change_admin_psswd(self, status):
+        """Method to change the admin password.
+
+        :param status: String
+        """
         change = QDialog()
         change.old_psswd = QLineEdit()
         change.new_psswd = QLineEdit()
         change.new_psswd_conf = QLineEdit()
+        status = "<i>" + status + "</i>"
+        change.status = QLabel(status)
+        change.status.setStyleSheet("color:red")
 
         change.old_psswd.setEchoMode(QLineEdit.Password)
         change.new_psswd.setEchoMode(QLineEdit.Password)
@@ -2116,6 +2123,7 @@ class PopUpPreferences(QDialog):
         layout.addRow("Old password", change.old_psswd)
         layout.addRow("New password", change.new_psswd)
         layout.addRow("Confirm new password", change.new_psswd_conf)
+        layout.addRow(change.status)
         layout.addWidget(buttonBox)
         buttonBox.accepted.connect(change.accept)
         buttonBox.rejected.connect(change.reject)
@@ -2130,14 +2138,18 @@ class PopUpPreferences(QDialog):
             old_psswd = self.salt + change.old_psswd.text()
             hash_psswd = hashlib.sha256(old_psswd.encode()).hexdigest()
             if hash_psswd == config.get_admin_hash() and change.new_psswd.text(
-                ) == change.new_psswd_conf.text():
+                ) == change.new_psswd_conf.text() and len(
+                change.new_psswd.text()) > 6:
                 new_psswd = self.salt + change.new_psswd.text()
                 config.set_admin_hash(hashlib.sha256(
                     new_psswd.encode()).hexdigest())
             elif hash_psswd != config.get_admin_hash():
-                self.change_admin_psswd()
+                self.change_admin_psswd("The old password is incorrect.")
+            elif len(change.new_psswd.text()) <= 6:
+                self.change_admin_psswd("Your password must have more than 6 "
+                                        "characters")
             elif change.new_psswd.text() != change.new_psswd_conf.text():
-                self.change_admin_psswd()
+                self.change_admin_psswd("The new passwords are not the same.")
 
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
@@ -2464,6 +2476,8 @@ class PopUpPreferences(QDialog):
                 hash_psswd = hashlib.sha256(salt_psswd.encode()).hexdigest()
                 if hash_psswd != config.get_admin_hash():
                     self.user_mode_checkbox.setChecked(False)
+                    self.status_label.setText("<i style='color:red'>Wrong "
+                                              "password.</i>")
                 else:
                     self.change_psswd.setVisible(True)
             else:
