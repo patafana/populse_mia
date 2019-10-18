@@ -42,17 +42,17 @@ from PyQt5.QtWidgets import (QApplication, QDialog, QPushButton, QLabel,
 # soma-base imports
 from soma.qt_gui.qt_backend.Qt import QMessageBox
 
-# Adding populse_mia path to the sys.path if in admin mode
+# Adding populse_mia path to the sys.path if in developer mode
 if not os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))) in sys.path:           # "admin" mode
+        os.path.realpath(__file__))) in sys.path:           # "developer" mode
 
-    print('\nPopulse_MIA in "admin" mode')
+    print('\nPopulse_MIA in "developer" mode')
     sys.path.insert(0, os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))))
-    ADMIN_MODE = True
+    DEV_MODE = True
 
 else:  # "user" mode
-    ADMIN_MODE = False
+    DEV_MODE = False
 
 # populse_mia imports
 from populse_mia.user_interface.main_window import MainWindow
@@ -271,7 +271,7 @@ def main():
     """Make basic configuration check then actual launch of mia.
 
     Checks if MIA is called from the site/dist packages (user mode) or from a
-    cloned git repository (admin mode). Tries to update the dev_mode
+    cloned git repository (developer mode). Tries to update the dev_mode
     parameter accordingly and the mia_path if necessary, in the
     ~/.populse_mia/configuration.yml file (this file must be available from
     the ~/.populse_mia directory). Launches the verify_processes()
@@ -279,11 +279,11 @@ def main():
     mia is exited, if the ~/.populse_mia/configuration.yml exists, sets the
     dev_mode parameter to False.
 
-    - If launched from a cloned git repository ('admin mode'):
+    - If launched from a cloned git repository ('developer mode'):
         - if the ~/.populse_mia/configuration.yml exists, updates
           the dev_mode parameter to True
         - if the ~/.populse_mia/configuration.yml is not existing
-          nothing is done (in admin mode, the mia_path is the
+          nothing is done (in developer mode, the mia_path is the
           cloned git repository.
     - If launched from the site/dist packages ('user mode'):
         - if the ~/.populse_mia/configuration.yml exists, updates
@@ -314,7 +314,7 @@ def main():
                 mia_user_path/properties/config.yml file. Secondly, it allows
                 to correct the value of the mia_user_path parameter in the
                 ~/.populse_mia/configuration.yml file, (in the case of a user
-                mode launch, because the admin mode launch does not need
+                mode launch, because the developer mode launch does not need
                 this parameter).
 
                 In the case of a launch in user mode, this method goes with the
@@ -346,7 +346,7 @@ def main():
 
         save_flag = False
 
-        if ADMIN_MODE:                     # "admin" mode
+        if DEV_MODE:                     # "developer" mode
 
             try:
                 config = Config()
@@ -379,6 +379,10 @@ def main():
 
             try:
                 config = Config()
+                if not config.get_admin_hash():
+                    config.set_admin_hash(
+                        "60cfd1916033576b0f2368603fe612fb"
+                        "78b8c20e4f5ad9cf39c9cf7e912dd282")
                 dialog.close()
 
             except Exception as e:
@@ -397,6 +401,10 @@ def main():
 
         else:  # "user" mode (initial pass)
             config = Config()
+            if not config.get_admin_hash():
+                config.set_admin_hash(
+                    "60cfd1916033576b0f2368603fe612fb"
+                    "78b8c20e4f5ad9cf39c9cf7e912dd282")
 
         if 'config' in locals():
 
@@ -416,7 +424,7 @@ def main():
     dot_mia_config = os.path.join(os.path.expanduser("~"), ".populse_mia",
                                   "configuration.yml")
 
-    if ADMIN_MODE:                         # "admin" mode
+    if DEV_MODE:                         # "developer" mode
 
         if os.path.isfile(dot_mia_config):
             print('\n{0} has been detected.'.format(dot_mia_config))
@@ -470,7 +478,7 @@ def main():
 
         except Exception as e:  # the configuration.yml file does not exist
             # or has not been correctly read ...
-            print('\nA probleme has been detected when opening'
+            print('\nA problem has been detected when opening'
                   ' the ~/.populse_mia/configuration.yml file'
                   ' or with the parameters returned from this file: ', e)
             mia_home_config = dict()
