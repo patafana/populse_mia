@@ -44,7 +44,8 @@ from soma.qt_gui.qt_backend.Qt import QMessageBox
 
 # Adding populse_mia path to the sys.path if in admin mode
 if not os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))) in sys.path:  # "developer" mode
+        os.path.realpath(__file__))) in sys.path:           # "admin" mode
+
     print('\nPopulse_MIA in "admin" mode')
     sys.path.insert(0, os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))))
@@ -345,7 +346,7 @@ def main():
 
         save_flag = False
 
-        if ADMIN_MODE:  # "developer" mode
+        if ADMIN_MODE:                     # "admin" mode
 
             try:
                 config = Config()
@@ -415,7 +416,7 @@ def main():
     dot_mia_config = os.path.join(os.path.expanduser("~"), ".populse_mia",
                                   "configuration.yml")
 
-    if ADMIN_MODE:  # "developer" mode
+    if ADMIN_MODE:                         # "admin" mode
 
         if os.path.isfile(dot_mia_config):
             print('\n{0} has been detected.'.format(dot_mia_config))
