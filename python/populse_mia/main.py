@@ -612,7 +612,7 @@ def verify_processes():
         __import__('nipype')
         nipypeVer = sys.modules['nipype'].__version__
 
-    except (ModuleNotFoundError, ImportError, AttributeError) as e:
+    except (ImportError, AttributeError) as e:
         pkg_error.append('nipype')
         print('\n' + '*' * 37)
         print('MIA warning {0}: {1}'.format(e.__class__, e))
@@ -622,7 +622,7 @@ def verify_processes():
         __import__('mia_processes')
         miaProcVer = sys.modules['mia_processes'].__version__
 
-    except (ModuleNotFoundError, ImportError, AttributeError) as e:
+    except (ImportError, AttributeError) as e:
         pkg_error.append('mia_processes')
         print('\n' + '*' * 37)
         print('MIA warning {0}: {1}'.format(e.__class__, e))
@@ -632,7 +632,7 @@ def verify_processes():
         app = QApplication(sys.argv)
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("populse_mia -  warning: ModuleNotFoundError!")
+        msg.setWindowTitle("populse_mia -  warning: ImportError!")
 
         if len(pkg_error) == 1:
             msg.setText("{0} package not found !\nPlease install "
