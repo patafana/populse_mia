@@ -1681,10 +1681,12 @@ class PipelineManagerTab(QWidget):
             self.save_pipeline_action.setDisabled(True)
             self.pipelineEditorTabs.get_current_editor(
             ).disable_overwrite = True
+            self.main_window.action_delete_project.setDisabled(True)
         else:
             self.save_pipeline_action.setDisabled(False)
             self.pipelineEditorTabs.get_current_editor(
             ).disable_overwrite = False
+            self.main_window.action_delete_project.setEnabled(True)
 
         # If the user mode is chosen, the process library is not available
         # and the user cannot save a pipeline

@@ -43,7 +43,8 @@ from populse_mia.user_interface.pipeline_manager.process_library import (
     InstallProcesses, PackageLibraryDialog)
 import populse_mia.data_manager.data_loader as data_loader
 from populse_mia.data_manager.project import Project, COLLECTION_CURRENT
-from populse_mia.user_interface.pop_ups import (PopUpDeletedProject,
+from populse_mia.user_interface.pop_ups import (PopUpDeleteProject,
+                                                PopUpDeletedProject,
                                                 PopUpNewProject,
                                                 PopUpOpenProject,
                                                 PopUpPreferences,
@@ -273,6 +274,11 @@ class MainWindow(QMainWindow):
         # else:
         #     self.action_package_library.setEnabled(True)
 
+        if Config().get_user_mode() == True:
+            self.action_delete_project.setDisabled(True)
+        else:
+            self.action_delete_project.setEnabled(True)
+
         self.action_exit.setShortcut('Ctrl+W')
 
         self.action_undo.setShortcut('Ctrl+Z')
@@ -434,36 +440,9 @@ class MainWindow(QMainWindow):
 
     def delete_project(self):
         """Open a pop-up to open a project and updates the recent projects."""
-        self.exPopup = PopUpOpenProject()
-        if self.exPopup.exec():
-            file_name = self.exPopup.selectedFiles()
-            self.exPopup.get_filename(file_name)
-            file_name = self.exPopup.relative_path
-            if self.project.folder != file_name:
-                msgtext = "Do you really want to delete the " + file_name \
-                           + "project ?"
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                title = "populse_mia - Warning: Delete project"
-                reply = msg.question(self, title, msgtext, QMessageBox.Yes,
-                                     QMessageBox.No)
-                if reply == QMessageBox.Yes:
-                    if file_name in self.saved_projects.pathsList:
-                        self.saved_projects.removeSavedProject(file_name)
-                        self.update_recent_projects_actions()
-                    shutil.rmtree(file_name)
-            else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setWindowTitle("populse_mia - Warning: "
-                                   "Can't delete active project")
-                msgtext = "You can't delete the active project.\n Please " \
-                           "open another project if you want to delete this " \
-                           "one"
-                msg.setText(msgtext)
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.buttonClicked.connect(msg.close)
-                msg.exec()
+        self.exPopup = PopUpDeleteProject(self)
+        self.exPopup.exec()
+
 
     @staticmethod
     def documentation():
@@ -1138,7 +1117,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(self.windowName + self.projectName)
 
         # List of project updated
-        if not self.test:
+        if not self.test and not self.project.isTempProject:
             self.saved_projects_list = self.saved_projects.addSavedProject(
                 file_path)
         self.update_recent_projects_actions()

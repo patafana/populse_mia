@@ -452,7 +452,7 @@ class Config:
         :return: string of the path
 
         """
-        return self.config["paths"]["projects"]
+        return self.config["projects_save_path"]
 
     def getSourceImageDir(self):
         """Get the source directory for project images."""

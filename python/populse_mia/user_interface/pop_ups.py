@@ -82,6 +82,7 @@ from populse_mia.data_manager.project import (
 
 from populse_mia.software_properties import Config
 from populse_mia.user_interface.data_browser import data_browser
+from populse_mia.data_manager.project import Project
 
 from populse_mia.utils import utils
 from populse_mia.utils.tools import ClickableLabel
@@ -1027,6 +1028,106 @@ class PopUpClosePipeline(QDialog):
         self.save_as_signal.emit()
         self.bool_save_as = True
         self.bool_exit = True
+        self.close()
+
+
+class PopUpDeleteProject(QDialog):
+    """Is called when the user wants to run an delete a project.
+
+    .. Methods:
+        - ok_clicked: sends the selected values to the pipeline manager
+
+    """
+
+    def __init__(self, main_window):
+        """Initialization.
+
+        """
+
+        super().__init__()
+
+        self.setWindowTitle("Delete project")
+
+        config = Config()
+        self.project_path = config.getPathToProjectsFolder()
+        self.main_window = main_window
+
+        project_list = os.listdir(self.project_path)
+
+        self.v_box = QVBoxLayout()
+
+        # Label
+        self.label = QLabel("Select projects to delete:")
+        self.v_box.addWidget(self.label)
+
+        self.check_boxes = []
+        for project in project_list:
+            if os.path.isdir(os.path.join(self.project_path, project)):
+                check_box = QCheckBox(project)
+                # check_box.setCheckState(Qt.Checked)
+                self.check_boxes.append(check_box)
+                self.v_box.addWidget(check_box)
+
+        self.h_box_bottom = QHBoxLayout()
+        self.h_box_bottom.addStretch(1)
+
+        # The 'OK' push button
+        self.push_button_ok = QtWidgets.QPushButton("OK")
+        self.push_button_ok.setObjectName("pushButton_ok")
+        self.push_button_ok.clicked.connect(self.ok_clicked)
+        self.h_box_bottom.addWidget(self.push_button_ok)
+
+        # The 'Cancel' push button
+        self.push_button_cancel = QtWidgets.QPushButton("Cancel")
+        self.push_button_cancel.setObjectName("pushButton_cancel")
+        self.push_button_cancel.clicked.connect(self.close)
+        self.h_box_bottom.addWidget(self.push_button_cancel)
+
+        self.scroll = QScrollArea()
+        self.widget = QWidget()
+        self.widget.setLayout(self.v_box)
+        self.scroll.setWidget(self.widget)
+
+        self.final = QVBoxLayout()
+        self.final.addWidget(self.scroll)
+
+        self.final_layout = QVBoxLayout()
+        self.final_layout.addLayout(self.final)
+        self.final_layout.addLayout(self.h_box_bottom)
+
+        self.setLayout(self.final_layout)
+
+    def ok_clicked(self):
+        """Sends the selected values to the pipeline manager."""
+
+        final_values = []
+        for check_box in self.check_boxes:
+            if check_box.isChecked():
+                final_values.append(check_box.text())
+
+        reply = None
+        for name in final_values:
+            project = os.path.join(self.project_path, name)
+            if reply != QMessageBox.YesToAll and reply != QMessageBox.NoToAll:
+                msgtext = "Do you really want to delete the " + name \
+                           + " project ?"
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Warning)
+                title = "populse_mia - Warning: Delete project"
+                reply = msg.question(self, title, msgtext, QMessageBox.Yes|
+                                     QMessageBox.No|QMessageBox.YesToAll|
+                                     QMessageBox.NoToAll)
+            if reply == QMessageBox.Yes or reply == QMessageBox.YesToAll:
+                if os.path.abspath(self.main_window.project.folder) == \
+                        os.path.abspath(project):
+                    self.main_window.project = Project(None, True)
+                    self.main_window.update_project("")
+                if project in self.main_window.saved_projects.pathsList:
+                    self.main_window.saved_projects.removeSavedProject(project)
+                    self.main_window.update_recent_projects_actions()
+                shutil.rmtree(project)
+
+        self.accept()
         self.close()
 
 
