@@ -259,6 +259,7 @@ class DataBrowser(QWidget):
             COLLECTION_INITIAL, new_tag_name, tag_cloned.type,
             tag_cloned_init.description, True, TAG_ORIGIN_USER,
             tag_cloned.unit, tag_cloned.default_value)
+        self.project.unsavedModifications = True
         for scan in self.project.session.get_documents(COLLECTION_CURRENT):
 
             # If the tag to clone has a value, we add this value with the

@@ -688,7 +688,9 @@ class PopUpAddPath(QDialog):
         path = self.file_line_edit.text()
         path_type = self.type_line_edit.text()
         docInDb = [os.path.basename(i) for i in
-                   self.project.session.get_documents_names(COLLECTION_CURRENT)] 
+                   self.project.session.get_documents_names(
+                       COLLECTION_CURRENT)]
+        self.project.unsavedModifications = True
         
         if os.path.basename(path) in docInDb:
             self.msg = QMessageBox()
@@ -2688,6 +2690,7 @@ class PopUpProperties(QDialog):
 
         self.project.undos.append(history_maker)
         self.project.redos.clear()
+        self.project.unsavedModifications = True
 
         # Columns updated
         self.databrowser.table_data.update_visualized_columns(
