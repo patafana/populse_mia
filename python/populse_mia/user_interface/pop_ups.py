@@ -9,6 +9,7 @@
         - PopUpAddPath
         - PopUpCloneTag
         - PopUpClosePipeline
+        - PopUpDeleteProject
         - PopUpDeletedProject
         - PopUpDataBrowserCurrentSelection
         - PopUpFilterSelection
@@ -1035,7 +1036,7 @@ class PopUpDeleteProject(QDialog):
     """Is called when the user wants to run an delete a project.
 
     .. Methods:
-        - ok_clicked: sends the selected values to the pipeline manager
+        - ok_clicked: delete the selected projects after confirmation
 
     """
 
@@ -1098,7 +1099,7 @@ class PopUpDeleteProject(QDialog):
         self.setLayout(self.final_layout)
 
     def ok_clicked(self):
-        """Sends the selected values to the pipeline manager."""
+        """Delete the selected projects after confirmation."""
 
         final_values = []
         for check_box in self.check_boxes:
@@ -1122,8 +1123,10 @@ class PopUpDeleteProject(QDialog):
                         os.path.abspath(project):
                     self.main_window.project = Project(None, True)
                     self.main_window.update_project("")
-                if project in self.main_window.saved_projects.pathsList:
-                    self.main_window.saved_projects.removeSavedProject(project)
+                if os.path.relpath(project) in \
+                        self.main_window.saved_projects.pathsList:
+                    self.main_window.saved_projects.removeSavedProject(
+                        os.path.relpath(project))
                     self.main_window.update_recent_projects_actions()
                 shutil.rmtree(project)
 
