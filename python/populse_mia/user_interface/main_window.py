@@ -199,6 +199,7 @@ class MainWindow(QMainWindow):
         for tag in added_tags:
             column = self.data_browser.table_data.get_index_insertion(tag)
             self.data_browser.table_data.add_column(column, tag)
+            self.project.unsavedModifications = True
 
     def check_unsaved_modifications(self):
         """Check if there are differences between the current project and the
@@ -500,6 +501,7 @@ class MainWindow(QMainWindow):
             self.data_browser.reset_search_bar()
             self.data_browser.frame_advanced_search.setHidden(True)
             self.data_browser.advanced_search.rows = []
+            self.project.unsavedModifications = True
 
         elif code_exit == 100: # User only close mri_conv and do nothing
             pass
@@ -673,6 +675,7 @@ class MainWindow(QMainWindow):
                             "data", "downloaded_data", scan))
                         is None and "logExport" not in scan):
                     os.remove(filename)
+                    self.project.unsavedModifications = True
             self.project.database.__exit__(None, None, None)
 
     def save(self):

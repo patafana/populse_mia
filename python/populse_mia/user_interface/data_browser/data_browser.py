@@ -181,6 +181,7 @@ class DataBrowser(QWidget):
                                        TAG_ORIGIN_USER, new_tag_unit,
                                        new_default_value)
         for scan in self.project.session.get_documents(COLLECTION_CURRENT):
+            self.project.unsavedModifications = True
             self.project.session.add_value(
                 COLLECTION_CURRENT, getattr(scan, TAG_FILENAME),
                 new_tag_name, table_to_database(new_default_value, tag_type))
@@ -520,6 +521,7 @@ class DataBrowser(QWidget):
 
         # Each Tag row to remove is put in the history
         for tag in tag_names_to_remove:
+            self.project.unsavedModifications = True
             tag_object = self.project.session.get_field(COLLECTION_CURRENT,
                                                         tag)
             tags_removed.append([tag_object])
@@ -1830,6 +1832,7 @@ class TableDataBrowser(QTableWidget):
         for scan in scans_removed:
             scan_name = getattr(scan, TAG_FILENAME)
             self.removeRow(self.get_scan_row(scan_name))
+            self.project.unsavedModifications = True
 
         history_maker.append(scans_removed)
         history_maker.append(values_removed)
