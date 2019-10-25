@@ -32,6 +32,7 @@ from traits.api import TraitError
 
 # PyQt5 imports
 from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
 from capsul.api import get_process_instance, Process, PipelineNode, Switch
@@ -237,6 +238,7 @@ class PipelineEditor(PipelineDevelopperView):
             _temp_plug_name = self._temp_plug_name
 
         if _temp_plug_name[0] in ('inputs', 'outputs'):
+            print(_temp_plug_name, from_undo, from_redo, from_export_plugs)
             plug_name = _temp_plug_name[1]
             plug = self.scene.pipeline.pipeline_node.plugs[plug_name]
             optional = plug.optional
@@ -648,11 +650,38 @@ class PipelineEditor(PipelineDevelopperView):
                   (inputs and not plug.output and not plug.links_from)) and
                  (optional or not node.get_trait(parameter_name).optional))):
                 try:
+                    print(node_name, parameter_name)
                     pipeline.export_parameter(node_name, parameter_name)
                     parameter_list.append(parameter_name)
                 except TraitError:
                     print("Cannot export {0}.{1} plug".format(node_name,
                                                               parameter_name))
+                except ValueError:
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    title = "populse_mia - Warning: Duplicate plug name"
+                    msgtext = 'The plug {0} already exists, do you want to ' \
+                              'connect to that existing plug ?'.format(
+                        parameter_name)
+                    reply = msg.question(self, title, msgtext,
+                                         QMessageBox.Yes |
+                                         QMessageBox.No)
+                    if reply == QMessageBox.Yes:
+                        self._remove_plug(('inputs', parameter_name))
+                        pipeline.export_parameter(node_name, parameter_name)
+                    else:
+                        new_name, ok = QInputDialog.getText(self,
+                             'Plug name Input Dialog',
+                             'The plug {0} already '
+                             'exists, please choose a new name.')
+                        if ok:
+                            self._export_plug(pipeline_parameter=new_name,
+                                              optional=True,
+                                              weak_link=False,
+                                              temp_plug_name=(node_name,
+                                                              parameter_name))
+                            parameter_list.append(new_name)
+                    # pipeline.export_parameter(node_name, parameter_name)
 
         # For history
         history_maker = ["export_plugs", parameter_list, node_name]
