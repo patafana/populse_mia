@@ -650,7 +650,6 @@ class PipelineEditor(PipelineDevelopperView):
                   (inputs and not plug.output and not plug.links_from)) and
                  (optional or not node.get_trait(parameter_name).optional))):
                 try:
-                    print(node_name, parameter_name)
                     pipeline.export_parameter(node_name, parameter_name)
                     parameter_list.append(parameter_name)
                 except TraitError:
@@ -673,7 +672,8 @@ class PipelineEditor(PipelineDevelopperView):
                         new_name, ok = QInputDialog.getText(self,
                              'Plug name Input Dialog',
                              'The plug {0} already '
-                             'exists, please choose a new name.')
+                             'exists, please choose a new name.'.format(
+                             parameter_name))
                         if ok:
                             self._export_plug(pipeline_parameter=new_name,
                                               optional=True,
