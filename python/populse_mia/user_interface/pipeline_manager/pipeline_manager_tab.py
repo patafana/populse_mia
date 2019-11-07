@@ -850,6 +850,7 @@ class PipelineManagerTab(QWidget):
             if 'outputs' not in initResult_dict:
                     initResult_dict['outputs'] = {}
 
+            self.inheritance_dict = None
             if ('inheritance_dict' in initResult_dict and
                 initResult_dict['inheritance_dict'] != {}):
                 self.inheritance_dict = initResult_dict['inheritance_dict']
