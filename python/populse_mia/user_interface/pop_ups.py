@@ -2516,7 +2516,7 @@ class PopUpPreferences(QDialog):
             self.use_matlab_standalone_checkbox.setChecked(False)
 
     def use_matlab_standalone_changed(self):
-        """Called when the use_matlab standalone checkbox is changed."""
+        """Called when the use_matlab_standalone checkbox is changed."""
 
         if not self.use_matlab_standalone_checkbox.isChecked():
             self.matlab_standalone_choice.setDisabled(True)

@@ -395,7 +395,7 @@ class Config:
 
         """
         try:
-            return self.config["use_matlab standalone"]
+            return self.config["use_matlab_standalone"]
         except KeyError:
             return False
 
@@ -632,13 +632,13 @@ class Config:
         self.saveConfig()
 
     def set_use_matlab_standalone(self, use_matlab_standalone):
-        """Set the value of "use matlab standalone" checkbox in the
+        """Set the value of "use_matlab_standalone" checkbox in the
         preferences.
 
         :param: use_matlab: boolean
 
         """
-        self.config["use_matlab standalone"] = use_matlab_standalone
+        self.config["use_matlab_standalone"] = use_matlab_standalone
         # Then save the modification
         self.saveConfig()
 
