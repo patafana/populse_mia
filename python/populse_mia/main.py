@@ -106,32 +106,22 @@ subpackages/modules, to construct the mia's pipeline library.
                 __import__(module_name)
                 pkg = sys.modules[module_name]
 
-                # check if there are subpackages, in this case explore them
-                for _, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
-
-                    if ispkg:
-                        print('\nExploring subpackages of {0} ...'
-                              .format(module_name))
-                        print('- ', str(module_name + '.' + modname))
-                        self.add_package(str(module_name + '.' + modname),
-                                         class_name)
-
                 for k, v in sorted(list(pkg.__dict__.items())):
-
+                    
                     if class_name and k != class_name:
                         continue
 
                     # checking each class in the package
                     if inspect.isclass(v):
+
                         try:
                             get_process_instance(
                                 '%s.%s' % (module_name, v.__name__))
-
                             # updating the tree's dictionary
-                            path_list = module_name.split('.')
+                            path_list = module_name.split('.') 
                             path_list.append(k)
                             pkg_iter = self.packages
-
+                            
                             for element in path_list:
 
                                 if element in pkg_iter.keys():
@@ -141,12 +131,25 @@ subpackages/modules, to construct the mia's pipeline library.
 
                                     if element is path_list[-1]:
                                         pkg_iter[element] = 'process_enabled'
+                                        print('Detected brick: ', element)
+
                                     else:
                                         pkg_iter[element] = {}
                                         pkg_iter = pkg_iter[element]
+
                         except Exception:
                             pass
 
+                # check if there are subpackages, in this case explore them
+                for _, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
+
+                    if ispkg:
+                        print('\nExploring subpackages of {0}: {1} ...'
+                              .format(module_name,
+                                      str(module_name + '.' + modname)))
+                        self.add_package(str(module_name + '.' + modname),
+                                         class_name)
+                        
             except ImportError as e:
                 print('\nWhen attempting to add a package and its modules to '
                       'the package tree, the following exception was caught:')
@@ -599,13 +602,14 @@ def verify_processes():
     nipypeVer = False
     miaProcVer = False
     pack2install = []
+    # pack2install: a list containing the package (nipype and/or
+    #               mia_processes) to install
     config = Config()
     proc_config = os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml')
     # check if nipype and mia_processes are available on the station
     # if not available inform the user to install them
     print('\nChecking the installed versions of nipype and mia_processes ...')
-    print('***************************************************************')
     pkg_error = []
 
     try:
@@ -769,78 +773,147 @@ def verify_processes():
     # the file mia_path/properties/process_config.yml is corrupted or
     # no pipeline processes was available during the previous use of mia or
     # their version is not known
-    if (not isinstance(proc_content, dict)) or (
-            (isinstance(proc_content, dict)) and
-            ('Packages' not in proc_content)) or (
-            (isinstance(proc_content, dict)) and
-            ('Versions' not in proc_content)):
+    if ((not isinstance(proc_content, dict)) or
+            ((isinstance(proc_content, dict))
+             and ('Packages' not in proc_content)) or
+            ((isinstance(proc_content, dict))
+             and ('Versions' not in proc_content))):
         pack2install = ['nipype.interfaces', 'mia_processes']
+        old_nipypeVer = None
+        old_miaProcVer = None
 
     else:
+
         # during the previous use of mia, nipype was not available or its
         # version was not known or its version was different from the one
         # currently available on the station
-        if ((isinstance(proc_content, dict)) and ('Packages' in proc_content)
-            and ('nipype' not in proc_content['Packages'])) or (
-                (isinstance(proc_content, dict)) and ('Versions' in
-                                                      proc_content)
-                and ('nipype' not in proc_content['Versions'])) or (
-                (isinstance(proc_content, dict)) and ('Versions' in
-                                                      proc_content)
-                and ('nipype' in proc_content['Versions'])
-                and (proc_content['Versions']['nipype'] != nipypeVer)):
+        if ((isinstance(proc_content, dict)) and
+                ('Packages' in proc_content) and
+                ('nipype' not in proc_content['Packages'])):
+            old_nipypeVer = None
             pack2install.append('nipype.interfaces')
+            
+            if ((isinstance(proc_content, dict)) and
+                    ('Versions' in proc_content) and
+                    ('nipype' in proc_content['Versions'])):
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the nipype processes "
+                      "library again in mia ...")
+
+        else:
+
+            if (((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('nipype' not in proc_content['Versions'])) or
+                    ((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('nipype' in proc_content['Versions'])
+                    and (proc_content['Versions']['nipype'] is None))):
+                old_nipypeVer = None
+                pack2install.append('nipype.interfaces')
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the nipype processes "
+                      "library again in mia ...")
+                
+            elif ((isinstance(proc_content, dict)) and
+                    ('Versions' in proc_content) and
+                    ('nipype' in proc_content['Versions']) and
+                    (proc_content['Versions']['nipype'] != nipypeVer)):
+                old_nipypeVer = proc_content['Versions']['nipype']
+                pack2install.append('nipype.interfaces')
 
         # during the previous use of mia, mia_processes was not available or
         # its version was not known or its version was different from the one
         # currently available on the station
-        if ((isinstance(proc_content, dict)) and ('Packages' in proc_content)
-            and ('mia_processes' not in proc_content['Packages'])) or (
-                (isinstance(proc_content, dict)) and ('Versions' in
-                                                      proc_content)
-                and ('mia_processes' not in proc_content['Versions'])) or (
-                (isinstance(proc_content, dict)) and ('Versions' in
-                                                      proc_content)
-                and ('mia_processes' in proc_content['Versions'])
-                and (proc_content['Versions']['mia_processes'] != miaProcVer)):
+        if ((isinstance(proc_content, dict)) and
+            ('Packages' in proc_content) and
+            ('mia_processes' not in proc_content['Packages'])):
+            old_miaProcVer = None
             pack2install.append('mia_processes')
+            
+            if ((isinstance(proc_content, dict)) and
+                ('Versions' in proc_content) and
+                ('mia_processes' in proc_content['Versions'])):
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the mia_processes "
+                      "processes library again in mia ...")
 
-    final_pckgs = dict()  # final_pckgs: the final dic of dic with the
-    final_pckgs["Packages"] = {}  # informations about the
-    final_pckgs["Versions"] = {}  # installed packages, their
-    #             version, and the path to access
-    #             them
+        else:
+
+            if (((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('mia_processes' not in proc_content['Versions'])) or
+                    ((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('mia_processes' in proc_content['Versions'])
+                    and (proc_content['Versions']['mia_processes'] is None))):
+                old_miaProcVer = None
+                pack2install.append('mia_processes')
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the mia_processes "
+                      "processes library again in mia ...")
+                
+            elif ((isinstance(proc_content, dict)) and
+                  ('Versions' in proc_content) and
+                  ('mia_processes' in proc_content['Versions']) and
+                  (proc_content['Versions']['mia_processes'] != miaProcVer)):
+                 old_miaProcVer = proc_content['Versions']['mia_processes']
+                 pack2install.append('mia_processes')
+
+    final_pckgs = dict()          # final_pckgs: the final dic of dic with the
+    final_pckgs["Packages"] = {}  # informations about the installed packages,
+    final_pckgs["Versions"] = {}  # their versions, and the path to access them
+    
     for pckg in pack2install:
-        # pack2install: a list containing the package (nipype and/or
-        # mia_processes) to install
         package = PackagesInstall()
-        # pckg_dic: a dic of dic representation of a package and its
-        # subpackages/modules Ex. {package: {subpackage: {pipeline:
-        # 'process_enabled'}}}
+        
+        if 'nipype' in pckg:  # Save the packages version
+            final_pckgs["Versions"]["nipype"] = nipypeVer
+
+            if old_nipypeVer is None:
+                print('\n** Installation in mia of the {0} processes library, '
+                  '{1} version ...'.format(pckg, nipypeVer))
+
+            else:
+                print('\n** Upgrading of the {0} processes library, '
+                  'from {1} to {2} version ...'.format(pckg,
+                                                       old_nipypeVer,
+                                                       nipypeVer))
+
+        if 'mia_processes' in pckg:
+            final_pckgs["Versions"]["mia_processes"] = miaProcVer
+
+            if old_miaProcVer is None:
+                 print('\n** Installation in mia of the {0} processes library, '
+                  '{1} version ...'.format(pckg, miaProcVer ))
+
+            else:
+                print('\n** Upgrading of the {0} processes library, '
+                  'from {1} to {2} version ...'.format(pckg,
+                                                       old_miaProcVer,
+                                                       miaProcVer))
+
+        print('\nExploring {0} ...'.format(pckg))
         pckg_dic = package.add_package(pckg)
+        # pckg_dic: a dic of dic representation of a package and its
+        #           subpackages/modules
+        #           Ex. {package: {subpackage: {pipeline:'process_enabled'}}}
+
 
         for item in pckg_dic:
             final_pckgs["Packages"][item] = pckg_dic[item]
 
-        if 'nipype' in pckg:  # Save the packages version
-            final_pckgs["Versions"]["nipype"] = nipypeVer
-            print('\n** Upgrading the {0} library processes to {1} version ...'
-                  .format(pckg, nipypeVer))
-
-        if 'mia_processes' in pckg:
-            final_pckgs["Versions"]["mia_processes"] = miaProcVer
-            print('\n** Upgrading the {0} library processes to {1} version ...'
-                  .format(pckg, miaProcVer))
-
     if pack2install:
 
         if not any("nipype" in s for s in pack2install):
-            print('\n** The nipype library processes in mia use already the '
-                  'installed version ', nipypeVer)
+            print('\n** The nipype processes library in mia use '
+                  'already the current installed version ({0}) '
+                  'for this station'.format(nipypeVer))
 
         elif not any("mia_processes" in s for s in pack2install):
-            print('\n** The mia_processes library in mia use already the '
-                  'installed version ', miaProcVer)
+            print('\n** The mia_processes library in mia use '
+                  'already the current installed version ({0}) '
+                  'for this station'.format(miaProcVer))
 
         if (isinstance(proc_content, dict)) and ('Paths' in proc_content):
 
@@ -868,8 +941,8 @@ def verify_processes():
                       allow_unicode=True)
 
     else:
-        print('\n- mia use already the installed version of nipype and '
-              'mia_processes ({0} and {1} respectively)'
+        print('\n** mia use already the current installed version of nipype and '
+              'mia_processes for this station ({0} and {1}, respectively)'
               .format(nipypeVer, miaProcVer))
 
 
