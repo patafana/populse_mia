@@ -2440,7 +2440,7 @@ class PopUpPreferences(QDialog):
                 config.set_use_spm_standalone(True)
                 config.set_use_matlab(True)
                 config.set_use_matlab_standalone(True)
-            elif os.path.isdir(spm_input):
+            elif os.path.isdir(spm_input) and os.path.isdir(matlab_input):
                 mcr = glob.glob(os.path.join(spm_input, 'run_spm*.sh'))
                 if mcr:
                     try:
@@ -2454,6 +2454,8 @@ class PopUpPreferences(QDialog):
                         if err == b'' and output != b'':
                             config.set_use_spm_standalone(True)
                             config.set_spm_standalone_path(spm_input)
+                            config.set_use_matlab_standalone(True)
+                            config.set_matlab_standalone_path(matlab_input)
                         elif err != b'':
                             if "shared libraries" in str(err):
                                 self.wrong_path(matlab_input,
