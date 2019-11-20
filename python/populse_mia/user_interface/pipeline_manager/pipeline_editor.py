@@ -393,10 +393,11 @@ class PipelineEditor(PipelineDevelopperView):
 
         for node_name, node in pipeline.nodes.items():
             # Only if the node is a pipeline node ?
+
             if node_name and isinstance(node, PipelineNode):
                 sub_pipeline_process = node.process
                 current_process_id = sub_pipeline_process.id
-
+                
                 # Reading the process configuration file
                 with open(os.path.join(config.get_mia_path(),
                                        'properties',
@@ -415,15 +416,26 @@ class PipelineEditor(PipelineDevelopperView):
 
                 sub_pipeline_name = sub_pipeline_process.name
 
+                # Finding from where comes from the pipeline
+                pckg = sub_pipeline_process.__module__.split('.', 1)[0]
+
+                if pckg == 'mia_processes':
+                    paths_list = [os.path.dirname(
+                                      sys.modules['mia_processes'].__path__[0])]
+        
+                else:
+                    paths_list = dic['Paths']
+                    
                 # get_path returns a list that is the package path
-                # to the sub_pipeline file
+                # to the sub_pipeline file###################
                 sub_pipeline_list = get_path(sub_pipeline_name,
-                                             dic['Packages'])
+                                             dic['Packages'], None, pckg)
                 sub_pipeline_name = sub_pipeline_list.pop()
 
                 # Finding the real sub-pipeline filename
-                sub_pipeline_filename = find_filename(
-                    dic['Paths'], sub_pipeline_list, sub_pipeline_name)
+                sub_pipeline_filename = find_filename(paths_list,
+                                                      sub_pipeline_list,
+                                                      sub_pipeline_name)
 
                 saved_process = get_process_instance(sub_pipeline_filename)
 
@@ -1102,6 +1114,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         """
         # If the user click on the last tab (with the '+'),
         # it will throw an AttributeError
+        
         try:
             self.widget(current_index).check_modifications()
         except AttributeError:
