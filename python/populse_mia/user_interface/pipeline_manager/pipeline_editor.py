@@ -1450,9 +1450,9 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :param sub_pipeline: the pipeline to open
         """
-
         # Reading the process configuration file
         config = Config()
+        
         with open(os.path.join(config.get_mia_path(),
                                'properties',
                                'process_config.yml'), 'r') as stream:
@@ -1470,14 +1470,25 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         sub_pipeline_name = sub_pipeline.name
 
+        # Finding from where comes from the pipeline
+        pckg = sub_pipeline.__module__.split('.', 1)[0]
+
+        if pckg == 'mia_processes':
+            paths_list = [os.path.dirname(
+                                      sys.modules['mia_processes'].__path__[0])]
+        
+        else:
+            paths_list = dic['Paths']
+
         # get_path returns a list that is the package path to
         # the sub_pipeline file
-        sub_pipeline_list = get_path(sub_pipeline_name, dic['Packages'])
+        sub_pipeline_list = get_path(sub_pipeline_name, dic['Packages'],
+                                     None, pckg)
         sub_pipeline_name = sub_pipeline_list.pop()
 
-        # Finding the real sub-pipeline filename
+        # Finding the real sub-pipeline filename   
         sub_pipeline_filename = find_filename(
-            dic['Paths'], sub_pipeline_list, sub_pipeline_name)
+                paths_list, sub_pipeline_list, sub_pipeline_name)
         self.load_pipeline(sub_pipeline_filename)
 
     def reset_pipeline(self):
@@ -1602,44 +1613,58 @@ def find_filename(paths_list, packages_list, file_name):
     """
 
     filenames = [file_name + '.py', file_name + '.xml']
+
     for filename in filenames:
+        
         for path in paths_list:
             new_path = path
+            
             for package in packages_list:
                 new_path = os.path.join(new_path, package)
 
             # Making sure that the filename is found (has somme issues
             # with case sensitivity)
-            for f in os.listdir(new_path):
-                new_file = os.path.join(new_path, f)
-                if os.path.isfile(new_file) and f.lower() == filename.lower():
-                    return new_file
+            if os.path.isdir(new_path):
+                
+                for f in os.listdir(new_path):
+                    new_file = os.path.join(new_path, f)
+                    
+                    if os.path.isfile(new_file) and f.lower() == filename.lower():
+                        return new_file
 
-
-def get_path(name, dictionary, prev_paths=None):
+                    
+def get_path(name, dictionary, prev_paths=None, pckg=None):
     """Return the package path to the selected sub-pipeline.
 
     :param name: name of the sub-pipeline
-    :param dictionary: package tree (read from process_config.yml)
+    :param dictionary: package tree
     :param prev_paths: paths of the last call of this function
+    :param pckg: package root
     :return: the package path of the sub-pipeline if it is found, else None
     """
-
     if prev_paths is None:
         prev_paths = []
 
+        if pckg is not None:
+            prev_paths.append(pckg)
+            dictionary = dictionary[pckg]
+        
     # new_paths is a list containing the packages to the desired module
     new_paths = prev_paths.copy()
     for idx, (key, value) in enumerate(dictionary.items()):
         # If the value is a string, this means
         # that this is a "leaf" of the tree
         # so the key is a module name.
+        
         if isinstance(value, str):
+            
             if key == name:
                 new_paths.append(key)
                 return new_paths
+            
             else:
                 continue
+            
         # Else, this means that the value is still a dictionary,
         # we are still in the tree
         else:
@@ -1649,10 +1674,11 @@ def get_path(name, dictionary, prev_paths=None):
             # been found in the tree
             if final_res:
                 return final_res
+            
             else:
                 new_paths = prev_paths.copy()
 
-
+                
 def save_pipeline(pipeline, filename):
     """Save the pipeline either in XML or .py source file.
 
