@@ -1137,5 +1137,5 @@ class MainWindow(QMainWindow):
                     self.saved_projects_list[i])
                 self.saved_projects_actions[i].setVisible(True)
             for j in range(i+1, self.config.get_max_projects()):
-                self.saved_projects_actions[i].setVisible(False)
+                self.saved_projects_actions[j].setVisible(False)
 
