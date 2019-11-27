@@ -735,13 +735,14 @@ class MainWindow(QMainWindow):
                     file_name)
             self.update_recent_projects_actions()
 
-            os.makedirs(self.exPopup.relative_path)
+            if not os.path.exists(self.exPopup.relative_path):
+                os.makedirs(self.exPopup.relative_path)
 
-            os.mkdir(data_path)
-            os.mkdir(raw_data_path)
-            os.mkdir(derived_data_path)
-            os.mkdir(downloaded_data_path)
-            os.mkdir(filters_path)
+                os.mkdir(data_path)
+                os.mkdir(raw_data_path)
+                os.mkdir(derived_data_path)
+                os.mkdir(downloaded_data_path)
+                os.mkdir(filters_path)
 
             # Data files copied
             if os.path.exists(os.path.join(old_folder, 'data')):
@@ -774,18 +775,25 @@ class MainWindow(QMainWindow):
 
             # We commit the last pending modifications
             self.project.saveModifications()
-
-            os.mkdir(properties_path)
-            shutil.copy(os.path.join(os.path.relpath(old_folder),
-                                     'properties', 'properties.yml'),
+            if not os.path.exists(properties_path):
+                os.mkdir(properties_path)
+            try:
+                shutil.copy(os.path.join(os.path.relpath(old_folder),
+                                         'properties', 'properties.yml'),
                         os.path.relpath(properties_path))
+            except shutil.SameFileError:
+                pass
 
             # We copy the Database with all the modifications commited in
             # the new project
-            os.mkdir(os.path.relpath(database_path))
-            shutil.copy(os.path.join(os.path.relpath(old_folder),
+            if not os.path.exists(database_path):
+                os.mkdir(os.path.relpath(database_path))
+            try:
+                shutil.copy(os.path.join(os.path.relpath(old_folder),
                                      'database', 'mia.db'),
                         os.path.relpath(database_path))
+            except shutil.SameFileError:
+                pass
 
             # We remove the Database with all the modifications saved in
             # the old project

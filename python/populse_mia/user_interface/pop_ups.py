@@ -2993,7 +2993,11 @@ class PopUpSaveProjectAs(QFileDialog):
         self.setLabelText(QFileDialog.Accept, "Save as")
         self.setOption(QFileDialog.ShowDirsOnly, True)
         self.setAcceptMode(QFileDialog.AcceptSave)
-
+        self.setOption(QFileDialog.DontUseNativeDialog, True)
+        self.setOption(QFileDialog.ReadOnly, True)
+        config = Config()
+        if not config.get_user_mode():
+            self.setFileMode(QFileDialog.Directory)
         # Setting the projects directory as default
         utils.set_projects_directory_as_default(self)
 
@@ -3019,14 +3023,13 @@ class PopUpSaveProjectAs(QFileDialog):
                 self.relative_path = os.path.relpath(file_name)
                 self.relative_subpath = os.path.relpath(self.path)
 
-                if (not os.path.exists(self.relative_path) and self.name is
-                        not ''):
+                if (self.name is not ''):
                     self.close()
                     # A signal is emitted to tell that the project
                     # has been created
                     self.signal_saved_project.emit()
-                else:
-                    utils.message_already_exists()
+                # else:
+                #     utils.message_already_exists()
 
             return file_name
 
