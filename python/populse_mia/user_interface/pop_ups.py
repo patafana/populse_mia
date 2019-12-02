@@ -1109,6 +1109,8 @@ class PopUpDeleteProject(QDialog):
                 final_values.append(check_box.text())
 
         reply = None
+        config = Config()
+        opened_projects = config.get_opened_projects()
         for name in final_values:
             project = os.path.join(self.project_path, name)
             if reply != QMessageBox.YesToAll and reply != QMessageBox.NoToAll:
@@ -1130,6 +1132,10 @@ class PopUpDeleteProject(QDialog):
                     self.main_window.saved_projects.removeSavedProject(
                         os.path.relpath(project))
                     self.main_window.update_recent_projects_actions()
+                if os.path.relpath(project) in opened_projects:
+                    opened_projects.remove(os.path.relpath(project))
+                    config.saveConfig()
+                config.set_opened_projects(opened_projects)
                 shutil.rmtree(project)
 
         self.accept()

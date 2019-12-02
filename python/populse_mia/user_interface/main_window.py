@@ -959,7 +959,8 @@ class MainWindow(QMainWindow):
                     # project removed from the opened projects list
                     config = Config()
                     opened_projects = config.get_opened_projects()
-                    opened_projects.remove(self.project.folder)
+                    if self.project.folder in opened_projects:
+                        opened_projects.remove(self.project.folder)
                     config.set_opened_projects(opened_projects)
 
                     self.project = temp_database  # New Database
