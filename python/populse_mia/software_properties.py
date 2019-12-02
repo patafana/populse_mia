@@ -56,7 +56,7 @@ def verCmp(first_ver, sec_ver, comp):
         :returns: a list of integer (ex. [0, 13, 0])
 
         """
-
+        v = re.sub("[^0-9\.]", "", v)
         return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
     if comp == 'eq':
