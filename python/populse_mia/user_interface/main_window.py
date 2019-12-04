@@ -713,6 +713,8 @@ class MainWindow(QMainWindow):
         self.exPopup = PopUpSaveProjectAs()
         if self.exPopup.exec():
 
+            self.exPopup.return_value()
+
             old_folder = self.project.folder
             file_name = self.exPopup.relative_path
 
