@@ -32,7 +32,8 @@ from PyQt5.QtWidgets import (
 
 # Populse_MIA imports
 from populse_mia.utils.tools import ClickableLabel
-from populse_mia.software_properties import verCmp
+# from populse_mia.software_properties import verCmp
+from packaging import version
 from populse_mia.user_interface.pop_ups import PopUpSelectTag
 from populse_mia.software_properties import Config
 from populse_mia.user_interface.data_browser import data_browser
@@ -407,7 +408,7 @@ class MiniViewer(QWidget):
         #  2 - rescaling before rotation is slightly faster, specially for large images (> display_size).
         #  3 - rescaling may alter the occurrence of nan or infinite values (e.g. an image may become all-nan)
         # anti_aliasing keyword is defined in skimage since version 0.14.0
-        if verCmp(sk.__version__, '0.14.0', 'sup'):
+        if version.parse(sk.__version__) > version.parse("0.14.0'"):
             im2D = resize(im2D, display_size, mode='constant',
                           anti_aliasing=False)
         else:

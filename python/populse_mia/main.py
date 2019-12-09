@@ -31,6 +31,7 @@ import inspect
 import yaml
 import copy
 from functools import partial
+from packaging import version
 
 from capsul.api import get_process_instance
 
@@ -58,7 +59,7 @@ else:  # "user" mode
 from populse_mia.user_interface.main_window import MainWindow
 from populse_mia.data_manager.project import Project
 from populse_mia.software_properties import Config
-from populse_mia.software_properties import verCmp
+# from populse_mia.software_properties import verCmp
 from populse_mia.data_manager.project_properties import SavedProjects
 
 main_window = None
@@ -434,7 +435,7 @@ def main():
 
             with open(dot_mia_config, 'r') as stream:
 
-                if verCmp(yaml.__version__, '5.1', 'sup'):
+                if version.parse(yaml.__version__) > version.parse("5.1"):
                     mia_home_config = yaml.load(stream,
                                                 Loader=yaml.FullLoader)
                 else:
@@ -464,7 +465,7 @@ def main():
 
             with open(dot_mia_config, 'r') as stream:
 
-                if verCmp(yaml.__version__, '5.1', 'sup'):
+                if version.parse(yaml.__version__) > version.parse("5.1"):
                     mia_home_config = yaml.load(stream,
                                                 Loader=yaml.FullLoader)
                 else:
@@ -523,7 +524,7 @@ def main():
 
         with open(dot_mia_config, 'r') as stream:
 
-            if verCmp(yaml.__version__, '5.1', 'sup'):
+            if version.parse(yaml.__version__) > version.parse("5.1"):
                 mia_home_config = yaml.load(stream,
                                             Loader=yaml.FullLoader)
             else:
@@ -656,7 +657,7 @@ def verify_processes():
 
         with open(proc_config, 'r') as stream:
 
-            if verCmp(yaml.__version__, '5.1', 'sup'):
+            if version.parse(yaml.__version__) > version.parse("5.1"):
                 proc_content = yaml.load(stream,
                                          Loader=yaml.FullLoader)
             else:

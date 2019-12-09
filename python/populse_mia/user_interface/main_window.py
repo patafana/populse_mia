@@ -25,6 +25,8 @@ import shutil
 from datetime import datetime
 import glob
 import yaml
+from packaging import version
+
 
 # PyQt5 imports
 from PyQt5.QtGui import QIcon
@@ -35,7 +37,7 @@ from PyQt5.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QAction,
 
 # Populse_MIA imports
 from populse_mia.data_manager.project_properties import SavedProjects
-from populse_mia.software_properties import Config, verCmp
+from populse_mia.software_properties import Config
 from populse_mia.user_interface.data_browser.data_browser import DataBrowser
 from populse_mia.user_interface.pipeline_manager.pipeline_manager_tab import (
     PipelineManagerTab)
@@ -906,7 +908,8 @@ class MainWindow(QMainWindow):
                     with open(os.path.join(file_path, "properties",
                                            "properties.yml"), 'r+') as stream:
 
-                        if verCmp(yaml.__version__, '5.1', 'sup'):
+                        if version.parse(
+                                yaml.__version__) > version.parse("5.1"):
                             properties = yaml.load(stream,
                                                    Loader=yaml.FullLoader)
 

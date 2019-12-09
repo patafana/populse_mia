@@ -27,7 +27,7 @@ from PyQt5 import QtCore
 from populse_db.database import FIELD_TYPE_INTEGER
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-
+from packaging import version
 import unittest
 
 from PyQt5.QtTest import QTest
@@ -2261,10 +2261,10 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(config.getTextColor(), "")
         self.assertEqual(config.getThumbnailTag(), "SequenceName")
 
-        self.assertEqual(verCmp(yaml.__version__, '5.1', 'sup'), True)
-        self.assertEqual(verCmp(yaml.__version__, '9.1', 'sup'), False)
-        self.assertEqual(verCmp(yaml.__version__, '5.1', 'inf'), False)
-        self.assertEqual(verCmp(yaml.__version__, '9.1', 'inf'), True)
+        self.assertEqual(version.parse(yaml.__version__) > version.parse("5.1"), True)
+        self.assertEqual(version.parse(yaml.__version__) > version.parse("9.1"), False)
+        self.assertEqual(version.parse(yaml.__version__) < version.parse("5.1"), False)
+        self.assertEqual(version.parse(yaml.__version__) < version.parse("9.1"), True)
 
         self.assertEqual(config.get_projects_save_path(),
                          os.path.join(config.get_mia_path(), 'projects'))
