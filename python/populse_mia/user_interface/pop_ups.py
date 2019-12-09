@@ -1134,8 +1134,9 @@ class PopUpDeleteProject(QDialog):
                     self.main_window.update_recent_projects_actions()
                 if os.path.relpath(project) in opened_projects:
                     opened_projects.remove(os.path.relpath(project))
-                    config.saveConfig()
+
                 config.set_opened_projects(opened_projects)
+                config.saveConfig()
                 shutil.rmtree(project)
 
         self.accept()

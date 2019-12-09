@@ -246,8 +246,10 @@ class MainWindow(QMainWindow):
             # Clean up
             config = Config()
             opened_projects = config.get_opened_projects()
-            opened_projects.remove(self.project.folder)
+            if self.project.folder in opened_projects:
+                opened_projects.remove(self.project.folder)
             config.set_opened_projects(opened_projects)
+            config.saveConfig()
             self.remove_raw_files_useless()
 
             event.accept()
@@ -409,6 +411,7 @@ class MainWindow(QMainWindow):
                 opened_projects = config.get_opened_projects()
                 opened_projects.remove(self.project.folder)
                 config.set_opened_projects(opened_projects)
+                config.saveConfig()
 
                 self.project = Project(self.exPopup.relative_path, True)
 
@@ -813,8 +816,10 @@ class MainWindow(QMainWindow):
             # currently opened projects
             config = Config()
             opened_projects = config.get_opened_projects()
-            opened_projects.remove(self.project.folder)
+            if self.project.folder in opened_projects:
+                opened_projects.remove(self.project.folder)
             config.set_opened_projects(opened_projects)
+            config.saveConfig()
 
             # project updated everywhere
             self.project = Project(self.exPopup.relative_path, False)
@@ -967,7 +972,7 @@ class MainWindow(QMainWindow):
                     if self.project.folder in opened_projects:
                         opened_projects.remove(self.project.folder)
                     config.set_opened_projects(opened_projects)
-
+                    config.saveConfig()
                     self.project = temp_database  # New Database
 
                     self.update_project(file_path)
@@ -1142,6 +1147,6 @@ class MainWindow(QMainWindow):
                 self.saved_projects_actions[i].setData(
                     self.saved_projects_list[i])
                 self.saved_projects_actions[i].setVisible(True)
-            for j in range(i+1, self.config.get_max_projects()):
+            for j in range(i, self.config.get_max_projects()):
                 self.saved_projects_actions[j].setVisible(False)
 
