@@ -23,6 +23,9 @@ pop-up in the config.yml file.
 import os
 import yaml
 import re
+from cryptography.fernet import Fernet
+
+CONFIG = b'5YSmesxZ4ge9au2Bxe7XDiQ3U5VCdLeRdqimOOggKyc='
 
 
 def verCmp(first_ver, sec_ver, comp):
@@ -499,27 +502,31 @@ class Config:
         :return: Returns a dictionary of the contents of config.yml
 
         """
+        f = Fernet(CONFIG)
         with open(os.path.join(self.get_mia_path(), 'properties',
-                               'config.yml'), 'r') as stream:
+                               'config.yml'), 'rb') as stream:
             try:
+                stream = b"".join(stream.readlines())
+                decrypted = f.decrypt(stream)
                 if verCmp(yaml.__version__, '5.1', 'sup'):
-                    return yaml.load(stream, Loader=yaml.FullLoader)
+                    return yaml.load(decrypted, Loader=yaml.FullLoader)
                 
                 else:    
-                    return yaml.load(stream)
+                    return yaml.load(decrypted)
                 
             except yaml.YAMLError as exc:
                 print(exc)
 
     def saveConfig(self):
         """Save the current parameters in the config.yml file."""
-
+        f = Fernet(CONFIG)
         with open(os.path.join(self.get_mia_path(), 'properties',
-                               'config.yml'), 'w', encoding='utf8') as \
+                               'config.yml'), 'wb') as \
                 configfile:
 
-            yaml.dump(self.config, configfile, default_flow_style=False,
+            stream = yaml.dump(self.config, default_flow_style=False,
                       allow_unicode=True)
+            configfile.write(f.encrypt(stream.encode()))
 
     def set_admin_hash(self, hash):
         """Set the password hash.
