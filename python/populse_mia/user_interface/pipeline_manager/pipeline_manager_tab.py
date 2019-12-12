@@ -252,7 +252,9 @@ class PipelineManagerTab(QWidget):
             return
 
         # This means that the value is not a filename
-        if p_value in ["<undefined>", Undefined] or not os.path.isdir(
+        if p_value in ["<undefined>",
+                       Undefined,
+                       [Undefined]] or not os.path.isdir(
                 os.path.split(p_value)[0]):
             return
         try:
@@ -881,7 +883,7 @@ class PipelineManagerTab(QWidget):
 
             for key in inputs:
 
-                if inputs[key] is Undefined:
+                if inputs[key] in [Undefined, [Undefined]]:
                     inputs[key] = "<undefined>"
                         
             # Automatically fills few plugs. Only for the nipype process
@@ -952,7 +954,7 @@ class PipelineManagerTab(QWidget):
             for key in outputs:
                 value = outputs[key]
                 
-                if value is Undefined:
+                if value in [Undefined, [Undefined]]:
                     outputs[key] = "<undefined>"
                     
             self.project.saveModifications()
@@ -970,7 +972,7 @@ class PipelineManagerTab(QWidget):
                     if plug_name not in node.plugs.keys():
                         continue
                     
-                    if plug_value not in ["<undefined>", Undefined]:
+                    if plug_value not in ["<undefined>", Undefined, [Undefined]]:
                         
                         if pipeline_name != "":
                             full_name = pipeline_name + "." + node_name
@@ -1022,7 +1024,7 @@ class PipelineManagerTab(QWidget):
             for key in inputs:
                 value = inputs[key]
                 
-                if value is Undefined:
+                if value in [Undefined, [Undefined]]:
                     inputs[key] = "<undefined>"
     
             outputs = process.get_outputs()
@@ -1030,7 +1032,7 @@ class PipelineManagerTab(QWidget):
             for key in outputs:
                 value = outputs[key]
 
-                if value is Undefined:
+                if value in [Undefined, [Undefined]]:
                     outputs[key] = "<undefined>"
 
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
