@@ -52,6 +52,10 @@ if not os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))))
     DEV_MODE = True
 
+elif 'CASA_DISTRO' in os.environ:
+    # If the casa distro developpement environment is detected,
+    # developer mode is activated.
+    DEV_MODE = True
 else:  # "user" mode
     DEV_MODE = False
 
