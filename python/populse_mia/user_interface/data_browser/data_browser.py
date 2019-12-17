@@ -1317,9 +1317,18 @@ class TableDataBrowser(QTableWidget):
         """
         doc = self.project.session.get_document(COLLECTION_BRICK, name)
         if doc is not None:
+            inputs_list = []
+            for key in doc["Input(s)"]:
+                if isinstance(doc["Input(s)"][key], str):
+                    inputs_list.append(doc["Input(s)"][key])
+                elif isinstance(doc["Input(s)"][key], list):
+                    for item in doc["Input(s)"][key]:
+                        if isinstance(item, str):
+                            inputs_list.append(item)
             for key in doc["Output(s)"]:
                 if isinstance(doc["Output(s)"][key], str):
-                    if doc["Output(s)"][key] != "":
+                    if doc["Output(s)"][key] != "" and doc["Output(s)"][key]\
+                            not in inputs_list:
                         doc_delete = os.path.relpath(doc["Output(s)"][key],
                                                      self.project.folder)
                         doc_list = self.project.session.get_documents_names(
