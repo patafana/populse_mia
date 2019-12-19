@@ -1138,15 +1138,17 @@ class MainWindow(QMainWindow):
 
     def update_recent_projects_actions(self):
         """Update the list of recent projects."""
+        for j in range(0, self.config.get_max_projects()):
+            self.saved_projects_actions[j].setVisible(False)
         if self.saved_projects_list:
-            for i in range(min(len(
-                    self.saved_projects_list),
-                    self.config.get_max_projects())):
-                text = os.path.basename(self.saved_projects_list[i])
-                self.saved_projects_actions[i].setText(text)
-                self.saved_projects_actions[i].setData(
-                    self.saved_projects_list[i])
-                self.saved_projects_actions[i].setVisible(True)
-            for j in range(i, self.config.get_max_projects()):
-                self.saved_projects_actions[j].setVisible(False)
+            if len(self.saved_projects_list) > 0:
+                for i in range(min(len(
+                        self.saved_projects_list),
+                        self.config.get_max_projects())):
+                    text = os.path.basename(self.saved_projects_list[i])
+                    self.saved_projects_actions[i].setText(text)
+                    self.saved_projects_actions[i].setData(
+                        self.saved_projects_list[i])
+                    self.saved_projects_actions[i].setVisible(True)
+
 
