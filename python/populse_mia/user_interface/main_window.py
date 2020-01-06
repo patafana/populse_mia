@@ -849,7 +849,7 @@ class MainWindow(QMainWindow):
             print("save as")
             self.save_project_as()
         else:
-            print("save")
+            print("save ")
             self.project.saveModifications()
 
     def see_all_projects(self):
