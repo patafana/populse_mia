@@ -163,6 +163,12 @@ class IterationTable(QWidget):
 
     def emit_iteration_table_updated(self):
         """Emit a signal when the iteration scans have been updated."""
+        if self.check_box_iterate.isChecked():
+            self.main_window.pipeline_manager.\
+                run_pipeline_action.setDisabled(False)
+        else:
+            self.main_window.pipeline_manager.\
+                run_pipeline_action.setDisabled(True)
 
         if self.check_box_iterate.checkState():
             if hasattr(self, 'scans'):

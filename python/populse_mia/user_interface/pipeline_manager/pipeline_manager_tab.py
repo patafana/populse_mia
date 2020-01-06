@@ -207,6 +207,7 @@ class PipelineManagerTab(QWidget):
 
         self.run_pipeline_action = QAction("Run pipeline", self)
         self.run_pipeline_action.triggered.connect(self.runPipeline)
+        self.run_pipeline_action.setDisabled(True)
 
         # if config.get_user_mode() == True:
         #     self.save_pipeline_action.setDisabled(True)
@@ -536,7 +537,7 @@ class PipelineManagerTab(QWidget):
         #     self.progress.exec()
         #
         # else:
-        
+        initial = True
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -683,7 +684,7 @@ class PipelineManagerTab(QWidget):
 
             if isinstance(node, PipelineNode):
                 sub_pipeline = node.process
-                self.init_pipeline(sub_pipeline, node_name)
+                initial = self.init_pipeline(sub_pipeline, node_name)
 
                 for plug_name in node.plugs.keys():
 
@@ -782,23 +783,27 @@ class PipelineManagerTab(QWidget):
                 try:
  
                     if not initResult_dict['outputs']:
-                         print("\nInitialisation failed to determine the "
+                        print("\nInitialisation failed to determine the "
                                "outputs for the process {0}, did you correctly "
                                "define the inputs ...?".format(node_name))
+                        initial = False
                          
                 except KeyError as e:
                     print('\nDue to "{0}" error,\nthe initialisation failed to '
                           'determine the outputs for the node '
                           '{1}...'.format(e, node_name))
+                    initial = False
 
                 except Exception as e:
                     print('\nThe outputs determination for the node "{0}" '
                           'failed during the initialisation step, due to:\n'
                           '"{1}"...'.format(node_name, e))
+                    initial = False
                     
             except TraitError as e:
                 print('\nTrait error for node "{0}":\n'
                       '"{1}" ...'.format(node_name, e))
+                initial = False
 
             # If the process has no "list_outputs" method,
             # which is the case for Nipype's
@@ -820,11 +825,13 @@ class PipelineManagerTab(QWidget):
                     print('\nInitialisation failed to determine the outputs '
                           'for the process "{0}":\nDid you correctly defined '
                           'the inputs ...?'.format(node_name))
+                    initial = False
       
                 except Exception as e:
                     print('Initialisation failed to determine the outputs '
                           'for the process "{0}", due to:\n'
                           '"{1}"...'.format(node_name, e))
+                    initial = False
                     
             # Management of the requirement object in initResult_dict
             if '_nipype_interface' in dir(process):
@@ -1082,7 +1089,8 @@ class PipelineManagerTab(QWidget):
         if ((nodes_requir_miss or nodes_requir_fail) and
             not (config.get_use_matlab() and
                 (config.get_use_spm() or config.get_use_spm_standalone()))):
-            
+
+            initial = False
             if ((config.get_use_matlab()) and
                 (not config.get_use_matlab_standalone())):
 
@@ -1190,9 +1198,17 @@ class PipelineManagerTab(QWidget):
                     'requirements of some bricks must be verified.'
                     .format(name))
 
+        elif initial is False:
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" was not initialised successfully.'.format(
+                    name))
+
         else:
+            initial = True
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been initialised.'.format(name))
+
+        return initial
 
     def initialize(self):
         """Clean previous initialization then initialize the current
@@ -1205,9 +1221,18 @@ class PipelineManagerTab(QWidget):
         self.ignore_node = False
         self.key = {}
         self.ignore = {}
-        self.init_pipeline() # When clicking on the Pipeline > Initialize
-                             # pipeline in the Pipeline Manager tab,
-                             # this is the first method launched.
+        test_init = self.init_pipeline()
+        # If the initialization fail, the run pipeline action is disabled
+        # The run pipeline action is enabled only when an initialization is
+        # successful or the iterate pipeline checkbox is checked
+        if test_init:
+            self.run_pipeline_action.setDisabled(False)
+        else:
+            self.run_pipeline_action.setDisabled(True)
+
+        # When clicking on the Pipeline > Initialize
+        # pipeline in the Pipeline Manager tab,
+        # this is the first method launched.
 
         # ** pathway from the self.init_pipeline() command (ex. for the
         #    User_processes Smooth brick):
