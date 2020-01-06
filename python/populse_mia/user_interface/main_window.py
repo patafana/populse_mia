@@ -846,8 +846,10 @@ class MainWindow(QMainWindow):
     def saveChoice(self):
         """Check if the project needs to be 'saved as' or just 'saved'."""
         if self.project.isTempProject:
+            print("save as")
             self.save_project_as()
         else:
+            print("save")
             self.project.saveModifications()
 
     def see_all_projects(self):
