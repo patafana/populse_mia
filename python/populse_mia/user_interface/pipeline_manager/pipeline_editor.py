@@ -551,6 +551,7 @@ class PipelineEditor(PipelineDevelopperView):
         """
 
         pipeline = self.scene.pipeline
+
         if not node_name:
             node_name = self.current_node_name
         node = pipeline.nodes[node_name]
@@ -607,6 +608,11 @@ class PipelineEditor(PipelineDevelopperView):
 
         self.main_window.statusBar().showMessage(
             "Node {0} has been deleted.".format(node_name))
+
+        for node_name, node in pipeline.nodes.items():
+            self.main_window.pipeline_manager.displayNodeParameters(
+                node_name, node.process)
+
 
     def dragEnterEvent(self, event):
         """Event handler when the mouse enters the widget.
@@ -1179,7 +1185,6 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param node_name: node name
         :param process: process of the corresponding node
         """
-
         self.node_clicked.emit(node_name, process)
 
     def emit_pipeline_saved(self, filename):

@@ -361,6 +361,7 @@ class NodeController(QWidget):
 
         :param layout: widget with a layout
         """
+
         for i in reversed(range(len(layout.children()))):
             if type(layout.layout().itemAt(i)) == QtWidgets.QWidgetItem:
                 layout.layout().itemAt(i).widget().setParent(None)
@@ -520,6 +521,7 @@ class NodeController(QWidget):
         :param in_or_out: "in" if the plug is an input plug, "out" else
         :return: the corresponding index
         """
+
         if in_or_out == "in":
             for idx, label in enumerate(self.labels_input):
                 if label.text() == plug_name:
@@ -541,7 +543,6 @@ class NodeController(QWidget):
         :param new_node_name: new node name (is None except when this method
         is called from an undo/redo)
         """
-
         # Copying the old node
         old_node = pipeline.nodes[self.node_name]
         old_node_name = self.node_name

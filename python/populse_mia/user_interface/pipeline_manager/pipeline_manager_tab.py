@@ -481,6 +481,7 @@ class PipelineManagerTab(QWidget):
         :param process: process instance of the corresponding node
         :return:
         """
+
         if isinstance(process, Switch):
             pass
         else:
@@ -1068,10 +1069,11 @@ class PipelineManagerTab(QWidget):
         # Display the updated parameters in right part of
         # the Pipeline Manager (controller)
         if main_pipeline:
-            node_controller_node_name = self.nodeController.node_name     #### Todo: Fix the problem of the controller that
-                                                                          #### keeps the name of the old brick deleted until
-                                                                          #### a click on the new one. This can cause a mia
-                                                                          #### crash during the initialisation, for example.
+            node_controller_node_name = self.nodeController.node_name
+            #### Todo: Fix the problem of the controller that
+            #### keeps the name of the old brick deleted until
+            #### a click on the new one. This can cause a mia
+            #### crash during the initialisation, for example.
 
             if node_controller_node_name in ['inputs', 'outputs']:
                 node_controller_node_name = ''
@@ -1082,9 +1084,9 @@ class PipelineManagerTab(QWidget):
                 pipeline)
             
         nodes_requir_miss = [nodeName for nodeName in nodes_requir_issue
-                                   if nodes_requir_issue[nodeName] == 'MISSING']
+                             if nodes_requir_issue[nodeName] == 'MISSING']
         nodes_requir_fail = [nodeName for nodeName in nodes_requir_issue
-                              if isinstance(nodes_requir_issue[nodeName], list)]
+                             if isinstance(nodes_requir_issue[nodeName], list)]
 
         if ((nodes_requir_miss or nodes_requir_fail) and
             not (config.get_use_matlab() and
@@ -1537,6 +1539,7 @@ class PipelineManagerTab(QWidget):
                     'Pipeline "{0}" has been correctly run.'.format(name))
 
             self.init_clicked = False
+            self.run_pipeline_action.setDisabled(True)
 
     def saveParameters(self):
         """
