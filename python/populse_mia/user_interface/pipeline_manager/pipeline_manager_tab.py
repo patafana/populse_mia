@@ -481,7 +481,6 @@ class PipelineManagerTab(QWidget):
         :param process: process instance of the corresponding node
         :return:
         """
-
         if isinstance(process, Switch):
             pass
         else:

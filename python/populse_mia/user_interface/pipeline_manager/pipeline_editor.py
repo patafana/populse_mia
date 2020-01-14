@@ -128,6 +128,9 @@ class PipelineEditor(PipelineDevelopperView):
 
         active = source_plug.activated and dest_plug.activated
 
+        self._current_link_def = (source_node, source_plug, dest_node,
+                                  dest_plug)
+
         # Calling the original method
         PipelineDevelopperView._del_link(self)
 

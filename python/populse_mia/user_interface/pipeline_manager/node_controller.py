@@ -626,15 +626,17 @@ class NodeController(QWidget):
                     value = getattr(process, name)
                 except TraitError:
                     value = Undefined
-                self.line_edit_input[idx].setText(str(value))
-                idx += 1
+                if idx < len(self.line_edit_input):
+                    self.line_edit_input[idx].setText(str(value))
+                    idx += 1
 
         idx = 0
 
         for name, trait in process.traits(output=True).items():
             value = getattr(process, name)
-            self.line_edit_output[idx].setText(str(value))
-            idx += 1
+            if idx < len(self.line_edit_output):
+                self.line_edit_output[idx].setText(str(value))
+                idx += 1
 
     def update_plug_value(self, in_or_out, plug_name, pipeline, value_type,
                           new_value=None):
