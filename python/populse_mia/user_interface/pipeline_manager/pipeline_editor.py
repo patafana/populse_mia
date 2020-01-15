@@ -139,7 +139,7 @@ class PipelineEditor(PipelineDevelopperView):
                          (dest_node_name, dest_plug_name), active, weak_link]
 
         self.update_history(history_maker, from_undo, from_redo)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             'Link {0} has been deleted.'.format(link))
 
@@ -222,7 +222,7 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["add_link", link]
 
         self.update_history(history_maker, from_undo=False, from_redo=False)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             'Link {0} has been added.'.format(link))
 
@@ -271,7 +271,9 @@ class PipelineEditor(PipelineDevelopperView):
                                  new_temp_plugs, optional]
 
                 self.update_history(history_maker, from_undo, from_redo)
-
+                self.main_window.pipeline_manager.run_pipeline_action\
+                    .setDisabled(
+                    True)
                 self.main_window.statusBar().showMessage(
                     "Plug {0} has been removed.".format(_temp_plug_name[1]))
 
@@ -303,7 +305,7 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["add_link", link]
 
         self.update_history(history_maker, from_undo, from_redo)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             'Link {0} has been added.'.format(link))
 
@@ -381,7 +383,7 @@ class PipelineEditor(PipelineDevelopperView):
             history_maker.append(class_process)
 
         self.update_history(history_maker, from_undo, from_redo)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             "Node {0} has been added.".format(node_name))
 
@@ -608,7 +610,7 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["delete_process", node_name, node.process, links]
 
         self.update_history(history_maker, from_undo, from_redo)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             "Node {0} has been deleted.".format(node_name))
 
@@ -708,7 +710,7 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["export_plugs", parameter_list, node_name]
 
         self.update_history(history_maker, from_undo, from_redo)
-
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.main_window.statusBar().showMessage(
             "Plugs {0} have been exported.".format(str(parameter_list)))
 
