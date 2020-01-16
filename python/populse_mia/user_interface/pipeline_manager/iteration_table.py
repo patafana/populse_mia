@@ -166,9 +166,13 @@ class IterationTable(QWidget):
         if self.check_box_iterate.isChecked():
             self.main_window.pipeline_manager.\
                 run_pipeline_action.setDisabled(False)
+            self.main_window.pipeline_manager.\
+                init_pipeline_action.setDisabled(True)
         else:
             self.main_window.pipeline_manager.\
                 run_pipeline_action.setDisabled(True)
+            self.main_window.pipeline_manager. \
+                init_pipeline_action.setDisabled(False)
 
         if self.check_box_iterate.checkState():
             if hasattr(self, 'scans'):
