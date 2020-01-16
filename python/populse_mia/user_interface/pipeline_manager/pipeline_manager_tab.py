@@ -1223,7 +1223,6 @@ class PipelineManagerTab(QWidget):
         self.key = {}
         self.ignore = {}
         test_init = self.init_pipeline()
-        print("SUCCESS: ", test_init)
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
