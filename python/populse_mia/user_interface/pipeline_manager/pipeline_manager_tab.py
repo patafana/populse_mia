@@ -607,7 +607,8 @@ class PipelineManagerTab(QWidget):
         #    'user_traits_changed', remove=True)
 
         for node_name, node in pipeline.nodes.items():
-            
+            if not (node.activated and node.enabled):
+                initial = False
             # Updating the project attribute of the processes
             if hasattr(node, 'process'):
                 process = node.process
