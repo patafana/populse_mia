@@ -751,7 +751,8 @@ class MainWindow(QMainWindow):
                     file_name)
             self.update_recent_projects_actions()
 
-            os.makedirs(self.exPopup.relative_path)
+            if not os.path.exists(self.exPopup.relative_path):
+                os.makedirs(self.exPopup.relative_path)
 
             os.mkdir(data_path)
             os.mkdir(raw_data_path)
