@@ -1118,13 +1118,16 @@ class TestMIADataBrowser(unittest.TestCase):
 
     def test_save_project(self):
         """Test opening & saving of a project"""
+        print(1)
         PopUpSaveProjectAs.exec = lambda x: True
         config = Config()
         mia_path = config.get_mia_path()
         path = os.path.join(mia_path, 'resources', 'mia',
                                       'something')
         PopUpSaveProjectAs.relative_path = path
+        print(2)
         self.main_window.saveChoice()
+        print(3)
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(path), True)
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
@@ -1133,6 +1136,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(self.main_window.project.getName(), "project_8")
         self.main_window.saveChoice()
         shutil.rmtree(path)
+        print(4)
 
         PopUpNewProject.exec = lambda x: True
         PopUpNewProject.selectedFiles = lambda x: True
