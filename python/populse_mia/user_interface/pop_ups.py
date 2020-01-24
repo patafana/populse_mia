@@ -2402,17 +2402,20 @@ class PopUpPreferences(QDialog):
                                    main_window.projectName)
 
         # SPM & Matlab
-        if self.use_spm_checkbox.isChecked():
-            matlab_input = self.matlab_choice.text()
-            spm_input = self.spm_choice.text()
+
+        matlab_input = self.matlab_choice.text()
+        spm_input = self.spm_choice.text()
+        if (matlab_input != "" and
+            spm_input != "") or self.use_spm_checkbox.isChecked():
             if not os.path.isfile(matlab_input):
                 self.wrong_path(matlab_input, "Matlab")
                 return
             if matlab_input == config.get_matlab_path() and spm_input == \
                     config.get_spm_path():
-                config.set_use_spm(True)
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(False)
+                if self.use_spm_checkbox.isChecked():
+                    config.set_use_spm(True)
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(False)
             elif os.path.isdir(spm_input):
                 try:
                     matlab_cmd = ('restoredefaultpath; '
@@ -2429,9 +2432,10 @@ class PopUpPreferences(QDialog):
                     output, err = p.communicate()
                     if err == b'':
                         config.set_matlab_path(matlab_input)
-                        config.set_use_matlab(True)
-                        config.set_use_matlab_standalone(False)
-                        config.set_use_spm(True)
+                        if self.use_spm_checkbox.isChecked():
+                            config.set_use_matlab(True)
+                            config.set_use_matlab_standalone(False)
+                            config.set_use_spm(True)
                         config.set_spm_path(spm_input)
                     elif "spm" in str(err):
                         self.wrong_path(spm_input, "SPM")
@@ -2446,11 +2450,11 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(spm_input, "SPM")
                 return
         # Matlab
-        elif self.use_matlab_checkbox.isChecked():
-            matlab_input = self.matlab_choice.text()
+        if matlab_input != "" or self.use_matlab_checkbox.isChecked():
             if matlab_input == config.get_matlab_path():
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(False)
+                if self.use_matlab_checkbox.isChecked():
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(False)
             elif os.path.isfile(matlab_input):
                 try:
                     matlab_cmd = 'ver; exit'
@@ -2463,8 +2467,9 @@ class PopUpPreferences(QDialog):
                     output, err = p.communicate()
                     if err == b'':
                         config.set_matlab_path(matlab_input)
-                        config.set_use_matlab(True)
-                        config.set_use_matlab_standalone(False)
+                        if self.use_matlab_checkbox.isChecked():
+                            config.set_use_matlab(True)
+                            config.set_use_matlab_standalone(False)
                     else:
                         self.wrong_path(matlab_input, "Matlab")
                         return
@@ -2475,17 +2480,19 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(matlab_input, "Matlab")
                 return
 
-        if self.use_spm_standalone_checkbox.isChecked():
-            spm_input = self.spm_standalone_choice.text()
-            matlab_input = self.matlab_standalone_choice.text()
+        spm_input = self.spm_standalone_choice.text()
+        matlab_input = self.matlab_standalone_choice.text()
+        if (matlab_input != "" and
+            spm_input != "") or self.use_spm_standalone_checkbox.isChecked():
             if not os.path.isdir(matlab_input):
                 self.wrong_path(matlab_input, "Matlab standalone")
                 return
             if matlab_input == config.get_matlab_standalone_path() and \
                     spm_input == config.get_spm_standalone_path():
-                config.set_use_spm_standalone(True)
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(True)
+                if self.use_spm_standalone_checkbox.isChecked():
+                    config.set_use_spm_standalone(True)
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(True)
             elif os.path.isdir(spm_input) and os.path.isdir(matlab_input):
                 mcr = glob.glob(os.path.join(spm_input, 'run_spm*.sh'))
                 if mcr:
@@ -2498,9 +2505,10 @@ class PopUpPreferences(QDialog):
                                              stderr=subprocess.PIPE)
                         output, err = p.communicate()
                         if err == b'' and output != b'':
-                            config.set_use_spm_standalone(True)
+                            if self.use_spm_standalone_checkbox.isChecked():
+                                config.set_use_spm_standalone(True)
+                                config.set_use_matlab_standalone(True)
                             config.set_spm_standalone_path(spm_input)
-                            config.set_use_matlab_standalone(True)
                             config.set_matlab_standalone_path(matlab_input)
                         elif err != b'':
                             if "shared libraries" in str(err):
@@ -2522,11 +2530,11 @@ class PopUpPreferences(QDialog):
             else:
                 self.wrong_path(spm_input, "SPM standalone")
                 return
-        elif self.use_matlab_standalone_checkbox.isChecked():
-            matlab_input = self.matlab_standalone_choice.text()
+        if matlab_input != "" or self.use_matlab_standalone_checkbox.isChecked():
             if os.path.isdir(matlab_input):
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(True)
+                if self.use_matlab_standalone_checkbox.isChecked():
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(True)
                 config.set_matlab_standalone_path(matlab_input)
             else:
                 self.wrong_path(matlab_input, "Matlab standalone")
