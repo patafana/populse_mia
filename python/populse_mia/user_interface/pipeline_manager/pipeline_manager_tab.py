@@ -989,14 +989,6 @@ class PipelineManagerTab(QWidget):
                             
                         else:
                             full_name = node_name
-
-
-
-                        print('\nprout full_name: ', full_name)
-                        print('\nprout node_name: ', node_name)
-                        print('\nprout plug_name: ', plug_name)
-                        print('\nprout plug_value: ', plug_value)
-
                              
                         self.add_plug_value_to_database(plug_value,
                                                         self.brick_id,
