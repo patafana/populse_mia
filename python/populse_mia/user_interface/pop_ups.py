@@ -46,6 +46,7 @@
 import ast
 import hashlib
 import os
+import yaml
 import shutil
 import subprocess
 import glob
@@ -61,7 +62,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem,
     QMessageBox, QHeaderView, QWidget, QHBoxLayout, QVBoxLayout,
     QDialogButtonBox, QDialog, QApplication, QRadioButton, QScrollArea,
-    QInputDialog, QFormLayout)
+    QInputDialog, QFormLayout, QPlainTextEdit)
 
 # Populse_db imports
 from populse_db.database import (
@@ -1830,16 +1831,21 @@ class PopUpPreferences(QDialog):
         self.user_mode_label = QLabel("Admin mode")
         self.change_psswd = QPushButton("Change password", default=False,
                                          autoDefault=False)
+        self.edit_config = QPushButton("Edit config", default=False,
+                                        autoDefault=False)
         self.change_psswd.clicked.connect(partial(self.change_admin_psswd, ""))
+        self.edit_config.clicked.connect(self.edit_config_file)
 
         if not config.get_user_mode():
             self.user_mode_checkbox.setChecked(1)
             self.change_psswd.setVisible(True)
+            self.edit_config.setVisible(True)
 
         else:
             self.user_mode_checkbox.setChecked(1)
             self.user_mode_checkbox.setChecked(0)
             self.change_psswd.setVisible(False)
+            self.edit_config.setVisible(False)
 
         h_box_user_mode = QtWidgets.QHBoxLayout()
         h_box_user_mode.addWidget(self.user_mode_checkbox)
@@ -1851,6 +1857,7 @@ class PopUpPreferences(QDialog):
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
         v_box_global.addWidget(self.change_psswd)
+        v_box_global.addWidget(self.edit_config)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2264,6 +2271,38 @@ class PopUpPreferences(QDialog):
             elif change.new_psswd.text() != change.new_psswd_conf.text():
                 self.change_admin_psswd("The new passwords are not the same.")
 
+    def edit_config_file(self):
+        config = Config()
+        edit = QDialog()
+        edit.txt = QPlainTextEdit()
+        stream = yaml.dump(config.config, default_flow_style=False,
+                      allow_unicode=True)
+        edit.txt.insertPlainText(str(stream))
+        textWidth = edit.txt.width() + 100
+        textHeight = edit.txt.height() + 200
+
+        edit.txt.setMinimumSize(textWidth, textHeight)
+        edit.txt.resize(textWidth, textHeight)
+
+        buttonBox = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+
+        layout = QFormLayout()
+        layout.addWidget(QLabel("config.yml"))
+        layout.addWidget(edit.txt)
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(edit.accept)
+        buttonBox.rejected.connect(edit.reject)
+        edit.setLayout(layout)
+        event = edit.exec()
+        if not event:
+            edit.close()
+        else:
+            stream = edit.txt.toPlainText()
+            config.config = yaml.load(stream, Loader=yaml.FullLoader)
+            config.saveConfig()
+            self.close()
+
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
 
@@ -2363,17 +2402,20 @@ class PopUpPreferences(QDialog):
                                    main_window.projectName)
 
         # SPM & Matlab
-        if self.use_spm_checkbox.isChecked():
-            matlab_input = self.matlab_choice.text()
-            spm_input = self.spm_choice.text()
+
+        matlab_input = self.matlab_choice.text()
+        spm_input = self.spm_choice.text()
+        if (matlab_input != "" and
+            spm_input != "") or self.use_spm_checkbox.isChecked():
             if not os.path.isfile(matlab_input):
                 self.wrong_path(matlab_input, "Matlab")
                 return
             if matlab_input == config.get_matlab_path() and spm_input == \
                     config.get_spm_path():
-                config.set_use_spm(True)
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(False)
+                if self.use_spm_checkbox.isChecked():
+                    config.set_use_spm(True)
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(False)
             elif os.path.isdir(spm_input):
                 try:
                     matlab_cmd = ('restoredefaultpath; '
@@ -2390,9 +2432,10 @@ class PopUpPreferences(QDialog):
                     output, err = p.communicate()
                     if err == b'':
                         config.set_matlab_path(matlab_input)
-                        config.set_use_matlab(True)
-                        config.set_use_matlab_standalone(False)
-                        config.set_use_spm(True)
+                        if self.use_spm_checkbox.isChecked():
+                            config.set_use_matlab(True)
+                            config.set_use_matlab_standalone(False)
+                            config.set_use_spm(True)
                         config.set_spm_path(spm_input)
                     elif "spm" in str(err):
                         self.wrong_path(spm_input, "SPM")
@@ -2407,11 +2450,11 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(spm_input, "SPM")
                 return
         # Matlab
-        elif self.use_matlab_checkbox.isChecked():
-            matlab_input = self.matlab_choice.text()
+        if matlab_input != "" or self.use_matlab_checkbox.isChecked():
             if matlab_input == config.get_matlab_path():
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(False)
+                if self.use_matlab_checkbox.isChecked():
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(False)
             elif os.path.isfile(matlab_input):
                 try:
                     matlab_cmd = 'ver; exit'
@@ -2424,8 +2467,9 @@ class PopUpPreferences(QDialog):
                     output, err = p.communicate()
                     if err == b'':
                         config.set_matlab_path(matlab_input)
-                        config.set_use_matlab(True)
-                        config.set_use_matlab_standalone(False)
+                        if self.use_matlab_checkbox.isChecked():
+                            config.set_use_matlab(True)
+                            config.set_use_matlab_standalone(False)
                     else:
                         self.wrong_path(matlab_input, "Matlab")
                         return
@@ -2436,17 +2480,19 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(matlab_input, "Matlab")
                 return
 
-        if self.use_spm_standalone_checkbox.isChecked():
-            spm_input = self.spm_standalone_choice.text()
-            matlab_input = self.matlab_standalone_choice.text()
+        spm_input = self.spm_standalone_choice.text()
+        matlab_input = self.matlab_standalone_choice.text()
+        if (matlab_input != "" and
+            spm_input != "") or self.use_spm_standalone_checkbox.isChecked():
             if not os.path.isdir(matlab_input):
                 self.wrong_path(matlab_input, "Matlab standalone")
                 return
             if matlab_input == config.get_matlab_standalone_path() and \
                     spm_input == config.get_spm_standalone_path():
-                config.set_use_spm_standalone(True)
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(True)
+                if self.use_spm_standalone_checkbox.isChecked():
+                    config.set_use_spm_standalone(True)
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(True)
             elif os.path.isdir(spm_input) and os.path.isdir(matlab_input):
                 mcr = glob.glob(os.path.join(spm_input, 'run_spm*.sh'))
                 if mcr:
@@ -2459,9 +2505,10 @@ class PopUpPreferences(QDialog):
                                              stderr=subprocess.PIPE)
                         output, err = p.communicate()
                         if err == b'' and output != b'':
-                            config.set_use_spm_standalone(True)
+                            if self.use_spm_standalone_checkbox.isChecked():
+                                config.set_use_spm_standalone(True)
+                                config.set_use_matlab_standalone(True)
                             config.set_spm_standalone_path(spm_input)
-                            config.set_use_matlab_standalone(True)
                             config.set_matlab_standalone_path(matlab_input)
                         elif err != b'':
                             if "shared libraries" in str(err):
@@ -2483,11 +2530,11 @@ class PopUpPreferences(QDialog):
             else:
                 self.wrong_path(spm_input, "SPM standalone")
                 return
-        elif self.use_matlab_standalone_checkbox.isChecked():
-            matlab_input = self.matlab_standalone_choice.text()
+        if matlab_input != "" or self.use_matlab_standalone_checkbox.isChecked():
             if os.path.isdir(matlab_input):
-                config.set_use_matlab(True)
-                config.set_use_matlab_standalone(True)
+                if self.use_matlab_standalone_checkbox.isChecked():
+                    config.set_use_matlab(True)
+                    config.set_use_matlab_standalone(True)
                 config.set_matlab_standalone_path(matlab_input)
             else:
                 self.wrong_path(matlab_input, "Matlab standalone")
@@ -2595,10 +2642,12 @@ class PopUpPreferences(QDialog):
                                               "password.</i>")
                 else:
                     self.change_psswd.setVisible(True)
+                    self.edit_config.setVisible(True)
             else:
                 self.user_mode_checkbox.setChecked(False)
         else:
             self.change_psswd.setVisible(False)
+            self.edit_config.setVisible(False)
 
     def wrong_path(self, path, tool):
         QApplication.restoreOverrideCursor()
