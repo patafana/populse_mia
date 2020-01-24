@@ -46,6 +46,7 @@
 import ast
 import hashlib
 import os
+import yaml
 import shutil
 import subprocess
 import glob
@@ -61,7 +62,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem,
     QMessageBox, QHeaderView, QWidget, QHBoxLayout, QVBoxLayout,
     QDialogButtonBox, QDialog, QApplication, QRadioButton, QScrollArea,
-    QInputDialog, QFormLayout)
+    QInputDialog, QFormLayout, QPlainTextEdit)
 
 # Populse_db imports
 from populse_db.database import (
@@ -1830,16 +1831,21 @@ class PopUpPreferences(QDialog):
         self.user_mode_label = QLabel("Admin mode")
         self.change_psswd = QPushButton("Change password", default=False,
                                          autoDefault=False)
+        self.edit_config = QPushButton("Edit config", default=False,
+                                        autoDefault=False)
         self.change_psswd.clicked.connect(partial(self.change_admin_psswd, ""))
+        self.edit_config.clicked.connect(self.edit_config_file)
 
         if not config.get_user_mode():
             self.user_mode_checkbox.setChecked(1)
             self.change_psswd.setVisible(True)
+            self.edit_config.setVisible(True)
 
         else:
             self.user_mode_checkbox.setChecked(1)
             self.user_mode_checkbox.setChecked(0)
             self.change_psswd.setVisible(False)
+            self.edit_config.setVisible(False)
 
         h_box_user_mode = QtWidgets.QHBoxLayout()
         h_box_user_mode.addWidget(self.user_mode_checkbox)
@@ -1851,6 +1857,7 @@ class PopUpPreferences(QDialog):
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
         v_box_global.addWidget(self.change_psswd)
+        v_box_global.addWidget(self.edit_config)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2264,6 +2271,38 @@ class PopUpPreferences(QDialog):
             elif change.new_psswd.text() != change.new_psswd_conf.text():
                 self.change_admin_psswd("The new passwords are not the same.")
 
+    def edit_config_file(self):
+        config = Config()
+        edit = QDialog()
+        edit.txt = QPlainTextEdit()
+        stream = yaml.dump(config.config, default_flow_style=False,
+                      allow_unicode=True)
+        edit.txt.insertPlainText(str(stream))
+        textWidth = edit.txt.width() + 100
+        textHeight = edit.txt.height() + 200
+
+        edit.txt.setMinimumSize(textWidth, textHeight)
+        edit.txt.resize(textWidth, textHeight)
+
+        buttonBox = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+
+        layout = QFormLayout()
+        layout.addWidget(QLabel("config.yml"))
+        layout.addWidget(edit.txt)
+        layout.addWidget(buttonBox)
+        buttonBox.accepted.connect(edit.accept)
+        buttonBox.rejected.connect(edit.reject)
+        edit.setLayout(layout)
+        event = edit.exec()
+        if not event:
+            edit.close()
+        else:
+            stream = edit.txt.toPlainText()
+            config.config = yaml.load(stream, Loader=yaml.FullLoader)
+            config.saveConfig()
+            self.close()
+
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
 
@@ -2595,10 +2634,12 @@ class PopUpPreferences(QDialog):
                                               "password.</i>")
                 else:
                     self.change_psswd.setVisible(True)
+                    self.edit_config.setVisible(True)
             else:
                 self.user_mode_checkbox.setChecked(False)
         else:
             self.change_psswd.setVisible(False)
+            self.edit_config.setVisible(False)
 
     def wrong_path(self, path, tool):
         QApplication.restoreOverrideCursor()
