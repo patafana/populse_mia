@@ -245,6 +245,8 @@ class PipelineManagerTab(QWidget):
         :param brick: brick id
         :param node_name: name of the node
         :param plug_name: name of the plug
+        :param full_name: full name of the node, including parent brick(s).
+                          If there is no parent brick, full_name = node_name.
         """
         if type(p_value) in [list, TraitListObject]:
             for elt in p_value:
@@ -987,7 +989,15 @@ class PipelineManagerTab(QWidget):
                             
                         else:
                             full_name = node_name
-                            
+
+
+
+                        print('\nprout full_name: ', full_name)
+                        print('\nprout node_name: ', node_name)
+                        print('\nprout plug_name: ', plug_name)
+                        print('\nprout plug_value: ', plug_value)
+
+                             
                         self.add_plug_value_to_database(plug_value,
                                                         self.brick_id,
                                                         node_name,
