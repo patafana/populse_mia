@@ -3045,7 +3045,7 @@ class PopUpSaveProjectAs(QFileDialog):
 
     def __init__(self):
         super().__init__()
-
+        print("TEST INIT")
         self.setLabelText(QFileDialog.Accept, "Save as")
         self.setLabelText(QFileDialog.FileName, "Project name")
         self.setOption(QFileDialog.ShowDirsOnly, True)
@@ -3066,6 +3066,7 @@ class PopUpSaveProjectAs(QFileDialog):
         :return: new project's file name
 
         """
+        print("TEST RETURN")
         file_name_tuple = self.selectedFiles()
         if len(file_name_tuple) > 0:
             file_name = file_name_tuple[0]
@@ -3081,16 +3082,13 @@ class PopUpSaveProjectAs(QFileDialog):
 
                 if (not os.path.exists(self.relative_path) and self.name is
                         not ''):
-                    print("TEST 1")
                     self.close()
                     # A signal is emitted to tell that the project
                     # has been created
                     self.signal_saved_project.emit()
                 elif file_name == "":
-                    print("TEST 2")
                     pass
                 else:
-                    print("TEST 3")
                     utils.message_already_exists()
 
             return self.name
