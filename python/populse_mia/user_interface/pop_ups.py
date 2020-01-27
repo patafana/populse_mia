@@ -3081,13 +3081,16 @@ class PopUpSaveProjectAs(QFileDialog):
 
                 if (not os.path.exists(self.relative_path) and self.name is
                         not ''):
+                    print("TEST 1")
                     self.close()
                     # A signal is emitted to tell that the project
                     # has been created
                     self.signal_saved_project.emit()
                 elif file_name == "":
+                    print("TEST 2")
                     pass
                 else:
+                    print("TEST 3")
                     utils.message_already_exists()
 
             return self.name
