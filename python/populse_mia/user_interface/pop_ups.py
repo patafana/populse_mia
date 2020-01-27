@@ -3090,7 +3090,7 @@ class PopUpSaveProjectAs(QFileDialog):
                 else:
                     utils.message_already_exists()
 
-            return file_name
+            return self.name
 
 
 class PopUpSeeAllProjects(QDialog):

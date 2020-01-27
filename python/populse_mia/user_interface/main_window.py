@@ -721,9 +721,7 @@ class MainWindow(QMainWindow):
             self.exPopup.exec = lambda x=0: True
             config = Config()
             mia_path = config.get_mia_path()
-            path = os.path.join(mia_path, 'resources', 'mia',
-                                'something')
-            self.exPopup.relative_path = path
+            self.exPopup.name = 'something'
 
         if self.exPopup.exec():
 
