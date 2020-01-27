@@ -715,15 +715,15 @@ class MainWindow(QMainWindow):
     def save_project_as(self):
         """Open a pop-up to save the current project as"""
 
+        self.exPopup = PopUpSaveProjectAs()
+
         if self.test:
-            PopUpSaveProjectAs.exec = lambda x: True
+            self.exPopup.exec = lambda x=0: True
             config = Config()
             mia_path = config.get_mia_path()
             path = os.path.join(mia_path, 'resources', 'mia',
                                 'something')
-            PopUpSaveProjectAs.relative_path = path
-
-        self.exPopup = PopUpSaveProjectAs()
+            self.exPopup.relative_path = path
 
         if self.exPopup.exec():
 

@@ -1127,7 +1127,7 @@ class TestMIADataBrowser(unittest.TestCase):
         PopUpSaveProjectAs.exec = lambda x: True
         PopUpSaveProjectAs.relative_path = path
         print(2)
-        # self.main_window.saveChoice()
+        self.main_window.saveChoice()
         print(3)
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(path), True)
