@@ -3045,7 +3045,6 @@ class PopUpSaveProjectAs(QFileDialog):
 
     def __init__(self):
         super().__init__()
-        print("TEST INIT")
         self.setLabelText(QFileDialog.Accept, "Save as")
         self.setLabelText(QFileDialog.FileName, "Project name")
         self.setOption(QFileDialog.ShowDirsOnly, True)
@@ -3066,7 +3065,6 @@ class PopUpSaveProjectAs(QFileDialog):
         :return: new project's file name
 
         """
-        print("TEST RETURN")
         file_name_tuple = self.selectedFiles()
         if len(file_name_tuple) > 0:
             file_name = file_name_tuple[0]
