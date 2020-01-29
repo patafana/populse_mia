@@ -717,11 +717,11 @@ class MainWindow(QMainWindow):
 
         self.exPopup = PopUpSaveProjectAs()
 
-        # if self.test:
-        #     self.exPopup.exec = lambda x=0: True
-        #     config = Config()
-        #     mia_path = config.get_mia_path()
-        #     self.exPopup.name = 'something'
+        if self.test:
+            self.exPopup.exec = lambda x=0: True
+            config = Config()
+            mia_path = config.get_mia_path()
+            self.exPopup.name = 'something'
 
         if self.exPopup.exec():
 

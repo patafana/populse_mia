@@ -3057,7 +3057,7 @@ class PopUpSaveProjectAs(QFileDialog):
         # Setting the projects directory as default
         utils.set_projects_directory_as_default(self)
 
-        self.finished.connect(self.close)
+        self.finished.connect(self.return_value)
 
     def return_value(self):
         """Sets the widget's attributes depending on the selected file name.
@@ -3084,10 +3084,10 @@ class PopUpSaveProjectAs(QFileDialog):
                     # A signal is emitted to tell that the project
                     # has been created
                     self.signal_saved_project.emit()
-                elif file_name == "":
-                    pass
-                else:
-                    utils.message_already_exists()
+                # elif file_name == "":
+                #     pass
+                # else:
+                #     utils.message_already_exists()
 
             return self.name
 
