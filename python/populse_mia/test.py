@@ -1124,8 +1124,8 @@ class TestMIADataBrowser(unittest.TestCase):
         path = os.path.join(mia_path, 'resources', 'mia',
                             'something')
         # The following test doesn't work with appveyor
-        PopUpSaveProjectAs.exec = lambda x: True
-        # PopUpSaveProjectAs.relative_path = path
+        PopUpSaveProjectAs.exec = lambda x=0: True
+        PopUpSaveProjectAs.selectedFiles = lambda x=0: [path]
         self.main_window.saveChoice()
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(path), True)

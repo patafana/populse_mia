@@ -717,14 +717,6 @@ class MainWindow(QMainWindow):
 
         self.exPopup = PopUpSaveProjectAs()
 
-        if self.test:
-            self.exPopup.exec = lambda x=0: True
-            config = Config()
-            mia_path = config.get_mia_path()
-            path = os.path.join(mia_path, 'resources', 'mia',
-                                'something')
-            self.exPopup.selectedFiles = lambda x=0: [path]
-
         if self.exPopup.exec():
 
             self.exPopup.return_value()
