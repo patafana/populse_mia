@@ -3083,7 +3083,7 @@ class PopUpSaveProjectAs(QFileDialog):
                     self.close()
                     # A signal is emitted to tell that the project
                     # has been created
-                    self.signal_saved_project.emit()
+                self.signal_saved_project.emit()
                 # elif file_name == "":
                 #     pass
                 # else:
