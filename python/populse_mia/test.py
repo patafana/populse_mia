@@ -1121,7 +1121,8 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config()
         mia_path = config.get_mia_path()
-
+        path = os.path.join(mia_path, 'resources', 'mia',
+                            'something')
         # The following test doesn't work with appveyor
         PopUpSaveProjectAs.exec = lambda x: True
         # PopUpSaveProjectAs.relative_path = path

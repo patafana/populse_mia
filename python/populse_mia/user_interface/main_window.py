@@ -754,11 +754,11 @@ class MainWindow(QMainWindow):
             if not os.path.exists(self.exPopup.relative_path):
                 os.makedirs(self.exPopup.relative_path)
 
-            os.mkdir(data_path)
-            os.mkdir(raw_data_path)
-            os.mkdir(derived_data_path)
-            os.mkdir(downloaded_data_path)
-            os.mkdir(filters_path)
+                os.mkdir(data_path)
+                os.mkdir(raw_data_path)
+                os.mkdir(derived_data_path)
+                os.mkdir(downloaded_data_path)
+                os.mkdir(filters_path)
 
             # Data files copied
             if os.path.exists(os.path.join(old_folder, 'data')):
