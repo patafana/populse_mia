@@ -723,7 +723,7 @@ class MainWindow(QMainWindow):
             mia_path = config.get_mia_path()
             path = os.path.join(mia_path, 'resources', 'mia',
                                 'something')
-            self.exPopup.selectedFiles = lambda x=0: path
+            self.exPopup.selectedFiles = lambda x=0: [path]
 
         if self.exPopup.exec():
 
