@@ -54,7 +54,7 @@ PLATFORMS = 'OS Independent'
 
 if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
     REQUIRES = [
-        'capsul==2.1.2',
+        'capsul',
         'cryptography',
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
@@ -73,12 +73,12 @@ if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
-        'traits',
+        'traits==5.2.0',
 ]
 
 elif sys.version_info >= (3 , 6):
     REQUIRES = [
-        'capsul==2.1.2',
+        'capsul',
         'cryptography',
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
@@ -97,7 +97,7 @@ elif sys.version_info >= (3 , 6):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
-        'traits',
+        'traits==5.2.0',
 ]
 
 else:
