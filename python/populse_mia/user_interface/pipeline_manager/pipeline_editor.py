@@ -1168,7 +1168,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
             if self.pop_up_close.bool_save_as:
                 if idx == self.currentIndex():
-                    self.setCurrentIndex(max(0, self.currentIndex() - 1))
+                    self.set_tab_index(max(0, self.currentIndex() - 1))
                 self.removeTab(idx)
                 return
 
@@ -1182,7 +1182,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         del self.redos[editor]
 
         if idx == self.currentIndex():
-            self.setCurrentIndex(max(0, self.currentIndex() - 1))
+            self.set_tab_index(max(0, self.currentIndex() - 1))
         self.removeTab(idx)
 
         # If there is no more editor, adding one
@@ -1198,7 +1198,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
             # Setting a default editor called "New Pipeline"
             self.insertTab(0, p_e, "New Pipeline")
-            self.setCurrentIndex(0)
+            self.set_tab_index(0)
             self.undos[p_e] = []
             self.redos[p_e] = []
 
@@ -1421,7 +1421,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             existing_pipeline_tab = self.get_index_by_filename(filename)
 
             if existing_pipeline_tab is not None:
-                self.setCurrentIndex(existing_pipeline_tab)
+                self.set_tab_index(existing_pipeline_tab)
             else:  # we need to actually load the pipeline
                 if current_tab_not_empty and not new_tab_opened:
                     self.new_tab()
@@ -1475,7 +1475,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             return
 
         self.insertTab(self.count() - 1, p_e, name)
-        self.setCurrentIndex(self.count() - 2)
+        self.set_tab_index(self.count() - 2)
 
     def open_filter(self, node_name):
         """Open a filter widget.
@@ -1591,7 +1591,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param editor: editor in the tab that should be made current
         """
 
-        self.setCurrentIndex(self.get_index_by_editor(editor))
+        self.set_tab_index(self.get_index_by_editor(editor))
 
     def set_current_editor_by_file_name(self, file_name):
         """Set the current editor from file name.
@@ -1599,7 +1599,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param file_name: name of the file the pipeline was last saved to
         """
 
-        self.setCurrentIndex(self.get_index_by_filename(file_name))
+        self.set_tab_index(self.get_index_by_filename(file_name))
 
     def set_current_editor_by_tab_name(self, tab_name):
         """Set the current editor from tab name.
@@ -1607,7 +1607,11 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param tab_name: name of the tab
         """
 
-        self.setCurrentIndex(self.get_index_by_tab_name(tab_name))
+        self.set_tab_index(self.get_index_by_tab_name(tab_name))
+
+    def set_tab_index(self, index):
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
+        self.setCurrentIndex(index)
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.
