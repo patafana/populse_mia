@@ -54,7 +54,7 @@ PLATFORMS = 'OS Independent'
 
 if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
     REQUIRES = [
-        'capsul',
+        'capsul==2.1.2',
         'cryptography',
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
@@ -78,7 +78,7 @@ if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
 
 elif sys.version_info >= (3 , 6):
     REQUIRES = [
-        'capsul',
+        'capsul==2.1.2',
         'cryptography',
         'jinja2 == 2.8.1',
         'lark-parser>=0.7.0',
