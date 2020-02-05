@@ -52,14 +52,14 @@ VERSION = __version__
 CLASSIFIERS = CLASSIFIERS
 PLATFORMS = 'OS Independent'
 
-if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
+if (3, 6) > sys.version_info >= (3, 5):
     REQUIRES = [
         'capsul',
         'cryptography',
         'jinja2 == 2.8.1',
-        'lark-parser>=0.7.0',
-        'matplotlib<3.1',
-        'mia-processes>=1.3.0',
+        'lark-parser >= 0.7.0',
+        'matplotlib < 3.1',
+        'mia-processes >= 1.3.0',
         'nibabel',
         'nipype',
         'pillow',
@@ -73,17 +73,18 @@ if sys.version_info < (3 , 6) and sys.version_info >= (3 , 5):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
-        'traits==5.2.0',
+        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
+                            # (> 2.2.1)
 ]
 
-elif sys.version_info >= (3 , 6):
+elif sys.version_info >= (3, 6):
     REQUIRES = [
         'capsul',
         'cryptography',
         'jinja2 == 2.8.1',
-        'lark-parser>=0.7.0',
+        'lark-parser >= 0.7.0',
         'matplotlib',
-        'mia-processes>=1.3.0',
+        'mia-processes >= 1.3.0',
         'nibabel',
         'nipype',
         'pillow',
@@ -97,7 +98,8 @@ elif sys.version_info >= (3 , 6):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
-        'traits==5.2.0',
+        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
+                            # (> 2.2.1)
 ]
 
 else:
