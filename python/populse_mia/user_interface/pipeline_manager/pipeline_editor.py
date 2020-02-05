@@ -1081,6 +1081,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         - save_pipeline_parameters: save the pipeline parameters of the
           current editor
         - set_current_editor_by_tab_name: set the current editor
+        - set_tab_index: set the current tab index and disable the run
+          pipeline action
         - update_history: update undo/redo history of an editor
         - update_pipeline_editors: update editors
         - update_scans_list: update the list of database scans in every editor
@@ -1135,6 +1137,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         # Checking if the pipeline nodes have been modified
         self.tabBarClicked.connect(self.check_modifications)
+        self.previousIndex = 0
 
     def check_modifications(self, current_index):
         """Check if the nodes of the current pipeline have been modified.
@@ -1145,6 +1148,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         # it will throw an AttributeError
         
         try:
+            if current_index != self.previousIndex:
+                self.main_window.pipeline_manager.run_pipeline_action \
+                    .setDisabled(True)
+                self.previousIndex = current_index
             self.widget(current_index).check_modifications()
         except AttributeError:
             pass
@@ -1610,8 +1617,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.set_tab_index(self.get_index_by_tab_name(tab_name))
 
     def set_tab_index(self, index):
+        """Set the current tab index and disable the run pipeline action."""
         self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.setCurrentIndex(index)
+        self.previousIndex = index
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.
