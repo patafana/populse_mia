@@ -540,6 +540,7 @@ class PipelineManagerTab(QWidget):
         #
         # else:
         initial = True
+        check_init = {}
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -782,29 +783,30 @@ class PipelineManagerTab(QWidget):
                 initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
                 try:
- 
                     if not initResult_dict['outputs']:
                         print("\nInitialisation failed to determine the "
                                "outputs for the process {0}, did you correctly "
                                "define the inputs ...?".format(node_name))
-                        initial = False
+                        check_init[node_name] = False
+                    else:
+                        check_init[node_name] = True
                          
                 except KeyError as e:
                     print('\nDue to "{0}" error,\nthe initialisation failed to '
                           'determine the outputs for the node '
                           '{1}...'.format(e, node_name))
-                    initial = False
+                    check_init[node_name] = False
 
                 except Exception as e:
                     print('\nThe outputs determination for the node "{0}" '
                           'failed during the initialisation step, due to:\n'
                           '"{1}"...'.format(node_name, e))
-                    initial = False
+                    check_init[node_name] = False
                     
             except TraitError as e:
                 print('\nTrait error for node "{0}":\n'
                       '"{1}" ...'.format(node_name, e))
-                initial = False
+                check_init[node_name] = False
 
             # If the process has no "list_outputs" method,
             # which is the case for Nipype's
@@ -826,13 +828,13 @@ class PipelineManagerTab(QWidget):
                     print('\nInitialisation failed to determine the outputs '
                           'for the process "{0}":\nDid you correctly defined '
                           'the inputs ...?'.format(node_name))
-                    initial = False
+                    check_init[node_name] = False
       
                 except Exception as e:
                     print('Initialisation failed to determine the outputs '
                           'for the process "{0}", due to:\n'
                           '"{1}"...'.format(node_name, e))
-                    initial = False
+                    check_init[node_name] = False
                     
             # Management of the requirement object in initResult_dict
             if '_nipype_interface' in dir(process):
@@ -1200,11 +1202,11 @@ class PipelineManagerTab(QWidget):
                     'requirements of some bricks must be verified.'
                     .format(name))
 
-        elif initial is False:
+        elif sum(check_init.values()) != len(check_init) or initial is False:
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" was not initialised successfully.'.format(
                     name))
-
+            initial = False
         else:
             initial = True
             self.main_window.statusBar().showMessage(
