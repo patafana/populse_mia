@@ -607,12 +607,12 @@ class PipelineManagerTab(QWidget):
         #pipeline.on_trait_change(
         #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
         #    'user_traits_changed', remove=True)
-
-        for node_name, node in pipeline.nodes.items():
+ 
+        for node_name, node in pipeline.nodes.items():            
             # Updating the project attribute of the processes
             if hasattr(node, 'process'):
                 process = node.process
-                
+
                 if hasattr(process, 'use_project') and process.use_project:
                     process.project = self.project
 
@@ -642,8 +642,7 @@ class PipelineManagerTab(QWidget):
             nodes_inputs_ratio_list.append(ratio)
 
         # Sorting the nodes_to_check list as the order (the nodes having
-        # the highest ratio
-        # being at the end of the list)
+        # the highest ratio being at the end of the list)
         nodes_to_check = [x for _, x in sorted(zip(nodes_inputs_ratio_list,
                                                    nodes_to_check))]
 
@@ -974,9 +973,10 @@ class PipelineManagerTab(QWidget):
             # Update the database with output values obtained
             # from initialisation
             if initResult_dict['outputs']:
-                
+
                 for plug_name, plug_value in initResult_dict['outputs'].items():
- 
+                    add_plug_value_flag = False
+                    
                     if plug_name not in node.plugs.keys():
                         continue
                     
@@ -987,11 +987,22 @@ class PipelineManagerTab(QWidget):
                             
                         else:
                             full_name = node_name
-                             
-                        self.add_plug_value_to_database(plug_value,
-                                                        self.brick_id,
-                                                        node_name,
-                                                        plug_name, full_name)
+
+                        if 'notInDb' in initResult_dict['outputs']:
+
+                            if plug_name not in initResult_dict['outputs']['notInDb']:
+                                add_plug_value_flag = True
+
+                        else:
+                            add_plug_value_flag = True        
+
+                        if add_plug_value_flag:
+                            self.add_plug_value_to_database(plug_value,
+                                                            self.brick_id,
+                                                            node_name,
+                                                            plug_name,
+                                                            full_name)
+
 
                     list_info_link = list(node.plugs[plug_name].links_to)
 
@@ -1225,6 +1236,7 @@ class PipelineManagerTab(QWidget):
         self.ignore = {}
         self.initial = {}
         test_init = self.init_pipeline()
+
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
