@@ -1225,17 +1225,19 @@ class PipelineManagerTab(QWidget):
         self.ignore_node = False
         self.key = {}
         self.ignore = {}
-        self.initial = {}
-        test_init = self.init_pipeline()
+
+        try:
+            test_init = self.init_pipeline()
+        except Exception as e:
+            print("Error:", e)
+            test_init = False
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
         if test_init:
             self.run_pipeline_action.setDisabled(False)
         else:
-            print("Warning: There was some issues during the initialization. "
-                  "The execution of this pipeline might fail.")
-            self.run_pipeline_action.setDisabled(False)
+            self.run_pipeline_action.setDisabled(True)
 
         # When clicking on the Pipeline > Initialize
         # pipeline in the Pipeline Manager tab,
