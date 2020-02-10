@@ -1209,6 +1209,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             self.undos[p_e] = []
             self.redos[p_e] = []
 
+        for node_name, node in self.get_current_pipeline().nodes.items():
+            self.main_window.pipeline_manager.displayNodeParameters(
+                node_name, node.process)
+
     def emit_node_clicked(self, node_name, process):
         """Emit a signal when a node is clicked.
 
