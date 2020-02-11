@@ -610,6 +610,8 @@ class NodeController(QWidget):
         :param process: process of the node
         """
 
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
+
         if process is None:
             try:
                 process = self.current_process
