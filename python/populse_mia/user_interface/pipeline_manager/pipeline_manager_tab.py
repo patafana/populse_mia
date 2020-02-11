@@ -972,8 +972,10 @@ class PipelineManagerTab(QWidget):
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_OUTPUTS, outputs)
 
-            # Update the database with output values obtained
-            # from initialisation
+            # Updating the database with output values obtained from
+            # initialisation. If a plug name is in
+            # initResult_dict['outputs']['notInDb'], then the corresponding
+            # output value is not added to the database.
             if initResult_dict['outputs']:
 
                 for plug_name, plug_value in initResult_dict['outputs'].items():
