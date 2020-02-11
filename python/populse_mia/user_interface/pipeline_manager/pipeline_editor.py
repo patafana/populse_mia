@@ -1083,6 +1083,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         - set_current_editor_by_tab_name: set the current editor
         - set_tab_index: set the current tab index and disable the run
           pipeline action
+        - update_current_node: update node parameter
         - update_history: update undo/redo history of an editor
         - update_pipeline_editors: update editors
         - update_scans_list: update the list of database scans in every editor
@@ -1137,6 +1138,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         # Checking if the pipeline nodes have been modified
         self.tabBarClicked.connect(self.check_modifications)
+        self.currentChanged.connect(self.update_current_node)
         self.previousIndex = 0
 
     def check_modifications(self, current_index):
@@ -1263,7 +1265,6 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :return: the current editor
         """
-
         return self.get_editor_by_index(self.currentIndex())
 
     def get_current_filename(self):
@@ -1625,6 +1626,16 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.setCurrentIndex(index)
         self.previousIndex = index
+        self.update_current_node()
+
+    def update_current_node(self):
+        """Update the node parameters"""
+        try:
+            for node_name, node in self.get_current_pipeline().nodes.items():
+                self.main_window.pipeline_manager.displayNodeParameters(
+                    node_name, node.process)
+        except AttributeError:
+            pass
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.
