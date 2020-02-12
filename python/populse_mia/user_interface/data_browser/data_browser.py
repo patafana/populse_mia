@@ -63,8 +63,7 @@ from populse_db.database import (
     FIELD_TYPE_STRING, FIELD_TYPE_FLOAT, FIELD_TYPE_DATETIME,
     FIELD_TYPE_DATE, FIELD_TYPE_TIME, FIELD_TYPE_LIST_DATE,
     FIELD_TYPE_LIST_DATETIME, FIELD_TYPE_LIST_TIME, FIELD_TYPE_LIST_INTEGER,
-    FIELD_TYPE_LIST_STRING, FIELD_TYPE_LIST_FLOAT, FIELD_TYPE_LIST_BOOLEAN,
-    LIST_TYPES)
+    FIELD_TYPE_LIST_STRING, FIELD_TYPE_LIST_FLOAT, FIELD_TYPE_LIST_BOOLEAN)
 
 # Variable shown everywhere when no value for the tag
 not_defined_value = "*Not Defined*"
@@ -1645,7 +1644,7 @@ class TableDataBrowser(QTableWidget):
                 if tag_type not in self.types:
                     self.types.append(tag_type)
 
-                if tag_type in LIST_TYPES:
+                if tag_type.startswith('list_'):
 
                     database_value = self.project.session.get_value(
                         COLLECTION_CURRENT, scan_name, tag_name)

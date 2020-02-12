@@ -68,7 +68,7 @@ from PyQt5.QtWidgets import (
 from populse_db.database import (
     FIELD_TYPE_LIST_TIME, FIELD_TYPE_LIST_FLOAT, FIELD_TYPE_LIST_DATETIME,
     FIELD_TYPE_DATE, FIELD_TYPE_LIST_DATE, FIELD_TYPE_LIST_STRING,
-    FIELD_TYPE_LIST_BOOLEAN, FIELD_TYPE_LIST_INTEGER, LIST_TYPES,
+    FIELD_TYPE_LIST_BOOLEAN, FIELD_TYPE_LIST_INTEGER,
     FIELD_TYPE_STRING, FIELD_TYPE_INTEGER, FIELD_TYPE_FLOAT,
     FIELD_TYPE_BOOLEAN, FIELD_TYPE_TIME, FIELD_TYPE_DATETIME)
 
@@ -324,7 +324,7 @@ class DefaultValueQLineEdit(QtWidgets.QLineEdit):
 
         """
 
-        if self.parent.type in LIST_TYPES:
+        if self.parent.type.startswith('list_'):
             # We display the pop up to create the list if the checkbox is
             # checked, otherwise we do nothing
             self.list_creation = DefaultValueListCreation(self,
