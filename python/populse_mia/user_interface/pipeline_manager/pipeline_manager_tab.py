@@ -1222,6 +1222,8 @@ class PipelineManagerTab(QWidget):
             initial = False
         else:
             initial = True
+            if main_pipeline:
+                self.pipelineEditorTabs.get_current_editor().initialized = True
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been initialised.'.format(name))
 
