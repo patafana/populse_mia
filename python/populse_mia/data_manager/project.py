@@ -108,7 +108,7 @@ class Project():
 
         if project_root_folder is None:
             self.isTempProject = True
-            self.folder = tempfile.mkdtemp()
+            self.folder = os.path.relpath(tempfile.mkdtemp())
         else:
             self.isTempProject = False
             self.folder = project_root_folder
@@ -125,7 +125,10 @@ class Project():
                                                        "in another instance "
                                                        "of the software.")
         
-        db = 'sqlite:///' + os.path.join(self.folder, 'database_mia.db')
+        db_folder = os.path.join(self.folder, 'database')
+        if not os.path.exists(db_folder):
+            os.makedirs(db_folder)
+        db = 'sqlite:///' + os.path.join(db_folder, 'mia.db')
         self.database = DatabaseMIA(db)
         self.session = self.database.__enter__()
 
@@ -250,7 +253,8 @@ class Project():
                                            field_type, clinical_tag, True,
                                            TAG_ORIGIN_BUILTIN, None, None)
 
-
+        self.session.commit()
+        
         self.properties = self.loadProperties()
 
         self._unsavedModifications = False
@@ -285,7 +289,8 @@ class Project():
                         COLLECTION_INITIAL, getattr(scan, TAG_FILENAME),
                         clinical_tag, None)
                 return_tags.append(clinical_tag)
-
+                self.session.commit()
+                
         return return_tags
 
     def getDate(self):
@@ -548,7 +553,7 @@ class Project():
                 # Columns updated
                 table.update_visualized_columns(
                     old_tags, self.session.get_shown_tags())
-
+            
     def reput_values(self, values):
         """Re-put the value objects in the database.
 

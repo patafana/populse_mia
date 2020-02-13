@@ -146,8 +146,6 @@ class DatabaseSessionMIA(DatabaseSession):
             # Adding each field
             self.add_field(field[0], field[1], field[2], field[3], field[4],
                            field[5], field[6], field[7], False)
-            if field[0] not in collections:
-                collections.append(field[0])
 
     def get_field(self, collection, name):
         field = super(DatabaseSessionMIA, self).get_field(collection, name)
@@ -166,7 +164,7 @@ class DatabaseSessionMIA(DatabaseSession):
             attrs = self.get_document(FIELD_ATTRIBUTES_COLLECTION, index)
             for i in ('visibility', 'origin', 'unit', 'default_value'):
                 setattr(field, i, getattr(attrs,i, None))
-        return field
+        return fields
 
     def get_shown_tags(self):
         """Give the list of visible tags.

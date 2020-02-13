@@ -405,7 +405,6 @@ class MainWindow(QMainWindow):
 
             if self.exPopup.exec():
 
-                self.project.session.unsave_modifications()
                 self.remove_raw_files_useless()  # We remove the useless
                 # files from the old project
 
@@ -642,7 +641,6 @@ class MainWindow(QMainWindow):
 
         # If it's unnamed project, we can remove the whole project
         if self.project.isTempProject:
-            self.project.database.__exit__(None, None, None)
             shutil.rmtree(self.project.folder)
         else:
             for filename in glob.glob(
@@ -687,7 +685,6 @@ class MainWindow(QMainWindow):
                         is None and "logExport" not in scan):
                     os.remove(filename)
                     self.project.unsavedModifications = True
-            self.project.database.__exit__(None, None, None)
 
     def save(self):
         """Save either the current project or the current pipeline"""
@@ -976,7 +973,6 @@ class MainWindow(QMainWindow):
                         msg.buttonClicked.connect(msg.close)
                         msg.exec()
 
-                    self.project.session.unsave_modifications()
                     self.remove_raw_files_useless()
                     # We remove the useless files from the old project
 
