@@ -108,7 +108,7 @@ class Project():
 
         if project_root_folder is None:
             self.isTempProject = True
-            self.folder = os.path.abspath(tempfile.mkdtemp())
+            self.folder = tempfile.mkdtemp()
         else:
             self.isTempProject = False
             self.folder = project_root_folder
@@ -124,10 +124,9 @@ class Project():
                 "The project at " + str(self.folder) + " is already opened "
                                                        "in another instance "
                                                        "of the software.")
-
-        self.database = DatabaseMIA('sqlite:///' + os.path.join(self.folder,
-                                                                'database',
-                                                                'mia.db'))
+        
+        db = 'sqlite:///' + os.path.join(self.folder, 'database_mia.db')
+        self.database = DatabaseMIA(db)
         self.session = self.database.__enter__()
 
         if new_project:
@@ -251,8 +250,6 @@ class Project():
                                            field_type, clinical_tag, True,
                                            TAG_ORIGIN_BUILTIN, None, None)
 
-            self.session.save_modifications()
-            # Base modifications, do not count for unsaved modifications
 
         self.properties = self.loadProperties()
 
@@ -639,7 +636,6 @@ class Project():
         still not saved).
         """
 
-        self.session.save_modifications()
         self.saveConfig()
         self.unsavedModifications = False
 
@@ -878,5 +874,4 @@ class Project():
     def unsaveModifications(self):
         """Unsave the pending operations of the project."""
 
-        self.session.unsave_modifications()
         self.unsavedModifications = False

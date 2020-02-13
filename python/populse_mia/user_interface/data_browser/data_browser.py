@@ -251,11 +251,11 @@ class DataBrowser(QWidget):
         tag_cloned_init = self.project.session.get_field(
             COLLECTION_INITIAL, tag_to_clone)
         self.project.session.add_field(
-            COLLECTION_CURRENT, new_tag_name, tag_cloned.type,
+            COLLECTION_CURRENT, new_tag_name, tag_cloned.field_type,
             tag_cloned.description, True, TAG_ORIGIN_USER, tag_cloned.unit,
             tag_cloned.default_value)
         self.project.session.add_field(
-            COLLECTION_INITIAL, new_tag_name, tag_cloned.type,
+            COLLECTION_INITIAL, new_tag_name, tag_cloned.field_type,
             tag_cloned_init.description, True, TAG_ORIGIN_USER,
             tag_cloned.unit, tag_cloned.default_value)
         self.project.unsavedModifications = True
@@ -279,7 +279,7 @@ class DataBrowser(QWidget):
                      cloned_cur_value, cloned_init_value])
 
         # For history
-        history_maker = ["add_tag", new_tag_name, tag_cloned.type,
+        history_maker = ["add_tag", new_tag_name, tag_cloned.field_type,
                          tag_cloned.unit, tag_cloned.default_value,
                          tag_cloned.description, values]
         self.project.undos.append(history_maker)
@@ -792,16 +792,16 @@ class TableDataBrowser(QTableWidget):
         item.setText(tag)
         item.setToolTip(
             "Description: " + str(tag_object.description) + "\nUnit: " +
-            str(tag_object.unit) + "\nType: " + str(tag_object.type))
+            str(tag_object.unit) + "\nType: " + str(tag_object.field_type))
 
         # Set column type
-        if tag_object.type == FIELD_TYPE_FLOAT:
+        if tag_object.field_type == FIELD_TYPE_FLOAT:
             self.setItemDelegateForColumn(column, NumberFormatDelegate(self))
-        elif tag_object.type == FIELD_TYPE_DATETIME:
+        elif tag_object.field_type == FIELD_TYPE_DATETIME:
             self.setItemDelegateForColumn(column, DateTimeFormatDelegate(self))
-        elif tag_object.type == FIELD_TYPE_DATE:
+        elif tag_object.field_type == FIELD_TYPE_DATE:
             self.setItemDelegateForColumn(column, DateFormatDelegate(self))
-        elif tag_object.type == FIELD_TYPE_TIME:
+        elif tag_object.field_type == FIELD_TYPE_TIME:
             self.setItemDelegateForColumn(column, TimeFormatDelegate(self))
         else:
             self.setItemDelegateForColumn(column, None)
@@ -813,7 +813,7 @@ class TableDataBrowser(QTableWidget):
             cur_value = self.project.session.get_value(
                 COLLECTION_CURRENT, scan, tag)
             if cur_value is not None:
-                set_item_data(item, cur_value, tag_object.type)
+                set_item_data(item, cur_value, tag_object.field_type)
             else:
                 set_item_data(item, not_defined_value, FIELD_TYPE_STRING)
                 font = item.font()
@@ -867,20 +867,20 @@ class TableDataBrowser(QTableWidget):
                 if tag_object is not None:
                     item.setToolTip("Description: " + str(
                         tag_object.description) + "\nUnit: " + str(
-                        tag_object.unit) + "\nType: " + str(tag_object.type))
+                        tag_object.unit) + "\nType: " + str(tag_object.field_type))
 
                 # Set column type
 
-                if tag_object.type == FIELD_TYPE_FLOAT:
+                if tag_object.field_type == FIELD_TYPE_FLOAT:
                     self.setItemDelegateForColumn(column_index,
                                                   NumberFormatDelegate(self))
-                elif tag_object.type == FIELD_TYPE_DATETIME:
+                elif tag_object.field_type == FIELD_TYPE_DATETIME:
                     self.setItemDelegateForColumn(column_index,
                                                   DateTimeFormatDelegate(self))
-                elif tag_object.type == FIELD_TYPE_DATE:
+                elif tag_object.field_type == FIELD_TYPE_DATE:
                     self.setItemDelegateForColumn(column_index,
                                                   DateFormatDelegate(self))
-                elif tag_object.type == FIELD_TYPE_TIME:
+                elif tag_object.field_type == FIELD_TYPE_TIME:
                     self.setItemDelegateForColumn(column_index,
                                                   TimeFormatDelegate(self))
 
@@ -899,7 +899,7 @@ class TableDataBrowser(QTableWidget):
                         COLLECTION_CURRENT, scan, tag)
 
                     if cur_value is not None:
-                        set_item_data(item, cur_value, tag_object.type)
+                        set_item_data(item, cur_value, tag_object.field_type)
                     else:
                         set_item_data(item, not_defined_value,
                                       FIELD_TYPE_STRING)
@@ -993,7 +993,7 @@ class TableDataBrowser(QTableWidget):
                                 set_item_data(
                                     item, cur_value,
                                     self.project.session.get_field(
-                                        COLLECTION_CURRENT, tag).type)
+                                        COLLECTION_CURRENT, tag).field_type)
                             else:
                                 # Tag bricks, display list with buttons
                                 widget = QWidget()
@@ -1071,7 +1071,7 @@ class TableDataBrowser(QTableWidget):
             tag_name = self.horizontalHeaderItem(col).text()
             tag_object = self.project.session.get_field(
                 COLLECTION_CURRENT, tag_name)
-            tag_type = tag_object.type
+            tag_type = tag_object.field_type
 
             if tag_name == TAG_BRICKS or tag_name == TAG_FILENAME:
                 self.update_colors()
@@ -1150,7 +1150,7 @@ class TableDataBrowser(QTableWidget):
                 database_value = table_to_database(
                     new_value,
                     self.project.session.get_field(
-                        COLLECTION_CURRENT, tag_name).type)
+                        COLLECTION_CURRENT, tag_name).field_type)
 
                 # We only set the cell if it's not the tag name
                 if tag_name != TAG_FILENAME:
@@ -1181,7 +1181,7 @@ class TableDataBrowser(QTableWidget):
                     set_item_data(
                         item, new_value,
                         self.project.session.get_field(
-                            COLLECTION_CURRENT, tag_name).type)
+                            COLLECTION_CURRENT, tag_name).field_type)
 
             # For history
             history_maker.append(modified_values)
@@ -1414,7 +1414,7 @@ class TableDataBrowser(QTableWidget):
                             set_item_data(
                                 item, current_value,
                                 self.project.session.get_field(
-                                    COLLECTION_CURRENT, current_tag).type)
+                                    COLLECTION_CURRENT, current_tag).field_type)
                         else:
                             # Tag bricks, display list with buttons
                             # Initialization of a widget, it is necessary
@@ -1509,19 +1509,19 @@ class TableDataBrowser(QTableWidget):
             if element is not None:
                 item.setToolTip(
                     "Description: " + str(element.description) + "\nUnit: "
-                    + str(element.unit) + "\nType: " + str(element.type))
+                    + str(element.unit) + "\nType: " + str(element.field_type))
 
                 # Set column type
-                if element.type == FIELD_TYPE_FLOAT:
+                if element.field_type == FIELD_TYPE_FLOAT:
                     self.setItemDelegateForColumn(
                         column, NumberFormatDelegate(self))
-                elif element.type == FIELD_TYPE_DATETIME:
+                elif element.field_type == FIELD_TYPE_DATETIME:
                     self.setItemDelegateForColumn(
                         column, DateTimeFormatDelegate(self))
-                elif element.type == FIELD_TYPE_DATE:
+                elif element.field_type == FIELD_TYPE_DATE:
                     self.setItemDelegateForColumn(
                         column, DateFormatDelegate(self))
-                elif element.type == FIELD_TYPE_TIME:
+                elif element.field_type == FIELD_TYPE_TIME:
                     self.setItemDelegateForColumn(
                         column, TimeFormatDelegate(self))
 
@@ -1629,7 +1629,7 @@ class TableDataBrowser(QTableWidget):
                 tag_name = self.horizontalHeaderItem(column).text()
                 tag_object = self.project.session.get_field(
                     COLLECTION_CURRENT, tag_name)
-                tag_type = tag_object.type
+                tag_type = tag_object.field_type
                 scan_name = self.item(row, 0).text()
 
                 if tag_name == TAG_BRICKS:
@@ -1710,7 +1710,7 @@ class TableDataBrowser(QTableWidget):
                     set_item_data(
                         new_item, new_cur_value,
                         self.project.session.get_field(
-                            COLLECTION_CURRENT, self.tags[i]).type)
+                            COLLECTION_CURRENT, self.tags[i]).field_type)
                     self.setItem(
                         self.coordinates[i][0],
                         self.coordinates[i][1], new_item)
@@ -1880,7 +1880,7 @@ class TableDataBrowser(QTableWidget):
                         COLLECTION_CURRENT, scan_name, tag_name, initial_value)
                     set_item_data(self.item(row, col), initial_value,
                                   self.project.session.get_field(
-                                      COLLECTION_CURRENT, tag_name).type)
+                                      COLLECTION_CURRENT, tag_name).field_type)
                     # For history
                     modified_values.append(
                         [scan_name, tag_name, current_value, initial_value])
@@ -1930,7 +1930,7 @@ class TableDataBrowser(QTableWidget):
                             COLLECTION_CURRENT, scan, tag_name, initial_value)
                         set_item_data(self.item(row_iter, col), initial_value,
                                       self.project.session.get_field(
-                                          COLLECTION_CURRENT, tag_name).type)
+                                          COLLECTION_CURRENT, tag_name).field_type)
                         # For history
                         modified_values.append(
                             [scan, tag_name, current_value, initial_value])
@@ -1984,7 +1984,7 @@ class TableDataBrowser(QTableWidget):
                             COLLECTION_CURRENT, scan_name, tag, initial_value)
                         set_item_data(self.item(row, column), initial_value,
                                       self.project.session.get_field(
-                                          COLLECTION_CURRENT, tag).type)
+                                          COLLECTION_CURRENT, tag).field_type)
                         # For history
                         modified_values.append(
                             [scan_name, tag, current_value, initial_value])

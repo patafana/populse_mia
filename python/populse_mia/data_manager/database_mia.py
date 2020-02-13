@@ -154,10 +154,8 @@ class DatabaseSessionMIA(DatabaseSession):
         if field is not None:
             index = '%s|%s' % (collection, name)
             attrs = self.get_document(FIELD_ATTRIBUTES_COLLECTION, index)
-            for k, v in attrs.items():
-                if k in ('index', 'field'):
-                    continue
-                setattr(field, k, v)
+            for i in ('visibility', 'origin', 'unit', 'default_value'):
+                setattr(field, i, getattr(attrs,i, None))
         return field
     
     def get_fields(self, collection):
@@ -166,10 +164,8 @@ class DatabaseSessionMIA(DatabaseSession):
             name = field.field_name
             index = '%s|%s' % (collection, name)
             attrs = self.get_document(FIELD_ATTRIBUTES_COLLECTION, index)
-            for k, v in attrs.items():
-                if k in ('index', 'field'):
-                    continue
-                setattr(field, k, v)
+            for i in ('visibility', 'origin', 'unit', 'default_value'):
+                setattr(field, i, getattr(attrs,i, None))
         return field
 
     def get_shown_tags(self):
