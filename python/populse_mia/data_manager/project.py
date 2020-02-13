@@ -355,8 +355,7 @@ class Project():
         False otherwise
         """
 
-        return self.unsavedModifications \
-               or self.session.has_unsaved_modifications()
+        return self.unsavedModifications;
 
     def init_filters(self):
         """Initialize the filters at project opening."""
