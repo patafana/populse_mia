@@ -1632,9 +1632,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
     def update_current_node(self):
         """Update the node parameters"""
-        if self.get_current_editor().initialized:
-            self.main_window.pipeline_manager.run_pipeline_action\
-                .setDisabled(False)
+        if self.get_current_editor():
+            if self.get_current_editor().initialized:
+                self.main_window.pipeline_manager.run_pipeline_action\
+                    .setDisabled(False)
         try:
             for node_name, node in self.get_current_pipeline().nodes.items():
                 self.main_window.pipeline_manager.displayNodeParameters(
