@@ -269,7 +269,7 @@ class PipelineManagerTab(QWidget):
             # Deleting the project's folder in the file name so it can
             # fit to the database's syntax
             old_value = p_value
-            p_value = p_value.replace(self.project.folder, "")
+            #p_value = p_value.replace(self.project.folder, "")
             p_value = p_value.replace(os.path.abspath(self.project.folder), "")
             if p_value[0] in ["\\", "/"]:
                 p_value = p_value[1:]
@@ -782,6 +782,10 @@ class PipelineManagerTab(QWidget):
                                             for key, plug in node.plugs.items()}
                 initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
+
+                # For debugging. To be commented if not in debugging.
+                #print('initResult_dict after mia brick initialisaton: ',  initResult_dict) 
+
                 try:
                     if not initResult_dict['outputs']:
                         print("\nInitialisation failed to determine the "
@@ -823,6 +827,9 @@ class PipelineManagerTab(QWidget):
                         tmp_dict['_' + key] = initResult_dict['outputs'][key]
                         
                     initResult_dict['outputs'] = tmp_dict
+
+                    # For debugging. To be commented if not in debugging.
+                    #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict) 
 
                 except TypeError:
                     print('\nInitialisation failed to determine the outputs '
@@ -1098,7 +1105,7 @@ class PipelineManagerTab(QWidget):
                 self.nodeController.node_name,
                 pipeline.nodes[node_controller_node_name].process,
                 pipeline)
-            
+
         nodes_requir_miss = [nodeName for nodeName in nodes_requir_issue
                              if nodes_requir_issue[nodeName] == 'MISSING']
         nodes_requir_fail = [nodeName for nodeName in nodes_requir_issue
@@ -1107,8 +1114,8 @@ class PipelineManagerTab(QWidget):
         if ((nodes_requir_miss or nodes_requir_fail) and
             not (config.get_use_matlab() and
                 (config.get_use_spm() or config.get_use_spm_standalone()))):
-
             initial = False
+
             if ((config.get_use_matlab()) and
                 (not config.get_use_matlab_standalone())):
 
