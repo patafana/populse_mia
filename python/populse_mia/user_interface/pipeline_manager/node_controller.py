@@ -512,13 +512,19 @@ class NodeController(QWidget):
         self.v_box_final.addWidget(self.button_group_inputs)
         self.v_box_final.addWidget(self.button_group_outputs)
 
-        self.setLayout(self.v_box_final)
+        self.main_window.pipeline_manager.pipelineEditorTabs \
+            .get_current_editor().node_parameters_tmp[node_name] = {}
 
         self.main_window.pipeline_manager.pipelineEditorTabs \
-            .get_current_editor().node_parameters_tmp[node_name] = [x.text()
-                                         for x in self.line_edit_input]
-        if "outputs" in self.main_window.pipeline_manager.pipelineEditorTabs \
-                .get_current_editor().node_parameters_tmp:
+            .get_current_editor().node_parameters_tmp[node_name]["inputs"] = \
+            [x.text() for x in self.line_edit_input]
+
+        self.main_window.pipeline_manager.pipelineEditorTabs \
+            .get_current_editor().node_parameters_tmp[node_name]["outputs"] = [
+            x.text() for x in self.line_edit_output]
+
+        if "outputs" in self.main_window.pipeline_manager.pipelineEditorTabs.\
+                get_current_editor().node_parameters_tmp:
             del self.main_window.pipeline_manager.pipelineEditorTabs \
                 .get_current_editor().node_parameters_tmp["outputs"]
 
@@ -528,19 +534,21 @@ class NodeController(QWidget):
         .get_current_editor().node_parameters:
             self.main_window.pipeline_manager.run_pipeline_action \
                 .setDisabled(False)
-            # print("toto")
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs \
-            #       .get_current_editor().node_parameters_tmp)
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs \
-            #       .get_current_editor().node_parameters)
+            print("toto")
+            print(self.main_window.pipeline_manager.pipelineEditorTabs \
+                  .get_current_editor().node_parameters_tmp)
+            print(self.main_window.pipeline_manager.pipelineEditorTabs \
+                  .get_current_editor().node_parameters)
         else:
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(True)
-        #     print('fail')
-        #     print(self.main_window.pipeline_manager.pipelineEditorTabs\
-        # .get_current_editor().node_parameters_tmp)
-        #     print(self.main_window.pipeline_manager.pipelineEditorTabs\
-        # .get_current_editor().node_parameters)
+            print('fail')
+            print(self.main_window.pipeline_manager.pipelineEditorTabs\
+        .get_current_editor().node_parameters_tmp)
+            print(self.main_window.pipeline_manager.pipelineEditorTabs\
+        .get_current_editor().node_parameters)
+
+        self.setLayout(self.v_box_final)
         # print([x.text() for x in self.line_edit_output])
 
     def get_index_from_plug_name(self, plug_name, in_or_out):
