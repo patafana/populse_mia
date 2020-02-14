@@ -633,7 +633,6 @@ class PipelineEditor(PipelineDevelopperView):
             self.main_window.pipeline_manager.displayNodeParameters(
                 node_name, node.process)
 
-
     def dragEnterEvent(self, event):
         """Event handler when the mouse enters the widget.
 
@@ -1121,6 +1120,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.edit_sub_pipeline.connect(self.open_sub_pipeline)
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
+        p_e.initialized = False
 
         # Setting a default editor called "New Pipeline"
         self.addTab(p_e, "New Pipeline")
@@ -1204,6 +1204,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             p_e.edit_sub_pipeline.connect(self.open_sub_pipeline)
             p_e.open_filter.connect(self.open_filter)
             p_e.export_to_db_scans.connect(self.export_to_db_scans)
+            p_e.initialized = False
 
             # Setting a default editor called "New Pipeline"
             self.insertTab(0, p_e, "New Pipeline")
@@ -1469,6 +1470,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.edit_sub_pipeline.connect(self.open_sub_pipeline)
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
+        p_e.initialized = False
 
         # A unique editor name has to be automatically generated
         idx = 1
@@ -1630,6 +1632,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
     def update_current_node(self):
         """Update the node parameters"""
+        if self.get_current_editor():
+            if self.get_current_editor().initialized:
+                self.main_window.pipeline_manager.run_pipeline_action\
+                    .setDisabled(False)
         try:
             for node_name, node in self.get_current_pipeline().nodes.items():
                 self.main_window.pipeline_manager.displayNodeParameters(
