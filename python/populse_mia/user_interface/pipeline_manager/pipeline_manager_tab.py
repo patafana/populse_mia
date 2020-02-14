@@ -61,6 +61,7 @@ import os
 import re
 import sys
 import uuid
+import copy
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.trait_errors import TraitError
@@ -1224,6 +1225,7 @@ class PipelineManagerTab(QWidget):
             initial = True
             if main_pipeline:
                 self.pipelineEditorTabs.get_current_editor().initialized = True
+
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been initialised.'.format(name))
 
@@ -1302,6 +1304,11 @@ class PipelineManagerTab(QWidget):
         #         etc ...
 
         self.init_clicked = True
+        self.pipelineEditorTabs.update_current_node()
+        self.pipelineEditorTabs.get_current_editor().node_parameters \
+            = copy.deepcopy(self.pipelineEditorTabs.get_current_editor(
+        ).node_parameters_tmp)
+        self.pipelineEditorTabs.update_current_node()
 
     def layout_view(self):
         """Initialize layout for the pipeline manager tab"""

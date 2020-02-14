@@ -1121,6 +1121,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
         p_e.initialized = False
+        p_e.node_parameters = {}
+        p_e.node_parameters_tmp = {}
 
         # Setting a default editor called "New Pipeline"
         self.addTab(p_e, "New Pipeline")
@@ -1205,6 +1207,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             p_e.open_filter.connect(self.open_filter)
             p_e.export_to_db_scans.connect(self.export_to_db_scans)
             p_e.initialized = False
+            p_e.node_parameters = {}
+            p_e.node_parameters_tmp = {}
 
             # Setting a default editor called "New Pipeline"
             self.insertTab(0, p_e, "New Pipeline")
@@ -1471,6 +1475,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
         p_e.initialized = False
+        p_e.node_parameters = {}
+        p_e.node_parameters_tmp = {}
 
         # A unique editor name has to be automatically generated
         idx = 1
