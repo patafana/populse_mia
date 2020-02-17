@@ -542,11 +542,11 @@ class NodeController(QWidget):
         else:
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(True)
-        #     print('fail')
-        #     print(self.main_window.pipeline_manager.pipelineEditorTabs\
-        # .get_current_editor().node_parameters_tmp)
-        #     print(self.main_window.pipeline_manager.pipelineEditorTabs\
-        # .get_current_editor().node_parameters)
+            # print('fail')
+            # print(self.main_window.pipeline_manager.pipelineEditorTabs\
+            #   .get_current_editor().node_parameters_tmp)
+            # print(self.main_window.pipeline_manager.pipelineEditorTabs\
+            #   .get_current_editor().node_parameters)
 
         self.setLayout(self.v_box_final)
         # print([x.text() for x in self.line_edit_output])
