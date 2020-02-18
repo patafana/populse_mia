@@ -534,19 +534,9 @@ class NodeController(QWidget):
         .get_current_editor().node_parameters:
             self.main_window.pipeline_manager.run_pipeline_action \
                 .setDisabled(False)
-            # print("toto")
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs \
-            #       .get_current_editor().node_parameters_tmp)
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs \
-            #       .get_current_editor().node_parameters)
         else:
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(True)
-            # print('fail')
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs\
-            #   .get_current_editor().node_parameters_tmp)
-            # print(self.main_window.pipeline_manager.pipelineEditorTabs\
-            #   .get_current_editor().node_parameters)
 
         self.setLayout(self.v_box_final)
         # print([x.text() for x in self.line_edit_output])
@@ -676,6 +666,9 @@ class NodeController(QWidget):
             if idx < len(self.line_edit_output):
                 self.line_edit_output[idx].setText(str(value))
                 idx += 1
+
+        self.main_window.pipeline_manager.pipelineEditorTabs\
+            .update_current_node()
 
     def update_plug_value(self, in_or_out, plug_name, pipeline, value_type,
                           new_value=None):
