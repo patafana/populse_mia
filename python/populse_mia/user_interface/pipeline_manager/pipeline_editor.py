@@ -7,7 +7,7 @@ Contains:
     Class:
         - PipelineEditor
         - PipelineEditorTabs
-    Function :
+    Function:
         - save_pipeline
         - get_path
         - find_filename
