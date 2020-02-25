@@ -650,7 +650,7 @@ class PipelineManagerTab(QWidget):
 
             nodes_to_check.append(node_name)
             nodes_inputs_ratio[node_name] = [nb_plugs_from_in, nb_plugs]
-            nodes_inputs_ratio_list.append(ratio)
+            nodes_inputs_ratio_list.append(ratio)        
 
         # Sorting the nodes_to_check list as the order (the nodes having
         # the highest ratio being at the end of the list)
@@ -658,17 +658,16 @@ class PipelineManagerTab(QWidget):
                                                      nodes_to_check))]
 
         while nodes_to_check:
-            # Finding one node that has a ratio of 1,
-            # which means that all of its mandatory
-            # inputs are "connected"
-            key_name = [key for key, value in nodes_inputs_ratio.items() if
-                                                           value[0] == value[1]]
+            # Finding one node that has a ratio of 1, which means that all of
+            # its mandatory inputs plugs are "connected" to the Input node
+            key_name = [key for (key, value) in nodes_inputs_ratio.items()
+                            if (value[0] == value[1]) and (value[0] != 0) ]
 
             if key_name:
                 # This node can be initialized so it is placed at the
                 # end of the nodes_to_check list
                 nodes_to_check.append(key_name[0])
-
+                
                 # It can also be removed from the dictionary
                 del nodes_inputs_ratio[key_name[0]]
 
@@ -678,9 +677,9 @@ class PipelineManagerTab(QWidget):
             # key_name[0] appears twice, it will stay at the first place
             nodes_to_check = list(OrderedDict((x, True) for x in
                                               nodes_to_check[::-1]).keys())
+
             # print(nodes_to_check)
             node_name = nodes_to_check.pop(0)
-
             nodes_to_check = nodes_to_check[::-1]
 
             # Inputs/Outputs nodes will be automatically updated with
