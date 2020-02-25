@@ -645,7 +645,7 @@ class PipelineManagerTab(QWidget):
         # Sorting the nodes_to_check list as the order (the nodes having
         # the highest ratio being at the end of the list)
         nodes_to_check = [x for (_, x) in sorted(zip(nodes_inputs_ratio_list,
-                                                   nodes_to_check))]
+                                                     nodes_to_check))]
 
         while nodes_to_check:
             # Finding one node that has a ratio of 1,
