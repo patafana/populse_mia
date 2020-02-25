@@ -539,7 +539,6 @@ class NodeController(QWidget):
                 .setDisabled(True)
 
         self.setLayout(self.v_box_final)
-        # print([x.text() for x in self.line_edit_output])
 
     def get_index_from_plug_name(self, plug_name, in_or_out):
         """Return the index of the plug label.
@@ -667,8 +666,8 @@ class NodeController(QWidget):
                 self.line_edit_output[idx].setText(str(value))
                 idx += 1
 
-        self.main_window.pipeline_manager.pipelineEditorTabs\
-            .update_current_node()
+        # self.main_window.pipeline_manager.pipelineEditorTabs\
+        #     .update_current_node()
 
     def update_plug_value(self, in_or_out, plug_name, pipeline, value_type,
                           new_value=None):

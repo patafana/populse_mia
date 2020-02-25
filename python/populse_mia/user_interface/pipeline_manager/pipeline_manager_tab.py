@@ -476,6 +476,15 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.get_current_pipeline().nodes[
                 node_name].process)
 
+        # Cause a segmentation fault
+        # from capsul.qt_gui.widgets.pipeline_developper_view import NodeGWidget
+        # for item in self.pipelineEditorTabs.get_current_editor().scene.items():
+        #     if isinstance(item, NodeGWidget):
+        #         self.pipelineEditorTabs.get_current_editor(
+        #
+        #         ).scene.process_clicked.emit(item.name, item.process)
+
+
     def displayNodeParameters(self, node_name, process):
         """
         Display the node controller when a node is clicked
