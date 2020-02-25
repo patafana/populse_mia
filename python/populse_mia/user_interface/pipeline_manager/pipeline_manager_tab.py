@@ -654,8 +654,8 @@ class PipelineManagerTab(QWidget):
 
         # Sorting the nodes_to_check list as the order (the nodes having
         # the highest ratio being at the end of the list)
-        nodes_to_check = [x for _, x in sorted(zip(nodes_inputs_ratio_list,
-                                                   nodes_to_check))]
+        nodes_to_check = [x for (_, x) in sorted(zip(nodes_inputs_ratio_list,
+                                                     nodes_to_check))]
 
         while nodes_to_check:
             # Finding one node that has a ratio of 1,
@@ -1262,7 +1262,7 @@ class PipelineManagerTab(QWidget):
         try:
             test_init = self.init_pipeline()
         except Exception as e:
-            print("Error:", e)
+            print("\nError during initialisation: ", e)
             test_init = False
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
