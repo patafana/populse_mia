@@ -776,39 +776,39 @@ class MainWindow(QMainWindow):
 
             # First we register the Database before commiting the last
             # pending modifications
-            shutil.copy(os.path.join(os.path.relpath(old_folder),
+            shutil.copy(os.path.join(os.path.abspath(old_folder),
                                      'database', 'mia.db'),
-                        os.path.join(os.path.relpath(old_folder),
+                        os.path.join(os.path.abspath(old_folder),
                                      'database', 'mia_before_commit.db'))
 
             # We commit the last pending modifications
             self.project.saveModifications()
 
             os.mkdir(properties_path)
-            shutil.copy(os.path.join(os.path.relpath(old_folder),
+            shutil.copy(os.path.join(os.path.abspath(old_folder),
                                      'properties', 'properties.yml'),
                         os.path.relpath(properties_path))
 
             # We copy the Database with all the modifications commited in
             # the new project
             os.mkdir(os.path.relpath(database_path))
-            shutil.copy(os.path.join(os.path.relpath(old_folder),
+            shutil.copy(os.path.join(os.path.abspath(old_folder),
                                      'database', 'mia.db'),
                         os.path.relpath(database_path))
 
             # We remove the Database with all the modifications saved in
             # the old project
             os.remove(os.path.join(
-                os.path.relpath(old_folder), 'database', 'mia.db'))
+                os.path.abspath(old_folder), 'database', 'mia.db'))
 
             # We reput the Database without the last modifications
             # in the old project
-            shutil.copy(os.path.join(os.path.relpath(old_folder), 'database',
+            shutil.copy(os.path.join(os.path.abspath(old_folder), 'database',
                                      'mia_before_commit.db'),
-                        os.path.join(os.path.relpath(old_folder), 'database',
+                        os.path.join(os.path.abspath(old_folder), 'database',
                                      'mia.db'))
 
-            os.remove(os.path.join(os.path.relpath(old_folder), 'database',
+            os.remove(os.path.join(os.path.abspath(old_folder), 'database',
                                    'mia_before_commit.db'))
 
             self.remove_raw_files_useless()
