@@ -112,7 +112,7 @@ class Project():
 
         if project_root_folder is None:
             self.isTempProject = True
-            self.folder = os.path.relpath(tempfile.mkdtemp())
+            self.folder = os.path.abspath(tempfile.mkdtemp())
         else:
             self.isTempProject = False
             self.folder = project_root_folder
