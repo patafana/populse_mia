@@ -640,7 +640,7 @@ class MainWindow(QMainWindow):
             shutil.rmtree(self.project.folder)
         else:
             for filename in glob.glob(
-                    os.path.join(os.path.relpath(
+                    os.path.join(os.path.abspath(
                         self.project.folder), 'data', 'raw_data', '*')):
                 scan = os.path.basename(filename)
                 # The file is removed only if it's not a scan in the project,
@@ -670,7 +670,7 @@ class MainWindow(QMainWindow):
             #             "logExport" not in scan):
             #         os.remove(filename)
             for filename in glob.glob(os.path.join(
-                    os.path.relpath(self.project.folder), 'data',
+                    os.path.abspath(self.project.folder), 'data',
                     'downloaded_data', '*')):
                 scan = os.path.basename(filename)
                 # The file is removed only if it's not a scan in the project,
@@ -725,13 +725,13 @@ class MainWindow(QMainWindow):
             file_name = self.exPopup.relative_path
 
             database_path = os.path.join(
-                os.path.relpath(self.exPopup.relative_path), 'database')
+                os.path.abspath(self.exPopup.relative_path), 'database')
             properties_path = os.path.join(
-                os.path.relpath(self.exPopup.relative_path), 'properties')
+                os.path.abspath(self.exPopup.relative_path), 'properties')
             filters_path = os.path.join(
-                os.path.relpath(self.exPopup.relative_path), 'filters')
+                os.path.abspath(self.exPopup.relative_path), 'filters')
             data_path = os.path.join(
-                os.path.relpath(self.exPopup.relative_path), 'data')
+                os.path.abspath(self.exPopup.relative_path), 'data')
 
             raw_data_path = os.path.join(data_path, 'raw_data')
             derived_data_path = os.path.join(data_path, 'derived_data')
@@ -755,24 +755,24 @@ class MainWindow(QMainWindow):
             # Data files copied
             if os.path.exists(os.path.join(old_folder, 'data')):
                 for filename in glob.glob(
-                        os.path.join(os.path.relpath(old_folder), 'data',
+                        os.path.join(os.path.abspath(old_folder), 'data',
                                      'raw_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.relpath(
+                    shutil.copy(filename, os.path.join(os.path.abspath(
                         data_path), 'raw_data'))
-                for filename in glob.glob(os.path.join(os.path.relpath(
+                for filename in glob.glob(os.path.join(os.path.abspath(
                         old_folder), 'data', 'derived_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.relpath(
+                    shutil.copy(filename, os.path.join(os.path.abspath(
                         data_path), 'derived_data'))
-                for filename in glob.glob(os.path.join(os.path.relpath(
+                for filename in glob.glob(os.path.join(os.path.abspath(
                         old_folder), 'data', 'downloaded_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.relpath(
+                    shutil.copy(filename, os.path.join(os.path.abspath(
                         data_path), 'downloaded_data'))
 
             if os.path.exists(os.path.join(old_folder, 'filters')):
                 for filename in glob.glob(os.path.join(
-                        os.path.relpath(old_folder), 'filters', '*')):
+                        os.path.abspath(old_folder), 'filters', '*')):
                     shutil.copy(filename, os.path.join(
-                        os.path.relpath(filters_path)))
+                        os.path.abspath(filters_path)))
 
             # First we register the Database before commiting the last
             # pending modifications
@@ -787,14 +787,14 @@ class MainWindow(QMainWindow):
             os.mkdir(properties_path)
             shutil.copy(os.path.join(os.path.abspath(old_folder),
                                      'properties', 'properties.yml'),
-                        os.path.relpath(properties_path))
+                        os.path.abspath(properties_path))
 
             # We copy the Database with all the modifications commited in
             # the new project
-            os.mkdir(os.path.relpath(database_path))
+            os.mkdir(os.path.abspath(database_path))
             shutil.copy(os.path.join(os.path.abspath(old_folder),
                                      'database', 'mia.db'),
-                        os.path.relpath(database_path))
+                        os.path.abspath(database_path))
 
             # We remove the Database with all the modifications saved in
             # the old project
