@@ -1240,6 +1240,9 @@ class PipelineManagerTab(QWidget):
         else:
             initial = True
             if main_pipeline:
+                for i in range(0, len(self.pipelineEditorTabs)-1):
+                    self.pipelineEditorTabs.get_editor_by_index(
+                        i).initialized = False
                 self.pipelineEditorTabs.get_current_editor().initialized = True
 
             self.main_window.statusBar().showMessage(
