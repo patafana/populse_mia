@@ -340,12 +340,12 @@ class ImportWorker(QThread):
                 for scan in self.scans_added:
                     if tag.default_value is not None and \
                             self.project.session.get_value(
-                                COLLECTION_CURRENT, scan[0], tag.name) is None:
+                                COLLECTION_CURRENT, scan[0], tag.field_name) is None:
                         # Value added to history
-                        values_added.append([scan, tag.name,
+                        values_added.append([scan, tag.field_name,
                                              tag.default_value,
                                              tag.default_value])
-                        documents[scan][tag.name] = tag.default_value
+                        documents[scan][tag.field_name] = tag.default_value
 
         self.notifyProgress.emit(1)
         sleep(0.1)
