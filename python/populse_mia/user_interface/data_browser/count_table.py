@@ -127,7 +127,8 @@ class CountTable(QDialog):
 
         self.project = project
 
-        self.setModal(True)
+        # Issue #147: Allow to interact with database while the popup is open
+        # self.setModal(True)
         self.setWindowTitle("Count table")
 
         # Font
