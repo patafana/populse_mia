@@ -3070,6 +3070,7 @@ class PopUpSaveProjectAs(QDialog):
         self.label = QLabel("Projects list:")
         h_box = QHBoxLayout()
 
+        project_list.sort()
         for i in range(0, len(project_list)):
             if os.path.isdir(os.path.join(self.project_path, project_list[i])):
                 label = QLabel_clickable(project_list[i])
