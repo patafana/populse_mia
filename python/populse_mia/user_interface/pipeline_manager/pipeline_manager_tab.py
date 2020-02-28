@@ -1270,7 +1270,7 @@ class PipelineManagerTab(QWidget):
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
-        if self.test_init:
+        if self.test_init or self.iterationTable.check_box_iterate.isChecked():
             self.run_pipeline_action.setDisabled(False)
         else:
             self.run_pipeline_action.setDisabled(True)

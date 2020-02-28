@@ -1649,6 +1649,11 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         except AttributeError:
             pass
 
+        if self.main_window.pipeline_manager.iterationTable\
+                .check_box_iterate.isChecked():
+            self.main_window.pipeline_manager.run_pipeline_action\
+                .setDisabled(False)
+
     def update_history(self, editor):
         """Update undo/redo history of an editor.
 
