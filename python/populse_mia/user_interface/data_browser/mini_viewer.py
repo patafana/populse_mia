@@ -528,7 +528,7 @@ class MiniViewer(QWidget):
             self.do_nothing = [False] * len(file_paths)
 
             self.file_paths = file_paths
-            self.max_scans = len(file_paths)
+            self.max_scans = 4
 
             self.setMinimumHeight(220)
 
