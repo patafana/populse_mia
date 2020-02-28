@@ -1121,7 +1121,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config()
         mia_path = config.get_mia_path()
-        path = os.path.join(mia_path, 'resources', 'mia',
+        path = os.path.join(config.getPathToProjectsFolder(),
                             'something')
 
         self.main_window.saveChoice()
