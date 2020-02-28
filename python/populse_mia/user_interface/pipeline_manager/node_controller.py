@@ -540,6 +540,10 @@ class NodeController(QWidget):
         else:
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(True)
+        if self.main_window.pipeline_manager.iterationTable\
+                .check_box_iterate.isChecked():
+            self.main_window.pipeline_manager.run_pipeline_action\
+                .setDisabled(False)
 
         self.setLayout(self.v_box_final)
 
