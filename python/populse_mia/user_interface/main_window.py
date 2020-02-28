@@ -716,13 +716,15 @@ class MainWindow(QMainWindow):
         """Open a pop-up to save the current project as"""
 
         self.exPopup = PopUpSaveProjectAs()
-
-        if self.exPopup.exec():
-
+        self.exPopup.exec()
+        if self.exPopup.validate:
             self.exPopup.return_value()
 
             old_folder = self.project.folder
             file_name = self.exPopup.relative_path
+
+            if os.path.exists(file_name):
+                shutil.rmtree(file_name)
 
             database_path = os.path.join(
                 os.path.abspath(self.exPopup.relative_path), 'database')

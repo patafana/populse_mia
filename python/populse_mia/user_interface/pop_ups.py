@@ -3030,10 +3030,20 @@ class PopUpRemoveTag(QDialog):
             item.setText(_translate("Dialog", tag_name))
 
 
-class PopUpSaveProjectAs(QFileDialog):
+class QLabel_clickable(QLabel):
+    """Custom class to click on a QLabel"""
+    clicked=pyqtSignal()
+    def __init__(self, parent=None):
+        QLabel.__init__(self, parent)
+
+    def mousePressEvent(self, ev):
+        self.clicked.emit()
+
+class PopUpSaveProjectAs(QDialog):
     """Is called when the user wants to save a project under another name.
 
     .. Method:
+        - fill_value: fills the input field when a project is clicked on
         - return_value: sets the widget's attributes depending on the
           selected file name
 
@@ -3045,19 +3055,75 @@ class PopUpSaveProjectAs(QFileDialog):
 
     def __init__(self):
         super().__init__()
-        self.setLabelText(QFileDialog.Accept, "Save as")
-        self.setLabelText(QFileDialog.FileName, "Project name")
-        self.setOption(QFileDialog.ShowDirsOnly, True)
-        self.setAcceptMode(QFileDialog.AcceptSave)
-        config = Config()
-        if not config.get_user_mode():
-            self.setOption(QFileDialog.DontUseNativeDialog, True)
-            self.setOption(QFileDialog.ReadOnly, True)
+        self.setWindowTitle("Save project as")
+        self.validate = False
+        self.config = Config()
+        self.project_path = self.config.getPathToProjectsFolder()
 
-        # Setting the projects directory as default
-        utils.set_projects_directory_as_default(self)
+        project_list = os.listdir(self.project_path)
 
-        self.finished.connect(self.return_value)
+        self.v_box = QVBoxLayout()
+
+        # Label
+        self.label = QLabel("Projects list:")
+        self.v_box.addWidget(self.label)
+        h_box = QHBoxLayout()
+
+        for i in range(0, len(project_list)):
+            if os.path.isdir(os.path.join(self.project_path, project_list[i])):
+                label = QLabel_clickable(project_list[i])
+                label.clicked.connect(partial(self.fill_input, project_list[i]))
+                if i % 2 != 0:
+                    h_box = QHBoxLayout()
+                    h_box.addWidget(label)
+                    if i == len(project_list)-1:
+                        self.v_box.addLayout(h_box)
+                else:
+                    h_box.addWidget(label)
+                    self.v_box.addLayout(h_box)
+
+        # The text input
+        self.h_box_text = QHBoxLayout()
+        self.new_project = QLineEdit()
+        self.new_project_label = QLabel("New project name")
+        self.h_box_text.addWidget(self.new_project_label)
+        self.h_box_text.addWidget(self.new_project)
+
+        self.h_box_bottom = QHBoxLayout()
+        self.h_box_bottom.addStretch(1)
+
+        # The 'OK' push button
+        self.push_button_ok = QtWidgets.QPushButton("Save as")
+        self.push_button_ok.setObjectName("pushButton_ok")
+        self.push_button_ok.clicked.connect(self.return_value)
+        self.h_box_bottom.addWidget(self.push_button_ok)
+
+        # The 'Cancel' push button
+        self.push_button_cancel = QtWidgets.QPushButton("Cancel")
+        self.push_button_cancel.setObjectName("pushButton_cancel")
+        self.push_button_cancel.clicked.connect(self.close)
+        self.h_box_bottom.addWidget(self.push_button_cancel)
+
+        self.scroll = QScrollArea()
+        self.widget = QWidget()
+        self.widget.setLayout(self.v_box)
+        self.scroll.setWidget(self.widget)
+
+        self.final = QVBoxLayout()
+        self.final.addWidget(self.scroll)
+
+        self.final_layout = QVBoxLayout()
+        self.final_layout.addLayout(self.final)
+        self.final_layout.addLayout(self.h_box_text)
+        self.final_layout.addLayout(self.h_box_bottom)
+
+        self.setLayout(self.final_layout)
+
+        # self.finished.connect(self.return_value)
+
+    def fill_input(self, name):
+        """Fills the input field with the name of a project."""
+        self.new_project.setText(name)
 
     def return_value(self):
         """Sets the widget's attributes depending on the selected file name.
@@ -3065,31 +3131,48 @@ class PopUpSaveProjectAs(QFileDialog):
         :return: new project's file name
 
         """
-        file_name_tuple = self.selectedFiles()
+        file_name_tuple = self.new_project.text()
         if len(file_name_tuple) > 0:
-            file_name = file_name_tuple[0]
+            file_name = file_name_tuple
             projects_folder = os.path.join(os.path.join(
                 os.path.relpath(os.curdir), '..', '..'), 'projects')
             projects_folder = os.path.abspath(projects_folder)
-            if file_name and file_name != projects_folder:
-                entire_path = os.path.abspath(file_name)
+            if file_name:
+                entire_path = os.path.abspath(os.path.join(projects_folder,
+                                                           file_name))
                 self.path, self.name = os.path.split(entire_path)
                 self.total_path = entire_path
-                self.relative_path = os.path.relpath(file_name)
+                self.relative_path = os.path.relpath(entire_path)
                 self.relative_subpath = os.path.relpath(self.path)
 
                 if (not os.path.exists(self.relative_path) and self.name is
                         not ''):
                     self.signal_saved_project.emit()
+                    self.validate = True
                     self.close()
                     # A signal is emitted to tell that the project
                     # has been created
                 elif file_name == "":
-                    pass
+                    return
                 else:
-                    utils.message_already_exists()
-
-            return file_name
+                    if self.config.get_user_mode():
+                        utils.message_already_exists()
+                        return
+                    else:
+                        msgtext = "Do you really want to overwrite the " + \
+                                  file_name + " project ?"
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Warning)
+                        title = "populse_mia - Warning: Overwriting project"
+                        reply = msg.question(self, title, msgtext,
+                                             QMessageBox.Yes |
+                                             QMessageBox.No)
+                        if reply == QMessageBox.Yes:
+                            self.validate = True
+                            self.close()
+                        else:
+                            return
+            return entire_path
 
 
 class PopUpSeeAllProjects(QDialog):
