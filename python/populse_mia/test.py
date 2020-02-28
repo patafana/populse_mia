@@ -1125,7 +1125,8 @@ class TestMIADataBrowser(unittest.TestCase):
                             'something')
 
         PopUpSaveProjectAs.exec = lambda x=0: True
-        PopUpSaveProjectAs.selectedFiles = lambda x=0: [path]
+        PopUpSaveProjectAs.validate = True
+        PopUpSaveProjectAs.new_project.text = lambda x=0: 'something'
         self.main_window.saveChoice()
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(path), True)
