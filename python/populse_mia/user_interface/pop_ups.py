@@ -3128,11 +3128,17 @@ class PopUpSaveProjectAs(QDialog):
 
         """
         file_name_tuple = self.new_project.text()
+
         if len(file_name_tuple) > 0:
             file_name = file_name_tuple
+            
+            """
             projects_folder = os.path.join(os.path.join(
                 os.path.relpath(os.curdir), '..', '..'), 'projects')
             projects_folder = os.path.abspath(projects_folder)
+            """
+            projects_folder = self.project_path
+
             if file_name:
                 entire_path = os.path.abspath(os.path.join(projects_folder,
                                                            file_name))
@@ -3168,6 +3174,7 @@ class PopUpSaveProjectAs(QDialog):
                             self.close()
                         else:
                             return
+                        
             return entire_path
 
 
