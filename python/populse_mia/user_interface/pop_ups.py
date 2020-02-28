@@ -3060,7 +3060,7 @@ class PopUpSaveProjectAs(QDialog):
         self.new_project = QLineEdit()
         self.new_project_label = QLabel("New project name")
         self.config = Config()
-        self.project_path = self.config.getPathToProjectsFolder()
+        self.project_path = self.config.get_projects_save_path()
 
         project_list = os.listdir(self.project_path)
 
@@ -3068,21 +3068,13 @@ class PopUpSaveProjectAs(QDialog):
 
         # Label
         self.label = QLabel("Projects list:")
-        self.v_box.addWidget(self.label)
         h_box = QHBoxLayout()
 
         for i in range(0, len(project_list)):
             if os.path.isdir(os.path.join(self.project_path, project_list[i])):
                 label = QLabel_clickable(project_list[i])
                 label.clicked.connect(partial(self.fill_input, project_list[i]))
-                if i % 2 != 0:
-                    h_box = QHBoxLayout()
-                    h_box.addWidget(label)
-                    if i == len(project_list)-1:
-                        self.v_box.addLayout(h_box)
-                else:
-                    h_box.addWidget(label)
-                    self.v_box.addLayout(h_box)
+                self.v_box.addWidget(label)
 
         # The text input
         self.h_box_text = QHBoxLayout()
@@ -3105,6 +3097,8 @@ class PopUpSaveProjectAs(QDialog):
         self.h_box_bottom.addWidget(self.push_button_cancel)
 
         self.scroll = QScrollArea()
+        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll.setMaximumHeight(250)
         self.widget = QWidget()
         self.widget.setLayout(self.v_box)
         self.scroll.setWidget(self.widget)
@@ -3113,6 +3107,7 @@ class PopUpSaveProjectAs(QDialog):
         self.final.addWidget(self.scroll)
 
         self.final_layout = QVBoxLayout()
+        self.final_layout.addWidget(self.label)
         self.final_layout.addLayout(self.final)
         self.final_layout.addLayout(self.h_box_text)
         self.final_layout.addLayout(self.h_box_bottom)
