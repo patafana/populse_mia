@@ -3057,6 +3057,8 @@ class PopUpSaveProjectAs(QDialog):
         super().__init__()
         self.setWindowTitle("Save project as")
         self.validate = False
+        self.new_project = QLineEdit()
+        self.new_project_label = QLabel("New project name")
         self.config = Config()
         self.project_path = self.config.getPathToProjectsFolder()
 
@@ -3084,8 +3086,6 @@ class PopUpSaveProjectAs(QDialog):
 
         # The text input
         self.h_box_text = QHBoxLayout()
-        self.new_project = QLineEdit()
-        self.new_project_label = QLabel("New project name")
         self.h_box_text.addWidget(self.new_project_label)
         self.h_box_text.addWidget(self.new_project)
 

@@ -31,7 +31,7 @@ from packaging import version
 import unittest
 
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit
 from populse_mia.data_manager.project import Project, COLLECTION_CURRENT, \
     COLLECTION_INITIAL, COLLECTION_BRICK, \
     TAG_ORIGIN_USER, TAG_FILENAME, TAG_CHECKSUM, TAG_TYPE, TAG_BRICKS, TAG_EXP_TYPE
@@ -1124,9 +1124,6 @@ class TestMIADataBrowser(unittest.TestCase):
         path = os.path.join(mia_path, 'resources', 'mia',
                             'something')
 
-        PopUpSaveProjectAs.exec = lambda x=0: True
-        PopUpSaveProjectAs.validate = True
-        PopUpSaveProjectAs.new_project.text = lambda x=0: 'something'
         self.main_window.saveChoice()
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(path), True)
