@@ -720,10 +720,10 @@ class MainWindow(QMainWindow):
             self.exPopup.exec = lambda x=0: True
             self.exPopup.validate = True
             self.exPopup.new_project.text = lambda x=0: 'something'
+            self.exPopup.return_value()
 
         self.exPopup.exec()
         if self.exPopup.validate:
-            self.exPopup.return_value()
             old_folder = self.project.folder
             file_name = self.exPopup.relative_path
 

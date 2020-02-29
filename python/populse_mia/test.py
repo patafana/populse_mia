@@ -1122,11 +1122,11 @@ class TestMIADataBrowser(unittest.TestCase):
         config = Config()
         mia_path = config.get_mia_path()
 
-        path = os.path.join(config.get_projects_save_path(),
-                            'something')
+        path = os.path.join(mia_path, 'resources', 'mia',
+                                      'something')
 
         self.main_window.saveChoice()
-        self.assertEqual(self.main_window.project.getName(), "something")
+        self.assertEqual(path, "something")
         self.assertEqual(os.path.exists(path), True)
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
                                       'project_8')
