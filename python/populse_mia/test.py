@@ -1121,41 +1121,40 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config()
         mia_path = config.get_mia_path()
-
-        path = os.path.join(mia_path, 'resources', 'mia',
-                                      'something')
-
-        self.main_window.saveChoice()
+        something_path = os.path.join(mia_path, 'projects', 'something')
+        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        
+        self.main_window.saveChoice() # Saves the project 'something'
         self.assertEqual(self.main_window.project.getName(), "something")
-        self.assertEqual(os.path.exists(path), True)
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        self.assertEqual(os.path.exists(something_path), True)
+
         self.main_window.switch_project(project_8_path, "project_8")
         self.assertEqual(self.main_window.project.getName(), "project_8")
-        self.main_window.saveChoice()
-        shutil.rmtree(path)
+        self.main_window.saveChoice()# Updates the project 'project_8'
+
+        shutil.rmtree(something_path)
 
         PopUpNewProject.exec = lambda x: True
         PopUpNewProject.selectedFiles = lambda x: True
         PopUpNewProject.get_filename = lambda x, y: True
-        PopUpNewProject.relative_path = path
+        PopUpNewProject.relative_path = something_path
+        
         PopUpOpenProject.exec = lambda x: True
         PopUpOpenProject.selectedFiles = lambda x: True
         PopUpOpenProject.get_filename = lambda x, y: True
-        PopUpOpenProject.relative_path = path
-        PopUpOpenProject.path, PopUpOpenProject.name = os.path.split(path)
+        PopUpOpenProject.relative_path = something_path
+        PopUpOpenProject.path, PopUpOpenProject.name = os.path.split(something_path)
 
-        self.main_window.create_project_pop_up()
+        self.main_window.create_project_pop_up() # Saves the project 'something'
         self.assertEqual(self.main_window.project.getName(), "something")
-        self.assertEqual(os.path.exists(path), True)
+        self.assertEqual(os.path.exists(something_path), True)
+        
         self.main_window.switch_project(project_8_path, "project_8")
-
         self.main_window.open_project_pop_up()
         self.assertEqual(self.main_window.project.getName(), "something")
 
         self.main_window.switch_project(project_8_path, "project_8")
-        shutil.rmtree(path)
-
+        shutil.rmtree(something_path)
         # QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
 
         # print(self.main_window.saved_projects_actions)
