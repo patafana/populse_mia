@@ -22,10 +22,6 @@ import yaml
 import json
 import glob
 
-# PyQt5 imports
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QLineEdit
-from PyQt5.QtCore import QCoreApplication
-
 # Populse_MIA imports
 from populse_mia.software_properties import verCmp
 from populse_mia.data_manager.filter import Filter
@@ -320,6 +316,8 @@ class Project():
         :returns: Return the name typed
         """
 
+        from PyQt5.QtWidgets import QInputDialog, QLineEdit
+
         text, ok_pressed = QInputDialog.getText(
             None, "Save a filter", "Filter name: ", QLineEdit.Normal, "")
         if ok_pressed and text != '':
@@ -576,6 +574,8 @@ class Project():
 
         :param custom_filters: The customized filter
         """
+
+        from PyQt5.QtWidgets import QMessageBox
 
         (fields, conditions, values, links, nots) = custom_filters
         self.currentFilter.fields = fields
@@ -860,13 +860,20 @@ class Project():
         :param value: boolean
         """
         self._unsavedModifications = value
-        app = QCoreApplication.instance()
-        if self._unsavedModifications :
-            if app.title()[-1] != "*":
-                app.set_title(app.title()+"*")
-        else:
-            if app.title()[-1] == "*":
-                app.set_title(app.title()[:-1])
+
+        try:
+            from PyQt5.QtCore import QCoreApplication
+
+            app = QCoreApplication.instance()
+            if self._unsavedModifications :
+                if app.title()[-1] != "*":
+                    app.set_title(app.title()+"*")
+            else:
+                if app.title()[-1] == "*":
+                    app.set_title(app.title()[:-1])
+        except ImportError:
+            # PyQt is not here ? never mind for what we are doing here.
+            pass
 
     def unsaveModifications(self):
         """Unsave the pending operations of the project."""
