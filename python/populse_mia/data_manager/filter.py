@@ -18,7 +18,8 @@ Contains:
 
 # Populse_MIA imports
 from populse_mia.user_interface import data_browser
-from populse_mia.data_manager import project
+# don't import project here to avoid cyclic import
+# from populse_mia.data_manager import project
 
 
 class Filter:
@@ -77,6 +78,8 @@ class Filter:
         :param tags: List of tags to search in
         :returns: The list of scans matching the filter
         """
+        from populse_mia.data_manager import project
+
         rapid_filter = data_browser.rapid_search.RapidSearch.prepare_filter(
                                                                 self.search_bar,
                                                                 tags, scans)
