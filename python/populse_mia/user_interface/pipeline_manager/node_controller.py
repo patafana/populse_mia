@@ -1002,11 +1002,13 @@ class PlugFilter(QWidget):
             for point in points:
                 row = point.row()
                 tag_name = self.push_button_tag_filter.text()
+                if tag_name.startswith('&'):
+                    tag_name = tag_name[1:]
                 # We get the FileName of the scan from the first row
                 scan_name = self.table_data.item(row, 0).text()
                 value = self.project.session.get_value(COLLECTION_CURRENT,
                                                        scan_name, tag_name)
-                if tag_name == TAG_FILENAME:
+                if tag_name in (TAG_FILENAME, '&%s' % TAG_FILENAME):
                     value = os.path.abspath(os.path.join(self.project.folder,
                                                          value))
                 result_names.append(value)
