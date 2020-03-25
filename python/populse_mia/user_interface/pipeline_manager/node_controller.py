@@ -1008,7 +1008,7 @@ class PlugFilter(QWidget):
                 scan_name = self.table_data.item(row, 0).text()
                 value = self.project.session.get_value(COLLECTION_CURRENT,
                                                        scan_name, tag_name)
-                if tag_name in (TAG_FILENAME, '&%s' % TAG_FILENAME):
+                if tag_name == TAG_FILENAME:
                     value = os.path.abspath(os.path.join(self.project.folder,
                                                          value))
                 result_names.append(value)
