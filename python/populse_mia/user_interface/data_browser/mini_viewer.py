@@ -408,7 +408,8 @@ class MiniViewer(QWidget):
         #  2 - rescaling before rotation is slightly faster, specially for large images (> display_size).
         #  3 - rescaling may alter the occurrence of nan or infinite values (e.g. an image may become all-nan)
         # anti_aliasing keyword is defined in skimage since version 0.14.0
-        if version.parse(sk.__version__) > version.parse("0.14.0'"):
+
+        if version.parse(sk.__version__) >= version.Version("0.14.0"):
             im2D = resize(im2D, display_size, mode='constant',
                           anti_aliasing=False)
         else:
