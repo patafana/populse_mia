@@ -356,19 +356,19 @@ class MiniViewer(QWidget):
         # The image to display depends on the dimension of the image
         # In the 3D case, each slice is displayed
         if len(im.shape) == 3:
-            im_2D = im.get_data()[:, :, i].copy()
+            im_2D = im.get_fdata()[:, :, i].copy()
 
         # In the 4D case, each middle slice of the 3D dimension is displayed
         # for each time in the 4D dimension
         elif len(im.shape) == 4:
-            im_3D = im.get_data()[:, :, :, i].copy()
+            im_3D = im.get_fdata()[:, :, :, i].copy()
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
 
         # In the 5D case, each first time of the 4D dimension and
         # its middle slice of the 3D dimension is displayed
         elif len(im.shape) == 5:
-            im_4D = im.get_data()[:, :, :, :, i].copy()
+            im_4D = im.get_fdata()[:, :, :, :, i].copy()
             im_3D = im_4D[:, :, :, 1]
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
@@ -448,19 +448,19 @@ class MiniViewer(QWidget):
         # changing the cursors maximum
         if len(self.img[idx].shape) == 3:
             self.im_2D.insert(
-                idx, self.img[idx].get_data()[:, :, sl3D].copy())
+                idx, self.img[idx].get_fdata()[:, :, sl3D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(0)
             self.slider_5D[idx].setMaximum(0)
         if len(self.img[idx].shape) == 4:
             self.im_2D.insert(
-                idx, self.img[idx].get_data()[:, :, sl3D, sl4D].copy())
+                idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(self.img[idx].shape[3] - 1)
             self.slider_5D[idx].setMaximum(0)
         if len(self.img[idx].shape) == 5:
             self.im_2D.insert(
-                idx, self.img[idx].get_data()[:, :, sl3D, sl4D, sl5D].copy())
+                idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D, sl5D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(self.img[idx].shape[3] - 1)
             self.slider_5D[idx].setMaximum(self.img[idx].shape[4] - 1)

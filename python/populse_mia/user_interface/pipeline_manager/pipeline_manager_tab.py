@@ -791,7 +791,6 @@ class PipelineManagerTab(QWidget):
                                             for key, plug in node.plugs.items()}
                 initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
-
                 # For debugging. To be commented if not in debugging.
                 #print('initResult_dict after mia brick initialisaton: ',  initResult_dict) 
 

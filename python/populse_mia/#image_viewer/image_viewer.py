@@ -267,17 +267,17 @@
 #         sl2 = self.a2.value()
 #         sl3 = self.a3.value()
 #         if len(self.img.shape) == 3:
-#             x = self.img.get_data()[:, :, sl1].copy()
+#             x = self.img.get_fdata()[:, :, sl1].copy()
 #             self.a1.setMaximum(self.img.shape[2] - 1)
 #             self.a2.setMaximum(0)
 #             self.a3.setMaximum(0)
 #         if len(self.img.shape) == 4:
-#             x = self.img.get_data()[:, :, sl1, sl2].copy()
+#             x = self.img.get_fdata()[:, :, sl1, sl2].copy()
 #             self.a1.setMaximum(self.img.shape[2] - 1)
 #             self.a2.setMaximum(self.img.shape[3] - 1)
 #             self.a3.setMaximum(0)
 #         if len(self.img.shape) == 5:
-#             x = self.img.get_data()[:, :, sl1, sl2, sl3].copy()
+#             x = self.img.get_fdata()[:, :, sl1, sl2, sl3].copy()
 #             self.a1.setMaximum(self.img.shape[2] - 1)
 #             self.a2.setMaximum(self.img.shape[3] - 1)
 #             self.a3.setMaximum(self.img.shape[4] - 1)
