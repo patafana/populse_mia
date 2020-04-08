@@ -54,6 +54,8 @@ from populse_mia.user_interface.pop_ups import (PopUpDeleteProject,
                                                 PopUpSaveProjectAs,
                                                 PopUpQuit,
                                                 PopUpSeeAllProjects)
+from populse_mia.user_interface.data_viewer.data_viewer_tab import (
+    DataViewerTab)
 
 
 class MainWindow(QMainWindow):
@@ -153,7 +155,7 @@ class MainWindow(QMainWindow):
         # Initialize tabs
         self.tabs = QTabWidget()
         self.data_browser = DataBrowser(self.project, self)
-        self.image_viewer = QLabel("Coming soon...")
+        self.data_viewer = DataViewerTab(self.project, self)
         self.pipeline_manager = PipelineManagerTab(self.project, [], self)
         self.centralWindow = QWidget()
 
@@ -429,8 +431,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.data_browser, "Data Browser")
 
         # To uncomment when the Data Viewer will be created
-        # self.image_viewer = ImageViewer()
-        self.tabs.addTab(self.image_viewer, "Data Viewer")
+        self.tabs.addTab(self.data_viewer, "Data Viewer")
         self.tabs.addTab(self.pipeline_manager, "Pipeline Manager")
 
         self.tabs.currentChanged.connect(self.tab_changed)
@@ -1057,6 +1058,11 @@ class MainWindow(QMainWindow):
                 self.data_browser.advanced_search.show_search()
                 self.data_browser.advanced_search.apply_filter(
                      self.project.currentFilter)
+
+        elif self.tabs.tabText(
+                self.tabs.currentIndex()).replace("&",
+                                                  "", 1) == 'Data Viewer':
+            self.data_viewer.activate_viewer(self.data_viewer.current_viewer())
 
         elif self.tabs.tabText(
                 self.tabs.currentIndex()).replace("&",
