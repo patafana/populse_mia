@@ -10,15 +10,15 @@ Contains:
 
 from soma.qt_gui.qt_backend import Qt
 import importlib
+import os
 
 
 class DataViewerTab(Qt.QWidget):
 
-    def __init__(self, project, main_window):
+    def __init__(self, main_window):
 
         super(DataViewerTab, self).__init__()
 
-        self.project = project
         self.main_window = main_window
 
         lay = Qt.QVBoxLayout()
@@ -66,6 +66,13 @@ class DataViewerTab(Qt.QWidget):
         self.viewer_name = viewer_name
         self.viewer = viewer
         self.layout.insertWidget(1, viewer)
+
+    def set_documents(self, project, documents):
+        if self.viewer:
+            self.viewer.clear()
+            self.viewer.set_documents(project, documents)
+
+
 
 
 

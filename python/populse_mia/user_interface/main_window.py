@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
         # Initialize tabs
         self.tabs = QTabWidget()
         self.data_browser = DataBrowser(self.project, self)
-        self.data_viewer = DataViewerTab(self.project, self)
+        self.data_viewer = DataViewerTab(self)
         self.pipeline_manager = PipelineManagerTab(self.project, [], self)
         self.centralWindow = QWidget()
 
@@ -1063,6 +1063,9 @@ class MainWindow(QMainWindow):
                 self.tabs.currentIndex()).replace("&",
                                                   "", 1) == 'Data Viewer':
             self.data_viewer.activate_viewer(self.data_viewer.current_viewer())
+            documents = self.project.session.get_documents_names(
+                COLLECTION_CURRENT)
+            self.data_viewer.set_documents(self.project, documents)
 
         elif self.tabs.tabText(
                 self.tabs.currentIndex()).replace("&",
