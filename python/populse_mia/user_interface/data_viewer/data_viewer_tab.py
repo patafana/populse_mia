@@ -69,7 +69,6 @@ class DataViewerTab(Qt.QWidget):
 
     def set_documents(self, project, documents):
         if self.viewer:
-            self.viewer.clear()
             self.viewer.set_documents(project, documents)
 
 
