@@ -1114,6 +1114,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         p_e = PipelineEditor(self.project, self.main_window)
         p_e.node_clicked.connect(self.emit_node_clicked)
+        p_e.process_clicked.connect(self.emit_node_clicked)
         p_e.switch_clicked.connect(self.emit_switch_clicked)
         p_e.pipeline_saved.connect(self.emit_pipeline_saved)
         p_e.pipeline_modified.connect(self.update_pipeline_editors)
