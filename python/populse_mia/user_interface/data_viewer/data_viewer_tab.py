@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- #
 """
-Module to define data viewer tab appearance.
+Populse-MIA data viewer GUI interface, in the "Data Viewer" tab.
 
 Contains:
     Class:
@@ -14,6 +14,9 @@ import os
 
 
 class DataViewerTab(Qt.QWidget):
+    '''
+    DataViewerTab is the widget in the data viewer tab of Populse-MIA GUI.
+    '''
 
     def __init__(self, main_window):
 

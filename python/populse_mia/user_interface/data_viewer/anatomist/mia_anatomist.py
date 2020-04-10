@@ -1,4 +1,8 @@
 
+'''
+MIA data viewer implementation based on `Anatomist <http://brainvisa.info/anatomist/user_doc/index.html>`_
+'''
+
 from __future__ import print_function
 from __future__ import absolute_import
 
@@ -12,6 +16,10 @@ import os
 
 
 class MiaViewer(Qt.QWidget, DataViewer):
+    '''
+    :class:`MIA data viewer <populse_mia.user_interface.data_viewer.data_viewer.DataViewer>`
+    implementation based on `PyAnatomist <http://brainvisa.info/pyanatomist/sphinx/index.html>`_
+    '''
 
     def __init__(self):
 
