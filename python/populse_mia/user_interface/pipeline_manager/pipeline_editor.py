@@ -1578,19 +1578,15 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                     [(key, (value.x(), value.y())) for key, value in
                      six.iteritems(self.get_current_editor().scene.pos)])
 
-            except:  # add by Irmage OM
+            except:
                 posdict = dict(
                     [(key, (value[0], value[1])) for key, value in
                      six.iteritems(self.get_current_editor().scene.pos)])
 
-            # add by Irmage OM
             dimdict = dict(
                 [(key, (value[0], value[1])) for key, value in
                  six.iteritems(self.get_current_editor().scene.dim)])
-
-            # add by Irmage OM
             pipeline.node_dimension = dimdict
-
             old_pos = pipeline.node_position
             pipeline.node_position = posdict
             save_pipeline(pipeline, new_file_name)
