@@ -768,8 +768,13 @@ class PipelineEditor(PipelineDevelopperView):
 
         :return: the name of the file where the pipeline was saved
         """
+        if len(self.scene.pipeline.nodes) < 2:
+            print("\nThe pipeline hasn't been saved because it is empty ...")
+            return None
+        
         config = Config()
-        if not filename:
+        
+        if not filename: 
             pipeline = self.scene.pipeline
             folder = os.path.abspath(os.path.join(config.get_mia_path(),
                                                   'processes',
@@ -780,6 +785,7 @@ class PipelineEditor(PipelineDevelopperView):
 
             if not os.path.isfile(os.path.abspath(
                     os.path.join(folder, '__init__.py'))):
+                
                 with open(os.path.abspath(os.path.join(
                         folder, '__init__.py')), 'w'):
                     pass
@@ -787,6 +793,9 @@ class PipelineEditor(PipelineDevelopperView):
             filename = QtWidgets.QFileDialog.getSaveFileName(
                 None, 'Save the pipeline', folder,
                 'Compatible files (*.py);; All (*)')[0]
+
+            if not filename:  # save widget was cancelled by the user
+                return None
 
             if os.path.basename(filename)[0].isdigit():
                 msg = QMessageBox()
@@ -799,10 +808,7 @@ class PipelineEditor(PipelineDevelopperView):
                 msg.setStandardButtons(QMessageBox.Close)
                 msg.buttonClicked.connect(msg.close)
                 msg.exec()
-                return ''
-
-            if not filename:  # save widget was cancelled by the user
-                return ''
+                return None
 
             if os.path.splitext(filename)[1] == '':  # which means no extension
                 filename += '.py'
@@ -828,24 +834,19 @@ class PipelineEditor(PipelineDevelopperView):
                 msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
                 msg.buttonClicked.connect(msg.close)
                 msg.exec()
-                self.save_pipeline()
-                return ''
+                return None
 
         if filename:
             posdict = dict([(key, (value.x(), value.y())) for key, value in
                             six.iteritems(self.scene.pos)])
             dimdict = dict([(key, (value[0], value[1])) for key, value in
-                            six.iteritems(self.scene.dim)])  # add by Irmage OM
-
-            pipeline.node_dimension = dimdict  # add by Irmage OM
-
+                            six.iteritems(self.scene.dim)])
+            pipeline.node_dimension = dimdict
             old_pos = pipeline.node_position
             pipeline.node_position = posdict
-            # pipeline_tools.save_pipeline(pipeline, filename)
-            save_pipeline(pipeline, filename)
+            save_pipeline(pipeline, filename)            
             self._pipeline_filename = unicode(filename)
             pipeline.node_position = old_pos
-
             self.pipeline_saved.emit(filename)
             return filename
 
@@ -911,35 +912,35 @@ class PipelineEditor(PipelineDevelopperView):
     #         self.save_pipeline_parameters()
     #         return ''
 
-        if filename:
-            from traits.api import Undefined
-            # Generating the dictionary
-            param_dic = {}
-
-            for trait_name, trait in pipeline.user_traits().items():
-
-                if trait_name in ["nodes_activation"]:
-                    continue
-
-                value = getattr(pipeline, trait_name)
-
-                if value is Undefined:
-                    value = ""
-
-                param_dic[trait_name] = value
-
-            # In the future, more information may be added to this dictionary
-            dic = {}
-            dic["pipeline_parameters"] = param_dic
-            jsonstring = MultiDimensionalArrayEncoder().encode(dic)
-
-            # Saving the dictionary in the Json file
-            if sys.version_info[0] >= 3:
-                with open(filename, 'w', encoding='utf8') as file:
-                    json.dump(jsonstring, file)
-            else:
-                with open(filename, 'w') as file:
-                    json.dump(jsonstring, file)
+    #    if filename:
+    #        from traits.api import Undefined
+    #        # Generating the dictionary
+    #        param_dic = {}
+    #
+    #        for trait_name, trait in pipeline.user_traits().items():
+    #
+    #            if trait_name in ["nodes_activation"]:
+    #                continue
+    #
+    #            value = getattr(pipeline, trait_name)
+    #
+    #            if value is Undefined:
+    #                value = ""
+    #
+    #            param_dic[trait_name] = value
+    #
+    #        # In the future, more information may be added to this dictionary
+    #        dic = {}
+    #        dic["pipeline_parameters"] = param_dic
+    #        jsonstring = MultiDimensionalArrayEncoder().encode(dic)
+    #
+    #        # Saving the dictionary in the Json file
+    #        if sys.version_info[0] >= 3:
+    #            with open(filename, 'w', encoding='utf8') as file:
+    #                json.dump(jsonstring, file)
+    #        else:
+    #            with open(filename, 'w') as file:
+    #                json.dump(jsonstring, file)
 
     def update_history(self, history_maker, from_undo, from_redo):
         """Update the history for undos and redos.
@@ -1573,15 +1574,21 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
     def save_pipeline(self, new_file_name=None):
         """Save the pipeline of the current editor."""
+
         if new_file_name is None:
             # Doing a "Save as" action
-            new_file_name = os.path.basename(
-                self.get_current_editor().save_pipeline())
+            new_file_name = self.get_current_editor().save_pipeline()
+
+            if new_file_name:
+                new_file_name = os.path.basename(new_file_name)
 
             if (new_file_name and
                     os.path.basename(
                         self.get_current_filename()) != new_file_name):
                 self.setTabText(self.currentIndex(), new_file_name)
+
+            return new_file_name
+
         else:
             # Saving the current pipeline
             pipeline = self.get_current_pipeline()
@@ -1608,7 +1615,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             pipeline.node_position = old_pos
             self.pipeline_saved.emit(new_file_name)
             self.setTabText(self.currentIndex(),
-                            os.path.basename(new_file_name))
+                            os.path.basename(new_file_name))		    
+            return new_file_name 
 
     def save_pipeline_parameters(self):
         """Save the pipeline parameters of the current editor."""
@@ -1727,7 +1735,8 @@ def find_filename(paths_list, packages_list, file_name):
                 for f in os.listdir(new_path):
                     new_file = os.path.join(new_path, f)
                     
-                    if os.path.isfile(new_file) and f.lower() == filename.lower():
+                    if ((os.path.isfile(new_file)) and
+                                               (f.lower() == filename.lower())):
                         return new_file
 
                     
