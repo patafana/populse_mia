@@ -1604,17 +1604,37 @@ class PipelineManagerTab(QWidget):
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         # QApplication.processEvents()
-
         filename = self.pipelineEditorTabs.get_current_filename()
-
+        
+        # save
         if filename:
-            self.pipelineEditorTabs.save_pipeline(new_file_name=filename)
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("populse_mia - "
+                                   "Save pipeline Warning!")
+            msg.setText("The following module will be overwritten:\n\n"
+                            "{}\n\n"
+                            "Do you agree?".format(os.path.abspath(filename)))
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Abort)
+            msg.buttonClicked.connect(msg.close)
+            retval = msg.exec()
 
+            if retval == QMessageBox.Yes:
+                self.pipelineEditorTabs.save_pipeline(new_file_name=filename)
+                self.main_window.statusBar().showMessage(
+                    "The '{}' pipeline has been "
+                    "saved.".format(
+                        self.pipelineEditorTabs.get_current_pipeline().name))
+            else:
+                self.main_window.statusBar().showMessage(
+                    "The '{}' pipeline was not "
+                    "saved.".format(
+                        self.pipelineEditorTabs.get_current_pipeline().name))
+        # save as
         else:
             self.pipelineEditorTabs.save_pipeline()
-
-        self.main_window.statusBar().showMessage(
-            'The pipeline has been saved.')
+            self.main_window.statusBar().showMessage(
+                                                 'The pipeline has been saved.')
 
     def savePipelineAs(self):
         """

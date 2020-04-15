@@ -20,6 +20,10 @@ import os, shutil
 import sys
 import yaml
 
+
+import threading
+
+
 # Working from the scripts directory
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
@@ -1055,6 +1059,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
 
         pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth1", optional=True)
+        threading.Timer(1, self.execute_click).start()
         self.main_window.pipeline_manager.savePipeline()
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
@@ -1063,6 +1068,13 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
         self.assertTrue("fwhm" in pipeline.nodes["test_pipeline1"].plugs.keys())
+
+    def execute_click(self):
+        w = QApplication.activeWindow()
+        if isinstance(w, QMessageBox):
+            close_button = w.button(QMessageBox.Yes)
+            QTest.mouseClick(close_button, Qt.LeftButton)
+
 
 
 class TestMIADataBrowser(unittest.TestCase):

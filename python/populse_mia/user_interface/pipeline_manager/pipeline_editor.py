@@ -788,6 +788,19 @@ class PipelineEditor(PipelineDevelopperView):
                 None, 'Save the pipeline', folder,
                 'Compatible files (*.py);; All (*)')[0]
 
+            if os.path.basename(filename)[0].isdigit():
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Warning)
+                msg.setWindowTitle("populse_mia - "
+                                   "Save pipeline as Warning!")
+                msg.setText("Python does not allow to use a module name "
+                            "starting with a number ...!"
+                            "please change the name of your pipeline!")
+                msg.setStandardButtons(QMessageBox.Close)
+                msg.buttonClicked.connect(msg.close)
+                msg.exec()
+                return ''
+
             if not filename:  # save widget was cancelled by the user
                 return ''
 
@@ -1578,19 +1591,15 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                     [(key, (value.x(), value.y())) for key, value in
                      six.iteritems(self.get_current_editor().scene.pos)])
 
-            except:  # add by Irmage OM
+            except:
                 posdict = dict(
                     [(key, (value[0], value[1])) for key, value in
                      six.iteritems(self.get_current_editor().scene.pos)])
 
-            # add by Irmage OM
             dimdict = dict(
                 [(key, (value[0], value[1])) for key, value in
                  six.iteritems(self.get_current_editor().scene.dim)])
-
-            # add by Irmage OM
             pipeline.node_dimension = dimdict
-
             old_pos = pipeline.node_position
             pipeline.node_position = posdict
             save_pipeline(pipeline, new_file_name)
@@ -1632,6 +1641,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
     def set_tab_index(self, index):
         """Set the current tab index and disable the run pipeline action."""
+        
         self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
         self.setCurrentIndex(index)
         self.previousIndex = index
@@ -1639,6 +1649,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
     def update_current_node(self):
         """Update the node parameters"""
+        
         if self.get_current_editor():
             if self.get_current_editor().initialized:
                 self.main_window.pipeline_manager.run_pipeline_action\
