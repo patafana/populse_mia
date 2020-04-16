@@ -911,14 +911,14 @@ def verify_processes():
     if pack2install:
 
         if not any("nipype" in s for s in pack2install):
-            print('\n** The nipype processes library in mia use '
-                  'already the current installed version ({0}) '
-                  'for this station'.format(nipypeVer))
+            print('\n** The nipype processes library in mia is '
+                  'already using the current installed version ({0}) '
+                  'for this station\n'.format(nipypeVer))
 
         elif not any("mia_processes" in s for s in pack2install):
-            print('\n** The mia_processes library in mia use '
-                  'already the current installed version ({0}) '
-                  'for this station'.format(miaProcVer))
+            print('\n** The mia_processes library in mia is '
+                  'already using the current installed version ({0}) '
+                  'for this station\n'.format(miaProcVer))
 
         if (isinstance(proc_content, dict)) and ('Paths' in proc_content):
 
@@ -946,9 +946,9 @@ def verify_processes():
                       allow_unicode=True)
 
     else:
-        print('\n** mia use already the current installed version of nipype and '
-              'mia_processes for this station ({0} and {1}, respectively)'
-              .format(nipypeVer, miaProcVer))
+        print('\n** mia is already using the current installed version of '
+              'nipype and mia_processes for this station ({0} and {1}, '
+              'respectively)\n'.format(nipypeVer, miaProcVer))
 
 
 if __name__ == '__main__':
