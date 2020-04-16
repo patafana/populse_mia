@@ -1630,25 +1630,37 @@ class PipelineManagerTab(QWidget):
                     "The '{}' pipeline was not "
                     "saved.".format(
                         self.pipelineEditorTabs.get_current_pipeline().name))
+
         # save as
         else:
-            self.pipelineEditorTabs.save_pipeline()
-            self.main_window.statusBar().showMessage(
-                                                 'The pipeline has been saved.')
+            saveResult = self.pipelineEditorTabs.save_pipeline()
+
+            if saveResult:
+                self.main_window.statusBar().showMessage(
+                              "The '{}' pipeline has been saved.".format(
+                                  os.path.splitext(saveResult)[0].capitalize()))
+
+            else:
+                self.main_window.statusBar().showMessage(
+                             'The pipeline was not saved.')
 
     def savePipelineAs(self):
         """
         Save the current pipeline of the pipeline editor under another name
 
         """
-
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
+        saveResult = self.pipelineEditorTabs.save_pipeline()
 
-        self.pipelineEditorTabs.save_pipeline()
+        if saveResult:
+            self.main_window.statusBar().showMessage(
+                "The '{}' pipeline has been saved.".format(
+                    os.path.splitext(saveResult)[0].capitalize()))
 
-        self.main_window.statusBar().showMessage(
-            'The pipeline has been saved.')
+        else:
+            self.main_window.statusBar().showMessage(
+                'The pipeline was not saved.')
 
     def undo(self):
         """
