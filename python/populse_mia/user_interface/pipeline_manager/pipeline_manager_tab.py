@@ -1596,11 +1596,11 @@ class PipelineManagerTab(QWidget):
         """
         self.pipelineEditorTabs.save_pipeline_parameters()
 
-    def savePipeline(self, check=True):
+    def savePipeline(self, check_flag=False):
         """
         Save the current pipeline of the pipeline editor
 
-        :param check: a flag to warn (True) or not (False) if a pipeline is
+        :param check: a flag to warn (False) or not (True) if a pipeline is
                       going to be overwritten during saving operation
 
         """
@@ -1610,8 +1610,8 @@ class PipelineManagerTab(QWidget):
         filename = self.pipelineEditorTabs.get_current_filename()
 
         # save
-        if filename and check:
-            msg = QMessageBox(self)
+        if filename and not check_flag:
+            msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("populse_mia - "
                                    "Save pipeline Warning!")
@@ -1620,7 +1620,7 @@ class PipelineManagerTab(QWidget):
                             "Do you agree?".format(os.path.abspath(filename)))
             msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Abort)
             msg.buttonClicked.connect(msg.close)
-            retval = msg.exec_()
+            retval = msg.exec()
 
             if retval == QMessageBox.Yes:
                 self.pipelineEditorTabs.save_pipeline(new_file_name=filename)
