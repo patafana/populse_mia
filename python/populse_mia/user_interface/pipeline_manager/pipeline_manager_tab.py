@@ -1596,19 +1596,22 @@ class PipelineManagerTab(QWidget):
         """
         self.pipelineEditorTabs.save_pipeline_parameters()
 
-    def savePipeline(self):
+    def savePipeline(self, check=True):
         """
         Save the current pipeline of the pipeline editor
+
+        :param check: a flag to warn (True) or not (False) if a pipeline is
+                      going to be overwritten during saving operation
 
         """
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         # QApplication.processEvents()
         filename = self.pipelineEditorTabs.get_current_filename()
-        
+
         # save
-        if filename:
-            msg = QMessageBox()
+        if filename and check:
+            msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("populse_mia - "
                                    "Save pipeline Warning!")
@@ -1617,7 +1620,7 @@ class PipelineManagerTab(QWidget):
                             "Do you agree?".format(os.path.abspath(filename)))
             msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Abort)
             msg.buttonClicked.connect(msg.close)
-            retval = msg.exec()
+            retval = msg.exec_()
 
             if retval == QMessageBox.Yes:
                 self.pipelineEditorTabs.save_pipeline(new_file_name=filename)
@@ -1625,9 +1628,17 @@ class PipelineManagerTab(QWidget):
                     "The '{}' pipeline has been "
                     "saved.".format(
                         self.pipelineEditorTabs.get_current_pipeline().name))
+
             else:
                 self.main_window.statusBar().showMessage(
                     "The '{}' pipeline was not "
+                    "saved.".format(
+                        self.pipelineEditorTabs.get_current_pipeline().name))
+
+        elif filename:
+            self.pipelineEditorTabs.save_pipeline(new_file_name=filename)
+            self.main_window.statusBar().showMessage(
+                    "The '{}' pipeline has been "
                     "saved.".format(
                         self.pipelineEditorTabs.get_current_pipeline().name))
 

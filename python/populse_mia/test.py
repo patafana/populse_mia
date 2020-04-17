@@ -1059,8 +1059,8 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
 
         pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth1", optional=True)
-        threading.Timer(1, self.execute_click).start()
-        self.main_window.pipeline_manager.savePipeline()
+        #threading.Timer(1, self.execute_click).start()
+        self.main_window.pipeline_manager.savePipeline(check=False)
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
         pipeline_editor_tabs.get_current_editor().scene.pos["test_pipeline1"] = QtCore.QPoint(450, 500)
