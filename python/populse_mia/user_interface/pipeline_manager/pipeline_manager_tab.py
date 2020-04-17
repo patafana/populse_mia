@@ -1596,12 +1596,12 @@ class PipelineManagerTab(QWidget):
         """
         self.pipelineEditorTabs.save_pipeline_parameters()
 
-    def savePipeline(self, check_flag=False):
+    def savePipeline(self, uncheck=False):
         """
         Save the current pipeline of the pipeline editor
 
-        :param check: a flag to warn (False) or not (True) if a pipeline is
-                      going to be overwritten during saving operation
+        :param uncheck: a flag to warn (False) or not (True) if a pipeline is
+                        going to be overwritten during saving operation
 
         """
         self.main_window.statusBar().showMessage(
@@ -1610,7 +1610,7 @@ class PipelineManagerTab(QWidget):
         filename = self.pipelineEditorTabs.get_current_filename()
 
         # save
-        if filename and not check_flag:
+        if filename and not uncheck:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("populse_mia - "
