@@ -1967,7 +1967,7 @@ class PopUpPreferences(QDialog):
 
         # The 'Pipeline' tab
         self.tab_pipeline = QtWidgets.QWidget()
-        self.tab_pipeline.setObjectName("tab_appearance")
+        self.tab_pipeline.setObjectName("tab_pipeline")
         self.tab_widget.addTab(self.tab_pipeline,
                                _translate("Dialog", "Pipeline"))
 
@@ -2137,10 +2137,35 @@ class PopUpPreferences(QDialog):
         self.background_color_combo.setCurrentText(background_color)
         text_color = config.getTextColor()
         self.text_color_combo.setCurrentText(text_color)
+
+        self.fullscreen_cbox = QCheckBox('Use full screen')
+        mainwindow_size_lay = QHBoxLayout()
+        mainwindow_size_lay.addWidget(QLabel('Main window size'))
+        self.mainwindow_size_x_spinbox = QtWidgets.QSpinBox()
+        mainwindow_size_lay.addWidget(self.mainwindow_size_x_spinbox)
+        mainwindow_size_lay.addWidget(QLabel(' x '))
+        self.mainwindow_size_y_spinbox = QtWidgets.QSpinBox()
+        mainwindow_size_lay.addWidget(self.mainwindow_size_y_spinbox)
+        self.fullscreen_cbox.setChecked(config.get_mainwindow_maximized())
+        wsize = config.get_mainwindow_size()
+        self.mainwindow_size_x_spinbox.setMaximum(
+            QApplication.instance().desktop().width())
+        self.mainwindow_size_y_spinbox.setMaximum(
+            QApplication.instance().desktop().height())
+        if isinstance(wsize, list) and len(wsize) >= 2:
+            self.mainwindow_size_x_spinbox.setValue(wsize[0])
+            self.mainwindow_size_y_spinbox.setValue(wsize[1])
+        self.mainwindow_size_button = QPushButton('use current size')
+        mainwindow_size_lay.addWidget(self.mainwindow_size_button)
+        self.mainwindow_size_button.clicked.connect(
+            partial(self.use_current_mainwindow_size, main_window))
+
         self.appearance_layout.addWidget(self.label_background_color)
         self.appearance_layout.addWidget(self.background_color_combo)
         self.appearance_layout.addWidget(self.label_text_color)
         self.appearance_layout.addWidget(self.text_color_combo)
+        self.appearance_layout.addWidget(self.fullscreen_cbox)
+        self.appearance_layout.addLayout(mainwindow_size_lay)
         self.appearance_layout.addStretch(1)
         self.tab_appearance.setLayout(self.appearance_layout)
 
@@ -2549,6 +2574,18 @@ class PopUpPreferences(QDialog):
             "background-color:" + background_color + ";color:" +
             text_color + ";")
 
+        # main window setup
+        fullscreen = self.fullscreen_cbox.isChecked()
+        config.set_mainwindow_maximized(fullscreen)
+        w = self.mainwindow_size_x_spinbox.value()
+        h = self.mainwindow_size_y_spinbox.value()
+        config.set_mainwindow_size([w, h])
+        if fullscreen:
+            main_window.showMaximized()
+        else:
+            main_window.showNormal()
+            #main_window.resize(w, h)  # don't apply now
+
         self.signal_preferences_change.emit()
         QApplication.restoreOverrideCursor()
         self.accept()
@@ -2661,6 +2698,10 @@ class PopUpPreferences(QDialog):
         self.msg.setStandardButtons(QMessageBox.Ok)
         self.msg.buttonClicked.connect(self.msg.close)
         self.msg.show()
+
+    def use_current_mainwindow_size(self, main_window):
+        self.mainwindow_size_x_spinbox.setValue(main_window.width())
+        self.mainwindow_size_y_spinbox.setValue(main_window.height())
 
 
 class PopUpProperties(QDialog):

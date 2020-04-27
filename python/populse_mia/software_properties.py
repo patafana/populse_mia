@@ -195,6 +195,18 @@ class Config:
         except KeyError:
             return False
 
+    def get_mainwindow_maximized(self):
+        """Get the maximized (fullscreen) flag
+        """
+
+        return self.config.get('mainwindow_maximized', True)
+
+    def get_mainwindow_size(self):
+        """Get the main window size
+        """
+
+        return self.config.get('mainwindow_size', None)
+
     def get_matlab_command(self):
         """Get Matlab command.
 
@@ -546,6 +558,20 @@ class Config:
         """
         self.config["user_mode"] = user_mode
         # Then save the modification
+        self.saveConfig()
+
+    def set_mainwindow_maximized(self, enabled):
+        """Set the maximized (fullscreen) flag
+        """
+
+        self.config['mainwindow_maximized'] = enabled
+        self.saveConfig()
+
+    def set_mainwindow_size(self, size):
+        """Set main window size
+        """
+
+        self.config['mainwindow_size'] = list(size)
         self.saveConfig()
 
     def set_matlab_path(self, path):

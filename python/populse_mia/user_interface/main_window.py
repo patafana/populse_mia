@@ -194,7 +194,12 @@ class MainWindow(QMainWindow):
         # Create Tabs
         self.create_tabs()
         self.setCentralWidget(self.centralWindow)
-        self.showMaximized()
+        if self.config.get_mainwindow_maximized():
+            self.showMaximized()
+        else:
+            size = self.config.get_mainwindow_size()
+            if size:
+                self.resize(size[0], size[1])
 
     def add_clinical_tags(self):
         """Add the clinical tags to the database and the data browser"""
