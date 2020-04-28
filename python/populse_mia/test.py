@@ -64,14 +64,13 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 class TestMIADataBrowser(unittest.TestCase):
     """Tests for the data browser tab"""
 
-
     def setUp(self):
         """
         Called before each test
         """
 
         # All the tests are run in regular mode
-        config = Config()
+        config = Config(config_path=self.config_path)
         config.set_user_mode(False)
 
         self.app = QApplication.instance()
@@ -89,11 +88,23 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.close()
 
         # Removing the opened projects (in CI, the tests are run twice)
-        config = Config()
+        config = Config(config_path=self.config_path)
         config.set_opened_projects([])
         config.saveConfig()
 
         self.app.exit()
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config_path = tempfile.mkdtemp(prefix='mia_tests')
+        # hack the Config class to get config_path, because some Config
+        # instances are created out of our control in the code
+        Config.config_path = cls.config_path
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.config_path):
+            shutil.rmtree(cls.config_path)
 
     def test_add_path(self):
         """
@@ -129,7 +140,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the pop up adding a tag
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -217,7 +228,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the advanced search widget
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -298,7 +309,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the brick history popup
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -340,7 +351,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the method clearing cells
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -369,7 +380,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the pop up cloning a tag
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -436,7 +447,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the count table popup
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -489,7 +500,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the MIA preferences popup
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         old_auto_save = config.isAutoSave()
         self.assertEqual(old_auto_save, False)
 
@@ -500,7 +511,7 @@ class TestMIADataBrowser(unittest.TestCase):
         properties.save_checkbox.setChecked(True)
         QTest.mouseClick(properties.push_button_ok, Qt.LeftButton)
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         new_auto_save = config.isAutoSave()
         self.assertEqual(new_auto_save, True)
 
@@ -510,7 +521,7 @@ class TestMIADataBrowser(unittest.TestCase):
         properties.tab_widget.setCurrentIndex(1)
         properties.save_checkbox.setChecked(False)
         QTest.mouseClick(properties.push_button_ok, Qt.LeftButton)
-        config = Config()
+        config = Config(config_path=self.config_path)
         reput_auto_save = config.isAutoSave()
         self.assertEqual(reput_auto_save, False)
 
@@ -520,7 +531,9 @@ class TestMIADataBrowser(unittest.TestCase):
         properties.tab_widget.setCurrentIndex(1)
         properties.save_checkbox.setChecked(True)
         QTest.mouseClick(properties.push_button_cancel, Qt.LeftButton)
-        config = Config()
+        config = Config(config_path=self.config_path)
+        # clear config
+        config.config = {}
         auto_save = config.isAutoSave()
         self.assertEqual(auto_save, False)
 
@@ -569,7 +582,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Test the modify table module
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
                                       'project_8')
@@ -616,7 +629,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the multiple sort popup
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -656,7 +669,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests project opening
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -691,7 +704,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests project filter opening
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -721,13 +734,12 @@ class TestMIADataBrowser(unittest.TestCase):
         saved_projects = self.main_window.saved_projects
         self.assertEqual(saved_projects.pathsList, [])
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
                                       'project_8')
 
-        os.remove(os.path.join(config.get_mia_path(), 'properties',
-                               'saved_projects.yml'))
+        os.remove(os.path.join(config.get_config_path(), 'saved_projects.yml'))
 
         saved_projects = SavedProjects()
         self.assertEqual(saved_projects.pathsList, [])
@@ -754,7 +766,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests that the projects are removed from the list of current projects
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         projects = config.get_opened_projects()
         self.assertEqual(len(projects), 1)
         self.assertTrue(self.main_window.project.folder in projects)
@@ -764,7 +776,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the rapid search bar
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -836,7 +848,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests scans removal in the databrowser
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -917,7 +929,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the method resetting the selected cells
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -973,7 +985,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the method resetting the columns selected
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1065,7 +1077,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests row reset
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1100,11 +1112,12 @@ class TestMIADataBrowser(unittest.TestCase):
         Test opening & saving of a project
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         something_path = os.path.join(mia_path, 'projects', 'something')
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
-        
+        project_8_path = os.path.join(mia_path, 'resources', 'mia',
+                                      'project_8')
+
         self.main_window.saveChoice() # Saves the project 'something'
         self.assertEqual(self.main_window.project.getName(), "something")
         self.assertEqual(os.path.exists(something_path), True)
@@ -1153,7 +1166,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the popup sending the documents to the pipeline manager
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1228,7 +1241,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the popup sending the documents to the pipeline manager
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1303,7 +1316,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the values modifications
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1337,7 +1350,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the sorting in the databrowser
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1377,7 +1390,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(sorted(mixed_bandwidths, reverse=True), down_bandwidths)
 
     def test_tab_change(self):
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
                                       'project_8')
@@ -1400,7 +1413,7 @@ class TestMIADataBrowser(unittest.TestCase):
         Tests the databrowser undo/redo
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
         self.main_window.switch_project(project_8_path, "project_8")
@@ -1412,18 +1425,18 @@ class TestMIADataBrowser(unittest.TestCase):
         bw_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_old = bw_item.text()
-        self.assertEqual(int(bw_old), 50000)
+        self.assertEqual(float(bw_old), 50000)
         bw_item.setSelected(True)
         bw_item.setText("0")
         self.assertEqual(self.main_window.project.undos, [['modified_values', [['data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii', 'BandWidth', 50000.0, 0.0]]]])
         self.assertEqual(self.main_window.project.redos, [])
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_set = bw_item.text()
-        self.assertEqual(int(bw_set), 0)
+        self.assertEqual(float(bw_set), 0)
         self.main_window.action_undo.trigger()
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_undo = bw_item.text()
-        self.assertEqual(int(bw_undo), 50000)
+        self.assertEqual(float(bw_undo), 50000)
         self.assertEqual(self.main_window.project.redos, [['modified_values', [[
                                                                                    'data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
                                                                                    'BandWidth', 50000.0, 0.0]]]])
@@ -1632,14 +1645,13 @@ class TestMIADataBrowser(unittest.TestCase):
 class TestMIAPipelineManager(unittest.TestCase):
     """Tests for the pipeline manager tab."""
 
-
     def setUp(self):
         """
         Called before each test
         """
 
         # All the tests are run in regular mode
-        config = Config()
+        config = Config(config_path=self.config_path)
         config.set_user_mode(False)
 
         self.app = QApplication.instance()
@@ -1657,11 +1669,23 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.main_window.close()
 
         # Removing the opened projects (in CI, the tests are run twice)
-        config = Config()
+        config = Config(config_path=self.config_path)
         config.set_opened_projects([])
         config.saveConfig()
 
         self.app.exit()
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config_path = tempfile.mkdtemp(prefix='mia_tests')
+        # hack the Config class to get config_path, because some Config
+        # instances are created out of our control in the code
+        Config.config_path = cls.config_path
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.config_path):
+            shutil.rmtree(cls.config_path)
 
     def test_add_tab(self):
         """
@@ -2002,7 +2026,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         Plays with the iteration table
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
                                       'project_8')
@@ -2063,7 +2087,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         Install the brick_test and mia_processes libraries and then remove them
         """
 
-        config = Config()
+        config = Config(config_path=self.config_path)
         QMessageBox.exec = lambda x: True
 
         pkg = InstallProcesses(self.main_window, folder=False)
@@ -2111,7 +2135,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         node_controller = self.main_window.pipeline_manager.nodeController
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         # Adding a process
         from nipype.interfaces.spm import Smooth
@@ -2378,7 +2402,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)
@@ -2407,7 +2431,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)
@@ -2427,7 +2451,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)
@@ -2468,7 +2492,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         # Forcing the exit and disabling the init progressbar
         self.main_window.pipeline_manager.disable_progress_bar = True
@@ -2529,7 +2553,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)
@@ -2543,7 +2567,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         # Adding the processes path to the system path
         sys.path.append(os.path.join(config.get_mia_path(), 'processes'))
@@ -2579,7 +2603,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)
@@ -2608,7 +2632,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        config = Config()
+        config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
         pipeline_editor_tabs.load_pipeline(filename)

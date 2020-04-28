@@ -104,6 +104,7 @@ class Config:
         - get_max_projects: returns the maximum number of projects displayed in
           the "Saved projects" menu
         - get_mia_path: returns the software's install path
+        - get_config_path: returns the configuration file directory
         - get_projects_save_path: returns the folder where the projects are
           saved
         - get_spm_path: returns the path of SPM12 (license version)
@@ -165,9 +166,20 @@ class Config:
         - setThumbnailTag: sets the tag that is displayed in the mini viewer
 
     """
-    def __init__(self):
-        """Initialization of the Config class"""
+    def __init__(self, config_path=None, load=True):
+        """Initialization of the Config class
+
+        Parameters
+        ----------
+        config_path: str (optional)
+            if provided, the configuration file will be loaded/saved from
+            the given directory. Otherwise the regular eutristics will be used
+            to determine the config path. This option allows to use an
+            alternative config directory (for tests for instance).
+        """
         self.dev_mode = False
+        if config_path is not None:
+            self.config_path = config_path
         self.config = self.loadConfig()
         if "mia_user_path" not in self.config.keys():
             self.config["mia_user_path"] = self.get_mia_path()
@@ -190,10 +202,7 @@ class Config:
         :return: boolean
 
         """
-        try:
-            return self.config["user_mode"]
-        except KeyError:
-            return False
+        return self.config.get("user_mode", False)
 
     def get_mainwindow_maximized(self):
         """Get the maximized (fullscreen) flag
@@ -214,15 +223,13 @@ class Config:
         path not specified
 
         """
-        if self.config["use_spm_standalone"] == True:
+        if self.config.get("use_spm_standalone"):
             return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
                     'run_spm12.sh {0}'.format(self.config[
                                                  "matlab_standalone"]) +
                     os.sep + ' script')
-        elif self.config["use_matlab"] == True:
-            return self.config["matlab"]
         else:
-            return None
+            return self.config.get("matlab", None)
 
     def get_matlab_path(self):
         """Get the path to the matlab executable.
@@ -230,10 +237,7 @@ class Config:
         :return: String of path
 
         """
-        try:
-            return self.config["matlab"]
-        except KeyError:
-            return ""
+        return self.config.get("matlab", "")
 
     def get_matlab_standalone_path(self):
         """Get the path to matlab compiler runtime.
@@ -241,10 +245,7 @@ class Config:
         :return: string of path
 
         """
-        try:
-            return self.config["matlab_standalone"]
-        except KeyError:
-            return ""
+        return self.config.get("matlab_standalone", "")
 
     def get_max_projects(self):
         """Get the maximum number of projects displayed in the "Saved
@@ -272,6 +273,9 @@ class Config:
         :return: string of path to mia folder
 
         """
+        mia_path = getattr(self, 'mia_path', None)
+        if mia_path:
+            return mia_path
         dot_mia_config = os.path.join(os.path.expanduser("~"),
                                       ".populse_mia", "configuration.yml")
 
@@ -296,6 +300,7 @@ class Config:
                         while "properties" not in os.listdir(config_path):
                             config_path = os.path.dirname(config_path)
                             
+                        self.mia_path = config_path
                         return config_path
                     
                     # Only for user mode
@@ -312,8 +317,9 @@ class Config:
                             yaml.dump(mia_home_config, configfile,
                                       default_flow_style=False,
                                       allow_unicode=True)
-                        
-                    return mia_home_config["mia_user_path"]
+
+                    self.mia_path = mia_home_config["mia_user_path"]
+                    return self.mia_path
 
                 except (yaml.YAMLError, KeyError) as e:
                     print('\nMia path (where is located the processes, '
@@ -321,18 +327,29 @@ class Config:
                           'been found ...')
 
         else:  # Only for admin mode
-            
+
             try:
-                return self.config["mia_user_path"]
-            
+                self.mia_path = self.config["mia_user_path"]
+                return self.mia_path
+
             except (KeyError, AttributeError):
                 config_path = os.path.dirname(os.path.realpath(
                     __file__))
-                
+
                 while "properties" not in os.listdir(config_path):
                     config_path = os.path.dirname(config_path)
-                    
+
+                self.mia_path = config_path
                 return config_path
+
+    def get_config_path(self):
+        """Get the MIA config path (including "properties" directory)
+        """
+        config_path = getattr(self, 'config_path', None)
+        if config_path:
+            return config_path
+        mia_path = self.get_mia_path()
+        return os.path.join(mia_path, 'properties')
 
     def get_mri_conv_path(self):
         """Get the MRIManager.jar path.
@@ -340,12 +357,7 @@ class Config:
         :return: string of the path
 
         """
-        try:
-            return self.config["mri_conv_path"]
-        except KeyError:
-            return ""
-        except AttributeError:
-            return ""
+        return self.config.get("mri_conv_path", "")
 
     def get_opened_projects(self):
         """Get opened projects.
@@ -353,7 +365,7 @@ class Config:
         :return: list of opened projects
 
         """
-        return self.config["opened_projects"]
+        return self.config.get("opened_projects", [])
 
     def get_projects_save_path(self):
         """Get the path where projects are saved.
@@ -375,10 +387,7 @@ class Config:
         :return: string of path
 
         """
-        try:
-            return self.config["spm"]
-        except KeyError:
-            return ""
+        return self.config.get("spm", "")
 
     def get_spm_standalone_path(self):
         """Get the path to the SPM12 (standalone version).
@@ -386,10 +395,7 @@ class Config:
         :return: String of path
 
         """
-        try:
-            return self.config["spm_standalone"]
-        except KeyError:
-            return ""
+        return self.config.get("spm_standalone", "")
 
     def get_use_matlab(self):
         """Get the value of "use matlab" checkbox in the preferences.
@@ -397,10 +403,7 @@ class Config:
         :return: boolean
 
         """
-        try:
-            return self.config["use_matlab"]
-        except KeyError:
-            return False
+        return self.config.get("use_matlab", False)
 
     def get_use_matlab_standalone(self):
         """Get the value of "use matlab standalone" checkbox in the
@@ -409,10 +412,7 @@ class Config:
         :return: boolean
 
         """
-        try:
-            return self.config["use_matlab_standalone"]
-        except KeyError:
-            return False
+        return self.config.get("use_matlab_standalone", False)
 
     def get_use_spm(self):
         """Get the value of "use spm" checkbox in the preferences.
@@ -420,10 +420,7 @@ class Config:
         :return: boolean
 
         """
-        try:
-            return self.config["use_spm"]
-        except KeyError:
-            return False
+        return self.config.get("use_spm", False)
 
     def get_use_spm_standalone(self):
         """Get the value of "use spm standalone" checkbox in the preferences.
@@ -431,10 +428,7 @@ class Config:
         :return: boolean
 
         """
-        try:
-            return self.config["use_spm_standalone"]
-        except KeyError:
-            return False
+        return self.config.get("use_spm_standalone", False)
 
     def getBackgroundColor(self):
         """Get background color.
@@ -442,7 +436,7 @@ class Config:
         :return: string of the background color
 
         """
-        return self.config["background_color"]
+        return self.config.get("background_color", "")
 
     def getChainCursors(self):
         """Get the value of the checkbox 'chain cursor' in miniviewer.
@@ -450,7 +444,7 @@ class Config:
         :return: boolean
 
         """
-        return self.config["chain_cursors"]
+        return self.config.get("chain_cursors", False)
 
     def getNbAllSlicesMax(self):
         """Get number the maximum number of slices to display in the
@@ -459,7 +453,7 @@ class Config:
         :return: Integer
 
         """
-        return int(self.config["nb_slices_max"])
+        return int(self.config.get("nb_slices_max", "10"))
 
     def getPathToProjectsFolder(self):
         """Get the project's path.
@@ -467,11 +461,11 @@ class Config:
         :return: string of the path
 
         """
-        return self.config["projects_save_path"]
+        return self.config.get("projects_save_path", "")
 
     def getSourceImageDir(self):
         """Get the source directory for project images."""
-        return self.config["source_image_dir"]
+        return self.config.get("source_image_dir", "")
 
     def getShowAllSlices(self):
         """Get whether the show_all_slices parameters was enabled
@@ -481,7 +475,7 @@ class Config:
 
         """
         #Used in MiniViewer
-        return self.config["show_all_slices"]
+        return self.config.get("show_all_slices", False)
 
     def getTextColor(self):
         """Get the text color.
@@ -489,7 +483,7 @@ class Config:
         :return: string
 
         """
-        return self.config["text_color"]
+        return self.config.get("text_color", "")
 
     def getThumbnailTag(self):
         """Get the tag of the thumbnail displayed in the miniviewer.
@@ -497,7 +491,7 @@ class Config:
         :return: string
 
         """
-        return self.config["thumbnail_tag"]
+        return self.config.get("thumbnail_tag", "SequenceName")
 
     def isAutoSave(self):
         """Get if the auto-save mode is enabled or not.
@@ -506,7 +500,7 @@ class Config:
 
         """
         # used only in tests and when the background/text color is changed
-        return self.config["auto_save"]
+        return self.config.get("auto_save", False)
 
     def loadConfig(self):
         """Read the config in the config.yml file.
@@ -515,26 +509,31 @@ class Config:
 
         """
         f = Fernet(CONFIG)
-        with open(os.path.join(self.get_mia_path(), 'properties',
-                               'config.yml'), 'rb') as stream:
+        config_file = os.path.join(self.get_config_path(), 'config.yml')
+        if not os.path.exists(config_file):
+            return {}
+        with open(config_file, 'rb') as stream:
             try:
                 stream = b"".join(stream.readlines())
                 decrypted = f.decrypt(stream)
                 if verCmp(yaml.__version__, '5.1', 'sup'):
                     return yaml.load(decrypted, Loader=yaml.FullLoader)
-                
-                else:    
+
+                else:
                     return yaml.load(decrypted)
-                
+
             except yaml.YAMLError as exc:
                 print(exc)
+        # in case of problem, return an empty config
+        return {}
 
     def saveConfig(self):
         """Save the current parameters in the config.yml file."""
         f = Fernet(CONFIG)
-        with open(os.path.join(self.get_mia_path(), 'properties',
-                               'config.yml'), 'wb') as \
-                configfile:
+        config_file = os.path.join(self.get_config_path(), 'config.yml')
+        if not os.path.exists(os.path.dirname(config_file)):
+            os.makedirs(os.path.dirname(config_file))
+        with open(config_file, 'wb') as configfile:
 
             stream = yaml.dump(self.config, default_flow_style=False,
                       allow_unicode=True)
