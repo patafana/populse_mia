@@ -812,6 +812,10 @@ class PipelineEditor(PipelineDevelopperView):
                 msg.exec()
                 return None
 
+            filename_temp = os.path.split(filename)
+            filename = os.path.join(filename_temp[0],
+                                    filename_temp[-1].lower())
+
             if os.path.splitext(filename)[1] == '':  # which means no extension
                 filename += '.py'
 
