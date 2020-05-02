@@ -768,6 +768,8 @@ class PipelineEditor(PipelineDevelopperView):
 
         :return: the name of the file where the pipeline was saved
         """
+        self.check_modifications()
+        
         if len(self.scene.pipeline.nodes) < 2:
             print("\nThe pipeline hasn't been saved because it is empty ...")
             return None
