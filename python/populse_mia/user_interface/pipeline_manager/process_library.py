@@ -1804,7 +1804,6 @@ class PackageLibraryDialog(QDialog):
             self.status_label.setText(
                 "Deleting {0}. Please wait.".format(_2del))
             QApplication.processEvents()
-            input('delete_package_with_text')
 
         if _2del not in self.delete_dic:
             package_removed = self.remove_package(_2del)
