@@ -9,8 +9,8 @@ the project.
         - Node
         - PackageLibrary
         - PackageLibraryDialog
-        - ProcessLibrary
         - ProcessHelp
+        - ProcessLibrary
         - ProcessLibraryWidget
 
     :Functions:
@@ -28,26 +28,14 @@ the project.
 # for details.
 ##########################################################################
 
-import distutils.dir_util
-import inspect
-import os
-import re
-import pkgutil
-import shutil
-import glob
-import sys
-import tempfile
-import traceback
-from datetime import datetime
-from functools import partial
-from zipfile import ZipFile, is_zipfile
-from copy import deepcopy
-
-import yaml
 # PyQt5 import
 from PyQt5 import QtCore
+# QAbstractItemView is not available from soma (see in PackageLibraryDialog)
+from PyQt5.QtWidgets import QAbstractItemView
+
 # capsul import
 from capsul.api import get_process_instance
+
 # PyQt / PySide import, via soma
 from soma.qt_gui import qt_backend
 from soma.qt_gui.qt_backend import QtGui
@@ -65,6 +53,23 @@ from soma.qt_gui.qt_backend.QtWidgets import QListWidget, QGroupBox, QMenu
 # Populse_MIA import
 from populse_mia.software_properties import Config
 from populse_mia.software_properties import verCmp
+
+# Other import
+import distutils.dir_util
+import inspect
+import os
+import re
+import pkgutil
+import shutil
+import glob
+import sys
+import tempfile
+import traceback
+from datetime import datetime
+from functools import partial
+from zipfile import ZipFile, is_zipfile
+from copy import deepcopy
+import yaml
 
 
 class DictionaryTreeModel(QAbstractItemModel):
@@ -274,6 +279,10 @@ class InstallProcesses(QDialog):
         - get_filename: opens a file dialog to get the folder or zip file to
         install
         - install: installs the selected file/folder on Populse_MIA
+            **Contains: Private function:**
+                - add_package: Add a package and its modules to the package tree
+                - change_pattern_in_folder: Changing all 'old_pattern' pattern
+                  to 'new_pattern' in the 'path' folder
 
     """
 
@@ -351,7 +360,14 @@ class InstallProcesses(QDialog):
             self.path_edit.setText(filename[0])
 
     def install(self):
-        """Install a package from a zip file or a folder."""
+        """Install a package from a zip file or a folder.
+
+        **Contains: Private function:**
+            - add_package: Add a package and its modules to the package tree
+            - change_pattern_in_folder: Changing all 'old_pattern' pattern to
+              'new_pattern' in the 'path' folder
+
+        """
 
         def add_package(proc_dic, module_name):
             """Add a package and its modules to the package tree.
@@ -433,7 +449,7 @@ class InstallProcesses(QDialog):
 
         def change_pattern_in_folder(path, old_pattern, new_pattern):
             """Changing all "old_pattern" pattern to "new_pattern" in the
-            "path" folder.
+            'path' folder.
 
             :param path: path of the extracted or copied processes
             :param old_pattern: old pattern
@@ -722,158 +738,11 @@ class InstallProcesses(QDialog):
             msg.exec()
 
 
-class ProcessLibraryWidget(QWidget):
-    """
-    Widget that handles the available Capsul's processes in the software.
-
-    :param main_window: current main window
-
-    .. Methods:
-        - load_config: read the config in process_config.yml and return it as
-        a dictionary
-        - load_packages: sets packages and paths to the widget and to the
-        system paths
-        - open_pkg_lib: opens the package library
-        - save_config: saves the current config to process_config.yml
-        - update_config: updates the config and loads the corresponding
-        packages
-        - update_process_library: updates the tree of the process library
-
-    """
-
-    def __init__(self, main_window=None):
-        """Initialize the ProcessLibraryWidget.
-
-        :param main_window: current main window
-
-        """
-
-        super(ProcessLibraryWidget, self).__init__(parent=main_window)
-        self.setWindowTitle("Process Library")
-        self.main_window = main_window
-
-        # Process Config
-        self.update_config()
-
-        # Package Library
-        self.pkg_library = PackageLibraryDialog(parent=self.main_window)
-        self.pkg_library.signal_save.connect(self.update_process_library)
-
-        # Process Library
-        self.process_library = ProcessLibrary(self.packages, self.pkg_library)
-        self.process_library.setDragDropMode(self.process_library.DragOnly)
-        self.process_library.setAcceptDrops(False)
-        self.process_library.setDragEnabled(True)
-        self.process_library.setSelectionMode(
-            self.process_library.SingleSelection)
-
-        # # Push button to call the package library
-        # push_button_pkg_lib = QPushButton()
-        # push_button_pkg_lib.setText('Package library manager')
-        # push_button_pkg_lib.clicked.connect(self.open_pkg_lib)
-
-        # Test to see the inputs/outputs of a process
-        self.label_test = QLabel()
-
-        # Splitter
-        self.splitter = QSplitter(Qt.Horizontal)
-        self.splitter.addWidget(self.label_test)
-        self.splitter.addWidget(self.process_library)
-
-        # Layout
-        h_box = QVBoxLayout()
-        # h_box.addWidget(push_button_pkg_lib)
-        h_box.addWidget(self.splitter)
-
-        self.setLayout(h_box)
-
-
-    @staticmethod
-    def load_config():
-        """Read the config in process_config.yml and return it as a dictionary.
-
-        :return: the config as a dictionary
-
-        """
-
-        config = Config()
-
-        if not os.path.exists(os.path.join(config.get_mia_path(), 'properties',
-                                           'process_config.yml')):
-            open(os.path.join(config.get_mia_path(), 'properties',
-                              'process_config.yml'), 'a').close()
-
-        with open(os.path.join(config.get_mia_path(), 'properties',
-                               'process_config.yml'), 'r') as stream:
-
-            try:
-                if verCmp(yaml.__version__, '5.1', 'sup'):
-                    return yaml.load(stream, Loader=yaml.FullLoader)
-                else:
-                    return yaml.load(stream)
-
-            except yaml.YAMLError as exc:
-                print(exc)
-
-    def load_packages(self):
-        """Set packages and paths to the widget and to the system paths."""
-
-        try:
-            self.packages = self.process_config["Packages"]
-        except KeyError:
-            self.packages = {}
-        except TypeError:
-            self.packages = {}
-
-        try:
-            self.paths = self.process_config["Paths"]
-        except KeyError:
-            self.paths = []
-        except TypeError:
-            self.paths = []
-
-        for path in self.paths:
-            # Adding the module path to the system path
-            # sys.path.insert(0, os.path.abspath(path))
-            if os.path.abspath(path) not in sys.path:
-                sys.path.append(os.path.abspath(path))
-
-    def open_pkg_lib(self):
-        """Open the package library."""
-
-        self.pkg_library.show()
-
-    def save_config(self):
-        """Save the current config to process_config.yml."""
-
-        config = Config()
-
-        self.process_config["Packages"] = self.packages
-        self.process_config["Paths"] = self.paths
-        with open(os.path.join(config.get_mia_path(), 'properties',
-                               'process_config.yml'), 'w', encoding='utf8') \
-                as stream:
-            yaml.dump(self.process_config, stream, default_flow_style=False,
-                      allow_unicode=True)
-
-    def update_config(self):
-        """Update the config and loads the corresponding packages."""
-
-        self.process_config = self.load_config()
-        self.load_packages()
-
-    def update_process_library(self):
-        """Update the tree of the process library."""
-
-        self.update_config()
-        self.process_library.package_tree = self.packages
-        self.process_library.load_dictionary(self.packages)
-
-
 class Node(object):
     """Class to handle a package children.
 
     .. Methods:
+        -  __repr__: Define what should be printed by the class
         - _recurse_dict: add the name and value of the farthest child in the
         dictionary
         - addChild: add a child to the children list
@@ -890,6 +759,9 @@ class Node(object):
         - to_dict: return a dictionary of the children
         - to_list: return the list of children with their names and values
         - value: return the value of the object
+            **Contains: Private function:**
+                 - fget: get the value
+                 - fset: set the value
         - setData: update the name or the value of the object
         - resource: return a None
 
@@ -1339,13 +1211,15 @@ class PackageLibraryDialog(QDialog):
     """Dialog that controls which processes to show in the process library.
 
     .. Methods:
-        - add_package_with_text: add a package from the line edit's text
         - add_package: add a package and its modules to the package tree
+        - add_package_with_text: add a package from the line edit's text
         - browse_package: open a browser to select a package
         - delete_package: delete a package, only available to administrators
-        - import_file: import a python module from a path
+        - delete_package_with_text: delete a package from the line edit's text
+        - install_processes_pop_up: open the install processes pop-up
         - load_config: update the config and loads the corresponding packages
         - load_packages: update the tree of the process library
+        - ok_clicked: called when apply changes is clicked
         - remove_package: remove a package from the package tree
         - remove_package_with_text: remove the package in the line edit from
           the package tree
@@ -1359,9 +1233,12 @@ class PackageLibraryDialog(QDialog):
 
     signal_save = Signal()
 
-    def __init__(self, parent=None):
+    #def __init__(self, parent=None):
+    def __init__(self, mia_main_window=None, parent=None):
         """ Initialization of the PackageLibraryDialog widget """
         super(PackageLibraryDialog, self).__init__(parent)
+
+        self.main_window = mia_main_window
 
         config = Config()
 
@@ -1425,13 +1302,23 @@ class PackageLibraryDialog(QDialog):
         self.remove_list = QListWidget()
         self.del_list = QListWidget()
 
+        # using soma: AttributeError: module 'PyQt5.QtGui' has no
+        #             attribute 'QAbstractItemView'
+        """
         self.add_list.setSelectionMode(
             QtGui.QAbstractItemView.ExtendedSelection)
         self.remove_list.setSelectionMode(
             QtGui.QAbstractItemView.ExtendedSelection)
         self.del_list.setSelectionMode(
             QtGui.QAbstractItemView.ExtendedSelection)
-
+        """
+        # so use QAbstractItemView directly from PyQt5.QtWidgets
+        self.add_list.setSelectionMode(
+            QAbstractItemView.ExtendedSelection)
+        self.remove_list.setSelectionMode(
+            QAbstractItemView.ExtendedSelection)
+        self.del_list.setSelectionMode(
+            QAbstractItemView.ExtendedSelection)
         push_button_save = QPushButton(default=False, autoDefault=False)
         push_button_save.setText("Apply changes")
         push_button_save.clicked.connect(partial(self.ok_clicked))
@@ -1791,315 +1678,6 @@ class PackageLibraryDialog(QDialog):
             self.is_path = True
             self.line_edit.setText(file_name)
 
-    def delete_package_with_text(self, _2del=False, update_view=True):
-        """Delete a package from the line edit's text.
-        :param _2del: name of package
-        :param update_view: boolean to update the QListWidget
-
-        """
-        old_status = self.status_label.text()
-
-        if _2del is False:
-            _2del = self.line_edit.text()
-            self.status_label.setText(
-                "Deleting {0}. Please wait.".format(_2del))
-            QApplication.processEvents()
-
-        if _2del not in self.delete_dic:
-            package_removed = self.remove_package(_2del)
-
-        else:
-            package_removed = True
-
-        if package_removed is True:
-
-            if update_view:
-
-                if _2del not in self.delete_dic:
-                    self.del_list.addItem(_2del)
-                    self.delete_dic[
-                        _2del] = self.del_list.count() - 1
-
-            if _2del in self.add_dic:
-                index = self.add_dic[_2del]
-                self.add_list.takeItem(self.add_dic[_2del])
-                self.add_dic.pop(_2del)
-                for key in self.add_dic:
-                    if self.add_dic[key] > index:
-                        self.add_dic[key] = self.add_dic[key] - 1
-
-            if _2del in self.remove_dic:
-                index = self.remove_dic[_2del]
-                self.remove_list.takeItem(self.remove_dic[_2del])
-                self.remove_dic.pop(_2del)
-                for key in self.remove_dic:
-                    if self.remove_dic[key] > index:
-                        self.remove_dic[key] = self.remove_dic[key] - 1
-
-            self.status_label.setText(
-                "{0} deleted from Package Library.".format(
-                    _2del))
-
-        else:
-            self.status_label.setText(old_status)
-
-    def delete_package(self, index=1, to_delete=None, remove=True, loop=False):
-        """Delete a package, only available to administrators.
-
-        Remove the package from the package library tree, update the
-        __init__ file and delete the package directory and files if there
-        are empty.
-
-        :param index: recursive index to move between modules
-
-        """
-        self.packages = self.package_library.package_tree
-        config = Config()
-
-        if not to_delete:
-            to_delete = self.line_edit.text()
-
-        if to_delete == "":
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Critical)
-            self.msg.setText("Package not found.")
-            self.msg.setInformativeText(
-                "Please write the python path to the package you want to "
-                "delete.")
-            self.msg.setWindowTitle("Warning")
-            self.msg.setStandardButtons(QMessageBox.Ok)
-            self.msg.buttonClicked.connect(self.msg.close)
-            self.msg.show()
-            return
-
-        if to_delete.split(".")[0] in ["nipype", "mia_processes"]:
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Critical)
-            self.msg.setText("This package can not be deleted.")
-            self.msg.setInformativeText(
-                "This package belongs to " + to_delete.split(".")[0] + " which"
-                " is required by populse mia.\n You can still hide it in the "
-                "package library manager.")
-            self.msg.setWindowTitle("Error")
-            self.msg.setStandardButtons(QMessageBox.Ok)
-            self.msg.buttonClicked.connect(self.msg.close)
-            self.msg.show()
-            return
-
-        if index == 1 and loop is False:
-            msgtext = "Do you really want to delete the package " + \
-                      to_delete + " ?"
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            title = "populse_mia - Warning: Delete package"
-            reply = msg.question(self, title, msgtext, QMessageBox.Yes,
-                                 QMessageBox.No)
-        else:
-            reply = QMessageBox.Yes
-
-        if reply == QMessageBox.Yes:
-            pkg_list = to_delete.split(".")
-
-            if index <= len(pkg_list):
-                path = os.path.abspath(
-                    os.path.join(
-                        config.get_mia_path(), 'processes',
-                        *pkg_list[0:index]))
-                self.delete_package(index + 1, to_delete)
-
-                if os.path.exists(path):
-
-                    if len(glob.glob(os.path.join(
-                            path, "*"))) == 0 or index == len(pkg_list):
-                        shutil.rmtree(path)
-
-                        if index > 0:
-
-                            if remove:
-                                self.remove_package_with_text(".".join(
-                                    pkg_list[0:index]), False)
-
-                else:
-                    init = os.path.abspath(
-                        os.path.join(
-                            config.get_mia_path(),
-                            'processes',
-                            *pkg_list[0:index-1],
-                            "__init__.py"))
-
-                    if os.path.isfile(init):
-                        with open(init, 'r') as f:
-                            lines = f.readlines()
-
-                        with open(init, 'w') as f:
-                            for line in lines:
-
-                                if re.search("import..?" +
-                                             pkg_list[index-1] + ".?\n",
-                                             line):
-
-                                    filename = line.split(" ")[1] + ".py"
-
-            if os.path.splitext(_2add)[1]:
-                part = ''
-                old_part = ''
-                flag = False
-
-                for content in _2add.split('.'):
-                    part += content
-
-                    try:
-                        __import__(part)
-
-                    except ImportError:
-
-                        try:
-                            flag = True
-
-                            if content in dir(sys.modules[old_part]):
-                                errors = self.add_package(
-                                    os.path.splitext(_2add)[0],
-                                    os.path.splitext(_2add)[1][1:])
-                                break
-
-                            else:
-                                errors = self.add_package(_2add)
-                                break
-
-                        except KeyError:
-                            errors = 'No package, module or class named ' \
-                                     + _2add + ' !'
-                            break
-
-                    old_part = part
-                    part += '.'
-
-                if flag is False:
-                    errors = self.add_package(os.path.splitext(_2add)[0],
-                                              os.path.splitext(_2add)[1][1:])
-
-            else:
-                errors = self.add_package(os.path.splitext(_2add)[0],
-                                          os.path.splitext(_2add)[0])
-
-            if len(errors) == 0:
-                self.status_label.setText(
-                    "{0} added to the Package Library.".format(_2add))
-
-                if update_view:
-
-                    if _2add not in self.add_dic:
-                        self.add_list.addItem(_2add)
-                        self.add_dic[_2add] = self.add_list.count() - 1
-
-                if _2add in self.remove_dic:
-                    index = self.remove_dic[_2add]
-                    self.remove_list.takeItem(self.remove_dic[_2add])
-                    self.remove_dic.pop(_2add)
-
-                    for key in self.remove_dic:
-
-                        if self.remove_dic[key] > index:
-                            self.remove_dic[key] = self.remove_dic[key] -1
-
-                if _2add in self.delete_dic:
-                    index = self.delete_dic[_2add]
-                    self.del_list.takeItem(self.delete_dic[_2add])
-                    self.delete_dic.pop(_2add)
-
-                    for key in self.delete_dic:
-
-                        if self.delete_dic[key] > index:
-                            self.delete_dic[key] = self.delete_dic[key] -1
-                # if self.line_edit.text() in self.remove_list:
-                #     self.remove_list.
-
-            else:
-                self.status_label.setText(old_status)
-                msg = QMessageBox()
-
-                if isinstance(errors, str):
-                    msg.setText(errors)
-
-                elif isinstance(errors, list):
-                    msg.setText('\n'.join(errors))
-
-                msg.setIcon(QMessageBox.Warning)
-                msg.exec_()
-
-    def browse_package(self):
-        """Open a browser to select a package."""
-
-        file_dialog = QFileDialog()
-        file_dialog.setOption(QFileDialog.DontUseNativeDialog, True)
-
-        # To select files or directories, we should use a proxy model
-        # but mine is not working yet...
-
-        # file_dialog.setProxyModel(FileFilterProxyModel())
-        file_dialog.setFileMode(QFileDialog.Directory)
-        # file_dialog.setFileMode(QFileDialog.Directory |
-        # QFileDialog.ExistingFile)
-        # file_dialog.setFilter("Processes (*.py *.xml)")
-
-        if file_dialog.exec_():
-            file_name = file_dialog.selectedFiles()[0]
-            file_name = os.path.abspath(file_name)
-            self.is_path = True
-            self.line_edit.setText(file_name)
-
-    def delete_package_with_text(self, _2del=False, update_view=True):
-        """Delete a package from the line edit's text.
-        :param _2del: name of package
-        :param update_view: boolean to update the QListWidget
-
-        """
-        old_status = self.status_label.text()
-
-        if _2del is False:
-            _2del = self.line_edit.text()
-            self.status_label.setText(
-                                     "Deleting {0}. Please wait.".format(_2del))
-            QApplication.processEvents()
-
-        if _2del not in self.delete_dic:
-            package_removed = self.remove_package(_2del)
-
-        else:
-            package_removed = True
-
-        if package_removed is True:
-
-            if update_view:
-
-                if _2del not in self.delete_dic:
-                    self.del_list.addItem(_2del)
-                    self.delete_dic[_2del] = self.del_list.count() - 1
-
-            if _2del in self.add_dic:
-                index = self.add_dic[_2del]
-                self.add_list.takeItem(self.add_dic[_2del])
-                self.add_dic.pop(_2del)
-                for key in self.add_dic:
-                    
-                    if self.add_dic[key] > index:
-                        self.add_dic[key] = self.add_dic[key] - 1
-
-            if _2del in self.remove_dic:
-                index = self.remove_dic[_2del]
-                self.remove_list.takeItem(self.remove_dic[_2del])
-                self.remove_dic.pop(_2del)
-                for key in self.remove_dic:
-
-                    if self.remove_dic[key] > index:
-                        self.remove_dic[key] = self.remove_dic[key] - 1
-
-            self.status_label.setText(
-                              "{0} deleted from Package Library.".format(_2del))
-
-        else:
-            self.status_label.setText(old_status)
-
     def delete_package(self, index=1, to_delete=None, remove=True, loop=False):
         """Delete a package, only available to administrators.
 
@@ -2162,12 +1740,18 @@ class PackageLibraryDialog(QDialog):
                                                     'processes',
                                                     *pkg_list[0:index]))
                 self.delete_package(index + 1, to_delete)
-
+                
                 if os.path.exists(path):
 
                     if ((len(glob.glob(os.path.join(path, "*"))) == 0) or
                                                       (index == len(pkg_list))):
                         shutil.rmtree(path)
+
+                        self.main_window.statusBar().showMessage('{0} was '
+                                'deleted ({1} library) ...'.format(path, 
+                                                os.path.split(path)[-1]))
+                        print('\nDeleting {0} '
+                              '...'.format(os.path.split(path)[-1]))
 
                         if index > 0:
 
@@ -2199,8 +1783,20 @@ class PackageLibraryDialog(QDialog):
                                     if os.path.isfile(os.path.join(
                                                          os.path.split(init)[0],
                                                                  filename[1:])):
-                                        os.remove(os.path.join(os.path.split(
-                                                        init)[0], filename[1:]))
+                                        file2del = os.path.join(os.path.split(
+                                                        init)[0], filename[1:])
+                                        os.remove(file2del)
+                                        (self.main_window.statusBar().
+                                         showMessage)('{0} was deleted ({1} '
+                                        'brick) ...'.format(file2del, 
+                                                            pkg_list[index-1]))
+
+                                        name = file2del.split(os.sep)[
+                                            file2del.split(
+                                                os.sep).index('processes')+1:-1]
+                                        name.append(str(pkg_list[index-1]))
+                                        print('\nDeleting {0} '
+                                              '...'.format('.'.join(name)))
 
                                     if remove:
                                         self.remove_package_with_text(
@@ -2231,6 +1827,58 @@ class PackageLibraryDialog(QDialog):
             self.package_library.generate_tree()
             self.save(False)
 
+    def delete_package_with_text(self, _2del=False, update_view=True):
+        """Delete a package from the line edit's text.
+        :param _2del: name of package
+        :param update_view: boolean to update the QListWidget
+
+        """
+        old_status = self.status_label.text()
+
+        if _2del is False:
+            _2del = self.line_edit.text()
+            self.status_label.setText(
+                                     "Deleting {0}. Please wait.".format(_2del))
+            QApplication.processEvents()
+
+        if _2del not in self.delete_dic:
+            package_removed = self.remove_package(_2del)
+
+        else:
+            package_removed = True
+
+        if package_removed is True:
+
+            if update_view:
+
+                if _2del not in self.delete_dic:
+                    self.del_list.addItem(_2del)
+                    self.delete_dic[_2del] = self.del_list.count() - 1
+
+            if _2del in self.add_dic:
+                index = self.add_dic[_2del]
+                self.add_list.takeItem(self.add_dic[_2del])
+                self.add_dic.pop(_2del)
+                for key in self.add_dic:
+                    
+                    if self.add_dic[key] > index:
+                        self.add_dic[key] = self.add_dic[key] - 1
+
+            if _2del in self.remove_dic:
+                index = self.remove_dic[_2del]
+                self.remove_list.takeItem(self.remove_dic[_2del])
+                self.remove_dic.pop(_2del)
+                for key in self.remove_dic:
+
+                    if self.remove_dic[key] > index:
+                        self.remove_dic[key] = self.remove_dic[key] - 1
+
+            self.status_label.setText(
+                              "{0} deleted from Package Library.".format(_2del))
+
+        else:
+            self.status_label.setText(old_status)
+
     def install_processes_pop_up(self, folder=False):
         """Open the install processes pop-up.
 
@@ -2241,7 +1889,7 @@ class PackageLibraryDialog(QDialog):
         self.pop_up_install_processes = InstallProcesses(self, folder=folder)
         self.pop_up_install_processes.show()
         # self.pop_up_install_processes.process_installed.connect(
-        #     self.parent.pipeline_manager.processLibrary.update_process_library)
+        #    self.parent.pipeline_manager.processLibrary.update_process_library)
         self.pop_up_install_processes.process_installed.connect(
             self.update_config)
 
@@ -2308,7 +1956,82 @@ class PackageLibraryDialog(QDialog):
                 reply = None
         self.save()
 
-    #def remove_package_with_text(self, _2rem=None, update_view=True, check_flag=True):
+    #def remove_package(self, package, check_flag=True):
+    def remove_package(self, package):
+        """Remove a package from the package tree.
+
+        :param package: module's representation as a string
+           (e.g.: nipype.interfaces.spm)
+        :return: True if the package has been removed correctly
+
+        """
+        self.packages = self.package_library.package_tree
+        config = Config()
+
+        if package:
+
+            if os.path.abspath(os.path.join(config.get_mia_path(),
+                                            'processes')) not in sys.path:
+                sys.path.append(os.path.abspath(
+                    os.path.join(config.get_mia_path(), 'processes')))
+
+            path_list = package.split('.')
+            pkg_iter = self.packages
+
+            if package in self.remove_dic or package in self.delete_dic:
+                check_flag = True
+
+            else:
+                check_flag = False
+
+            for element in path_list:
+
+                if element in pkg_iter.keys():
+
+                    if element is not path_list[-1]:
+                        pkg_iter = pkg_iter[element]
+
+                    else:
+                        del pkg_iter[element]
+
+                        if path_list[:path_list.index(element)]:
+                            print('\nRemoving {0}.{1} ...'.format(
+                            '.'.join(path_list[:path_list.index(element)]),
+                                     element))
+
+                        else:
+                            print('\nRemoving {0} ...'.format(element))
+
+                elif check_flag is True:
+                    pass
+
+                else:
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setWindowTitle(
+                        "Warning: Package not found in Package Library")
+                    msg.setText("Package {0} not found".format(package))
+                    msg.setStandardButtons(QMessageBox.Ok)
+                    msg.buttonClicked.connect(msg.close)
+                    msg.exec()
+                    return None
+
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Warning: Package not found in Package Library")
+            msg.setText("No package selected!")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.buttonClicked.connect(msg.close)
+            msg.exec()
+            return False
+
+        self.package_library.package_tree = self.packages
+        self.package_library.generate_tree()
+        return True
+
+    #def remove_package_with_text(self, _2rem=None, update_view=True,
+    #                                                          check_flag=True):
     def remove_package_with_text(self, _2rem=None, update_view=True,
                                  tree_remove=True):
         """Remove the package in the line edit from the package tree.
@@ -2357,75 +2080,6 @@ class PackageLibraryDialog(QDialog):
                     _2rem))
         else:
             self.status_label.setText(old_status)
-
-    #def remove_package(self, package, check_flag=True):
-    def remove_package(self, package):
-        """Remove a package from the package tree.
-
-        :param package: module's representation as a string
-           (e.g.: nipype.interfaces.spm)
-        :return: True if the package has been removed correctly
-
-        """
-        self.packages = self.package_library.package_tree
-        config = Config()
-
-        if package:
-
-            if os.path.abspath(os.path.join(config.get_mia_path(),
-                                            'processes')) not in sys.path:
-                sys.path.append(os.path.abspath(
-                    os.path.join(config.get_mia_path(), 'processes')))
-
-            path_list = package.split('.')
-            pkg_iter = self.packages
-
-            if package in self.remove_dic or package in self.delete_dic:
-                check_flag = True
-
-            else:
-                check_flag = False
-
-            for element in path_list:
-
-                if element in pkg_iter.keys():
-
-                    if element is not path_list[-1]:
-                        pkg_iter = pkg_iter[element]
-
-                    else:
-                        del pkg_iter[element]
-                        print('\nRemoving {0}.{1} ...'.format(
-                            '.'.join(path_list[:path_list.index(element)]),
-                                     element))
-
-                elif check_flag is True:
-                    pass
-
-                else:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Warning)
-                    msg.setWindowTitle(
-                        "Warning: Package not found in Package Library")
-                    msg.setText("Package {0} not found".format(package))
-                    msg.setStandardButtons(QMessageBox.Ok)
-                    msg.buttonClicked.connect(msg.close)
-                    msg.exec()
-                    return None
-
-        else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            msg.setWindowTitle("Warning: Package not found in Package Library")
-            msg.setText("No package selected!")
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.buttonClicked.connect(msg.close)
-            msg.exec()
-            return False
-
-        self.package_library.package_tree = self.packages
-        self.package_library.generate_tree()
-        return True
 
     def reset_action(self, itemlist, add):
         """Called to reset a prevous add or remove package action.
@@ -2536,7 +2190,9 @@ class ProcessLibrary(QTreeView):
     :param d: dictionary: dictionary corresponding to the tree
 
     .. Methods:
+        - keyPressEvent: event when the delete key is pressed
         - load_dictionary: loads a dictionary to the tree
+        - mousePressEvent: event when the mouse is pressed
         - to_dict: returns a dictionary from the current tree
 
     """
@@ -2589,32 +2245,45 @@ class ProcessLibrary(QTreeView):
         idx = self.indexAt(event.pos())
         # print('idx',dir(idx.model()))
         config = Config()
+
         if idx.isValid:
             model = idx.model()
             idx = idx.sibling(idx.row(), 0)
             node = idx.internalPointer()
+
             if node is not None:
                 self.setCurrentIndex(idx)
                 txt = node.data(idx.column())
                 path = txt.encode()
                 self.item_library_clicked.emit(path.decode('utf8'))
+
                 if event.button() == Qt.RightButton:
                     self.menu = QMenu(self)
                     self.remove = self.menu.addAction(
                         "Remove package")
+
                     if config.get_user_mode() is False :
                         self.action_delete = self.menu.addAction(
                             "Delete package")
+
                     else:
                         self.action_delete = False
+
                     action = self.menu.exec_(self.mapToGlobal(event.pos()))
+
                     if action == self.remove:
-                        self.pkg_library.package_library.package_tree = self.pkg_library.load_config()['Packages']
+                        (self.pkg_library.
+                         package_library.
+                         package_tree) = self.pkg_library.load_config()[
+                                                                     'Packages']
                         self.pkg_library.remove_package(txt)
                         self.pkg_library.save()
 
                     if action == self.action_delete:
-                        self.pkg_library.package_library.package_tree = self.pkg_library.load_config()['Packages']
+                        (self.pkg_library.
+                         package_library.
+                         package_tree) = self.pkg_library.load_config()[
+                                                                     'Packages']
                         self.pkg_library.delete_package(to_delete=txt)
                 # print('dictionary ',path.decode('utf8'))
                 # self.item_library_clicked.emit(model.itemData(idx)[0])
@@ -2629,6 +2298,154 @@ class ProcessLibrary(QTreeView):
         """
         
         return self._model.to_dict()
+
+
+class ProcessLibraryWidget(QWidget):
+    """
+    Widget that handles the available Capsul's processes in the software.
+
+    :param main_window: current main window
+
+    .. Methods:
+        - load_config: read the config in process_config.yml and return it as
+        a dictionary
+        - load_packages: sets packages and paths to the widget and to the
+        system paths
+        - open_pkg_lib: opens the package library
+        - save_config: saves the current config to process_config.yml
+        - update_config: updates the config and loads the corresponding
+        packages
+        - update_process_library: updates the tree of the process library
+
+    """
+
+    def __init__(self, main_window=None):
+        """Initialize the ProcessLibraryWidget.
+
+        :param main_window: current main window
+
+        """
+
+        super(ProcessLibraryWidget, self).__init__(parent=main_window)
+        self.setWindowTitle("Process Library")
+        self.main_window = main_window
+
+        # Process Config
+        self.update_config()
+
+        # Package Library
+        self.pkg_library = PackageLibraryDialog(
+                      mia_main_window=self.main_window, parent=self.main_window)
+        self.pkg_library.signal_save.connect(self.update_process_library)
+
+        # Process Library
+        self.process_library = ProcessLibrary(self.packages, self.pkg_library)
+        self.process_library.setDragDropMode(self.process_library.DragOnly)
+        self.process_library.setAcceptDrops(False)
+        self.process_library.setDragEnabled(True)
+        self.process_library.setSelectionMode(
+            self.process_library.SingleSelection)
+
+        # # Push button to call the package library
+        # push_button_pkg_lib = QPushButton()
+        # push_button_pkg_lib.setText('Package library manager')
+        # push_button_pkg_lib.clicked.connect(self.open_pkg_lib)
+
+        # Test to see the inputs/outputs of a process
+        self.label_test = QLabel()
+
+        # Splitter
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.addWidget(self.label_test)
+        self.splitter.addWidget(self.process_library)
+
+        # Layout
+        h_box = QVBoxLayout()
+        # h_box.addWidget(push_button_pkg_lib)
+        h_box.addWidget(self.splitter)
+
+        self.setLayout(h_box)
+
+    @staticmethod
+    def load_config():
+        """Read the config in process_config.yml and return it as a dictionary.
+
+        :return: the config as a dictionary
+
+        """
+
+        config = Config()
+
+        if not os.path.exists(os.path.join(config.get_mia_path(), 'properties',
+                                           'process_config.yml')):
+            open(os.path.join(config.get_mia_path(), 'properties',
+                              'process_config.yml'), 'a').close()
+
+        with open(os.path.join(config.get_mia_path(), 'properties',
+                               'process_config.yml'), 'r') as stream:
+
+            try:
+                if verCmp(yaml.__version__, '5.1', 'sup'):
+                    return yaml.load(stream, Loader=yaml.FullLoader)
+                else:
+                    return yaml.load(stream)
+
+            except yaml.YAMLError as exc:
+                print(exc)
+
+    def load_packages(self):
+        """Set packages and paths to the widget and to the system paths."""
+
+        try:
+            self.packages = self.process_config["Packages"]
+        except KeyError:
+            self.packages = {}
+        except TypeError:
+            self.packages = {}
+
+        try:
+            self.paths = self.process_config["Paths"]
+        except KeyError:
+            self.paths = []
+        except TypeError:
+            self.paths = []
+
+        for path in self.paths:
+            # Adding the module path to the system path
+            # sys.path.insert(0, os.path.abspath(path))
+            if os.path.abspath(path) not in sys.path:
+                sys.path.append(os.path.abspath(path))
+
+    def open_pkg_lib(self):
+        """Open the package library."""
+
+        self.pkg_library.show()
+
+    def save_config(self):
+        """Save the current config to process_config.yml."""
+
+        config = Config()
+
+        self.process_config["Packages"] = self.packages
+        self.process_config["Paths"] = self.paths
+        with open(os.path.join(config.get_mia_path(), 'properties',
+                               'process_config.yml'), 'w', encoding='utf8') \
+                as stream:
+            yaml.dump(self.process_config, stream, default_flow_style=False,
+                      allow_unicode=True)
+
+    def update_config(self):
+        """Update the config and loads the corresponding packages."""
+
+        self.process_config = self.load_config()
+        self.load_packages()
+
+    def update_process_library(self):
+        """Update the tree of the process library."""
+
+        self.update_config()
+        self.process_library.package_tree = self.packages
+        self.process_library.load_dictionary(self.packages)
 
 
 def import_file(full_name, path):

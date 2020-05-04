@@ -604,7 +604,7 @@ class MainWindow(QMainWindow):
     def package_library_pop_up(self):
         """Open the package library pop-up"""
 
-        self.pop_up_package_library = PackageLibraryDialog(self)
+        self.pop_up_package_library = PackageLibraryDialog(mia_main_window=self)
         self.pop_up_package_library.setGeometry(300, 200, 800, 600)
         self.pop_up_package_library.show()
         self.pop_up_package_library.signal_save.connect(
