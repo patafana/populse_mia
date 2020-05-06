@@ -236,6 +236,7 @@ class PipelineManagerTab(QWidget):
             self.controller_value_changed)
 
     def _show_preview(self, name_item):
+
         self.previewBlock.centerOn(0, 0)
         self.find_process(name_item)
 
@@ -250,6 +251,7 @@ class PipelineManagerTab(QWidget):
         :param full_name: full name of the node, including parent brick(s).
                           If there is no parent brick, full_name = node_name.
         """
+
         if type(p_value) in [list, TraitListObject]:
             for elt in p_value:
                 self.add_plug_value_to_database(elt, brick, node_name, 
@@ -407,6 +409,7 @@ class PipelineManagerTab(QWidget):
         :param node_name: name of the corresponding node
            (using when undo/redo) (str)
         """
+
         # pipeline = self.previewBlock.scene.pipeline
         pipeline = Pipeline()
         if not node_name:
@@ -445,6 +448,7 @@ class PipelineManagerTab(QWidget):
 
         :param signal_list: list of the needed parameters to update history
         """
+
         case = signal_list.pop(0)
 
         # For history
@@ -494,6 +498,7 @@ class PipelineManagerTab(QWidget):
         :param process: process instance of the corresponding node
         :return:
         """
+
         if isinstance(process, Switch):
             pass
         else:
@@ -508,6 +513,7 @@ class PipelineManagerTab(QWidget):
 
         :param path: class's path (e.g. "nipype.interfaces.spm.Smooth") (str)
         """
+
         package_name, process_name = os.path.splitext(path)
         process_name = process_name[1:]
         __import__(package_name)
@@ -541,6 +547,7 @@ class PipelineManagerTab(QWidget):
         :param pipeline: not None if this method call a sub-pipeline
         :param pipeline_name: name of the parent pipeline
         """
+
         # Should we add a progress bar for the initialization?
         # self.enable_progress_bar = True
         # if self.enable_progress_bar:
@@ -1330,6 +1337,7 @@ class PipelineManagerTab(QWidget):
 
     def layout_view(self):
         """Initialize layout for the pipeline manager tab"""
+
         self.setWindowTitle("Diagram editor")
 
         self.scrollArea.setWidgetResizable(True)
@@ -1393,6 +1401,7 @@ class PipelineManagerTab(QWidget):
         Load a pipeline to the pipeline editor
 
         """
+
         self.pipelineEditorTabs.load_pipeline()
 
     def loadParameters(self):
@@ -1400,6 +1409,7 @@ class PipelineManagerTab(QWidget):
         Load pipeline parameters to the current pipeline of the pipeline editor
 
         """
+
         self.pipelineEditorTabs.load_pipeline_parameters()
 
         self.nodeController.update_parameters()
@@ -1420,6 +1430,7 @@ class PipelineManagerTab(QWidget):
             - delete_link
 
         """
+
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can redo if we have an action to make again
@@ -1594,6 +1605,7 @@ class PipelineManagerTab(QWidget):
         pipeline editor
 
         """
+
         self.pipelineEditorTabs.save_pipeline_parameters()
 
     def savePipeline(self, uncheck=False):
@@ -1604,6 +1616,7 @@ class PipelineManagerTab(QWidget):
                         going to be overwritten during saving operation
 
         """
+
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         # QApplication.processEvents()
@@ -1660,6 +1673,7 @@ class PipelineManagerTab(QWidget):
         Save the current pipeline of the pipeline editor under another name
 
         """
+
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         saveResult = self.pipelineEditorTabs.save_pipeline()
@@ -1689,6 +1703,7 @@ class PipelineManagerTab(QWidget):
             - delete_link
 
         """
+
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can undo if we have an action to revert
@@ -1794,6 +1809,7 @@ class PipelineManagerTab(QWidget):
         Update the visibility of widgets/actions depending of the chosen mode
 
         """
+
         config = Config()
 
         # If the user mode is chosen, the process library is not available
@@ -1828,6 +1844,7 @@ class PipelineManagerTab(QWidget):
 
         :param project: current project in the software
         """
+
         self.project = project
         self.nodeController.project = project
         self.pipelineEditorTabs.project = project
@@ -1844,6 +1861,7 @@ class PipelineManagerTab(QWidget):
 
         :param iteration_list: current list of scans in the iteration table
         """
+
         if self.iterationTable.check_box_iterate.isChecked():
             self.iteration_table_scans_list = iteration_list
             self.pipelineEditorTabs.scan_list = iteration_list
@@ -1861,6 +1879,7 @@ class PipelineManagerTab(QWidget):
 
         :param filename: file name of the pipeline that has been saved
         """
+
         filename_folder, file_name = os.path.split(filename)
         module_name = os.path.splitext(file_name)[0]
         class_name = module_name.capitalize()

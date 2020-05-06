@@ -159,6 +159,7 @@ class PipelineEditor(PipelineDevelopperView):
         :param temp_plug_name: tuple containing (the name of the node, the
            name of the plug) to export
         """
+
         # Bug: the first parameter (here pipeline_parameter) cannot be None
         # even if we write pipeline_parameter=None in the line above,
         # it will be False...
@@ -243,6 +244,7 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_export_plugs: True if this method is called from a
            "from_export_plugs" undo or redo action
         """
+
         if not _temp_plug_name:
             _temp_plug_name = self._temp_plug_name
 
@@ -736,6 +738,7 @@ class PipelineEditor(PipelineDevelopperView):
 
         :param path: class's path (e.g. "nipype.interfaces.spm.Smooth") (str)
         """
+
         package_name, process_name = os.path.splitext(path)
         process_name = process_name[1:]
         __import__(package_name)
@@ -758,6 +761,7 @@ class PipelineEditor(PipelineDevelopperView):
 
         :return: the current pipeline file name
         """
+
         if hasattr(self, '_pipeline_filename') and self._pipeline_filename:
             return os.path.relpath(self._pipeline_filename)
         else:
@@ -768,8 +772,9 @@ class PipelineEditor(PipelineDevelopperView):
 
         :return: the name of the file where the pipeline was saved
         """
+
         self.check_modifications()
-        
+
         if len(self.scene.pipeline.nodes) < 2:
             print("\nThe pipeline hasn't been saved because it is empty ...")
             return None
@@ -1169,6 +1174,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :param current_index: index to check
         """
+
         # If the user click on the last tab (with the '+'),
         # it will throw an AttributeError
         
@@ -1248,6 +1254,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param node_name: node name
         :param process: process of the corresponding node
         """
+
         self.node_clicked.emit(node_name, process)
 
     def emit_pipeline_saved(self, filename):
@@ -1292,6 +1299,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :return: the current editor
         """
+
         return self.get_editor_by_index(self.currentIndex())
 
     def get_current_filename(self):
@@ -1370,6 +1378,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param editor: searched pipeline editor
         :return: the index corresponding to the editor
         """
+
         for idx in range(self.count() - 1):
             if self.get_editor_by_index(idx) == editor:
                 return idx
@@ -1425,6 +1434,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :return: True or False depending on if there are nodes in the editors
         """
+
         for idx in range(self.count()):
             p_e = self.widget(idx)
             if hasattr(p_e, 'scene'):
@@ -1525,6 +1535,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :param node_name: name of the corresponding node
         """
+
         node = self.get_current_pipeline().nodes[node_name]
         self.filter_widget = FilterWidget(self.project, node_name, node, self)
         self.filter_widget.show()
@@ -1534,6 +1545,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         :param sub_pipeline: the pipeline to open
         """
+
         # Reading the process configuration file
         config = Config()
         
@@ -1757,6 +1769,7 @@ def get_path(name, dictionary, prev_paths=None, pckg=None):
     :param pckg: package root
     :return: the package path of the sub-pipeline if it is found, else None
     """
+
     if prev_paths is None:
         prev_paths = []
 
@@ -1800,6 +1813,7 @@ def save_pipeline(pipeline, filename):
     :param pipeline: the pipeline to save
     :param filename: name of the file where to save the pipeline
     """
+
     formats = {'.py': save_py_pipeline,
                '.xml': save_xml_pipeline}
     saved = False
@@ -1821,6 +1835,7 @@ def values(d):
 
     :returns: list
     """
+
     return list(d.values())
 
 
