@@ -2016,32 +2016,39 @@ class RunWorker(QThread):
         use_spm_standalone = config.get_use_spm_standalone()
         use_matlab = config.get_use_matlab()
 
+        study_config = StudyConfig(
+            modules=StudyConfig.default_modules + ['FreeSurferConfig',
+                                                   'NipypeConfig'])
+        sconf = {}
         if use_spm_standalone == True and os.path.exists(
                 spm_standalone_path) and os.path.exists(
             matlab_standalone_path):
 
             if os.path.exists(matlab_path):
-                study_config = StudyConfig(
-                    use_spm=True, spm_directory=spm_standalone_path,
+                sconf.update(dict(
+                    use_spm=True,
+                    spm_directory=spm_standalone_path,
                     spm_exec=matlab_standalone_path,
                     matlab_exec=matlab_path,
-                    output_directory=spm_standalone_path, spm_standalone=True)
+                    output_directory=spm_standalone_path, spm_standalone=True))
             else:
-                study_config = StudyConfig(
+                sconf.update(dict(
                     use_spm=True, spm_directory=spm_standalone_path,
                     spm_exec=matlab_standalone_path,
-                    output_directory=spm_standalone_path, spm_standalone=True)
+                    output_directory=spm_standalone_path, spm_standalone=True))
 
         # Using without SPM standalone
         elif use_spm == True and use_matlab == True:
-            study_config = StudyConfig(
+            sconf.update(dict(
                 use_spm=True, matlab_exec=matlab_path,
                 spm_directory=spm_path, spm_standalone=False,
-                use_matlab=True, output_directory=spm_path)
+                use_matlab=True, output_directory=spm_path))
         else:
-            study_config = StudyConfig(use_spm=False)
+            sconf.update(dict(use_spm=False))
 
+        study_config.import_from_dict(sconf)
         study_config.reset_process_counter()
+        cwd = os.getcwd()
 
         try:
             study_config.run(pipeline, verbose=1)
@@ -2120,6 +2127,8 @@ class RunWorker(QThread):
         except (OSError, ValueError, Exception) as e:
             print('\n{0} has not been launched:\n{1}\n'.format(pipeline.name,
                                                                e))
+            import traceback
+            traceback.print_exc()
         # haven't yet found how to raise the exception in the try block in
         # PipelineManagerTab.runPipeline() above. So the
         # self.main_window.statusBar().showMessage() gives the
@@ -2142,3 +2151,6 @@ class RunWorker(QThread):
             #except ValueError as e:
             #    print("\n{0} has not been launched:\n{1}\n".format(pipeline.name,
             #                                                       e))
+
+        # restore current working directory in cas it has been changed
+        os.chdir(cwd)
