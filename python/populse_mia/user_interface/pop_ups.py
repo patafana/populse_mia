@@ -54,8 +54,8 @@ from datetime import datetime
 from functools import partial
 
 # PyQt5 imports
-from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication
+from PyQt5 import QtGui, QtWidgets, QtCore, Qt
+from PyQt5.QtCore import pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox, QComboBox, QLineEdit, QFileDialog, QTableWidget,
@@ -82,7 +82,7 @@ from populse_mia.data_manager.project import (
     TAG_TYPE, TYPE_NII, TYPE_MAT, TAG_CHECKSUM, TAG_FILENAME,
     COLLECTION_CURRENT, TYPE_UNKNOWN, TYPE_TXT)
 
-from populse_mia.software_properties import Config
+from populse_mia.software_properties import Config, verCmp
 from populse_mia.user_interface.data_browser import data_browser
 from populse_mia.data_manager.project import Project
 
@@ -2078,9 +2078,25 @@ class PopUpPreferences(QDialog):
 
         self.groupbox_spm.setLayout(v_box_spm)
 
+        # Groupbox "CAPSUL"
+        groupbox_capsul = Qt.QGroupBox("CAPSUL")
+        capsul_config_button = Qt.QPushButton(
+            "Edit CAPSUL config", default=False, autoDefault=False)
+        capsul_config_button.clicked.connect(self.edit_capsul_config)
+        h_box_capsul = Qt.QHBoxLayout()
+        h_box_capsul.addWidget(capsul_config_button)
+        h_box_capsul.addStretch(1)
+        v_box_capsul = Qt.QVBoxLayout()
+        v_box_capsul.addLayout(h_box_capsul)
+
+        groupbox_capsul.setLayout(v_box_capsul)
+
+        # general layout
+
         self.tab_pipeline_layout = QtWidgets.QVBoxLayout()
         self.tab_pipeline_layout.addWidget(self.groupbox_matlab)
         self.tab_pipeline_layout.addWidget(self.groupbox_spm)
+        self.tab_pipeline_layout.addWidget(groupbox_capsul)
         self.tab_pipeline_layout.addStretch(1)
         self.tab_pipeline.setLayout(self.tab_pipeline_layout)
         
@@ -2324,9 +2340,50 @@ class PopUpPreferences(QDialog):
             edit.close()
         else:
             stream = edit.txt.toPlainText()
-            config.config = yaml.load(stream, Loader=yaml.FullLoader)
+            if verCmp(yaml.__version__, '5.1', 'sup'):
+                config.config = yaml.load(stream, Loader=yaml.FullLoader)
+            else:
+                config.config = yaml.load(stream)
             config.saveConfig()
             self.close()
+
+    def edit_capsul_config(self):
+        from capsul.api import capsul_engine
+        from soma.qt_gui.controller_widget import ScrollControllerWidget
+
+        config = Config()
+        capsul_config = config.get_capsul_config()
+        modules = capsul_config['engine_modules']
+        sc_dict = capsul_config['study_config']
+        engine = capsul_engine()
+        for module in modules:
+            engine.load_module(module)
+        engine.study_config.import_from_dict(sc_dict)
+
+        dialog = Qt.QDialog()
+        layout = Qt.QVBoxLayout()
+        dialog.setLayout(layout)
+        cwidget = ScrollControllerWidget(engine.study_config, live=True)
+        layout.addWidget(cwidget)
+        hlayout = Qt.QHBoxLayout()
+        layout.addLayout(hlayout)
+        ok = Qt.QPushButton("OK", default=True)
+        cancel = Qt.QPushButton("Cancel")
+        hlayout.addStretch(1)
+        hlayout.addWidget(ok)
+        hlayout.addWidget(cancel)
+        ok.clicked.connect(dialog.accept)
+        cancel.clicked.connect(dialog.reject)
+        result = dialog.exec()
+        if result:
+            print('validate Capsul settings')
+            sc_dict = engine.study_config.export_to_dict()
+            capsul_config['study_config'] = sc_dict
+            config.set_capsul_config(capsul_config)
+
+        del ok, cancel, cwidget, hlayout, layout
+        del dialog
+        del engine
 
     def ok_clicked(self, main_window):
         """Saves the modifications to the config file and apply them.
@@ -2336,7 +2393,7 @@ class PopUpPreferences(QDialog):
         """
 
         config = Config()
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.status_label.setText("Testing configuration ...")
         QCoreApplication.processEvents()
         # Auto-save
@@ -3431,7 +3488,7 @@ class PopUpSelectIteration(QDialog):
         self.check_boxes = []
         for tag_value in self.tag_values:
             check_box = QCheckBox(tag_value)
-            check_box.setCheckState(Qt.Checked)
+            check_box.setCheckState(QtCore.Qt.Checked)
             self.check_boxes.append(check_box)
             self.v_box.addWidget(check_box)
 
@@ -3743,7 +3800,7 @@ class PopUpShowBrick(QDialog):
         self.table.setHorizontalHeaderItem(0, item)
         item = QTableWidgetItem()
         item.setText(getattr(brick_row, BRICK_NAME))
-        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
         self.table.setItem(0, 0, item)
 
         # Brick init
@@ -3752,7 +3809,7 @@ class PopUpShowBrick(QDialog):
         self.table.setHorizontalHeaderItem(1, item)
         item = QTableWidgetItem()
         item.setText(getattr(brick_row, BRICK_INIT))
-        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
         self.table.setItem(0, 1, item)
 
         # Brick init time
@@ -3760,7 +3817,7 @@ class PopUpShowBrick(QDialog):
         item.setText(BRICK_INIT_TIME)
         self.table.setHorizontalHeaderItem(2, item)
         item = QTableWidgetItem()
-        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
         if getattr(brick_row, BRICK_INIT_TIME) is not None:
             item.setText(str(getattr(brick_row, BRICK_INIT_TIME)))
             self.table.setItem(0, 2, item)
@@ -3771,7 +3828,7 @@ class PopUpShowBrick(QDialog):
         self.table.setHorizontalHeaderItem(3, item)
         item = QTableWidgetItem()
         item.setText(getattr(brick_row, BRICK_EXEC))
-        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
         self.table.setItem(0, 3, item)
 
         # Brick execution time
@@ -3779,7 +3836,7 @@ class PopUpShowBrick(QDialog):
         item.setText(BRICK_EXEC_TIME)
         self.table.setHorizontalHeaderItem(4, item)
         item = QTableWidgetItem()
-        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+        item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
         if getattr(brick_row, BRICK_EXEC_TIME) is not None:
             item.setText(str(getattr(brick_row, BRICK_EXEC_TIME)))
         self.table.setItem(0, 4, item)
@@ -3818,7 +3875,7 @@ class PopUpShowBrick(QDialog):
                 else:
                     item = QTableWidgetItem()
                     item.setText(str(value))
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                    item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
                     self.table.setItem(0, column, item)
             column += 1
 
@@ -3855,7 +3912,7 @@ class PopUpShowBrick(QDialog):
                 else:
                     item = QTableWidgetItem()
                     item.setText(str(value))
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                    item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
                     self.table.setItem(0, column, item)
             column += 1
 

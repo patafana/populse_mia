@@ -43,7 +43,7 @@ from populse_mia.software_properties import Config
 
 # Capsul imports
 from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
-                        PipelineNode, StudyConfig, Switch)
+                        PipelineNode, StudyConfig, Switch, capsul_engine)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 
@@ -2003,52 +2003,19 @@ class RunWorker(QThread):
 
         _check_nipype_processes(self.diagramView.get_current_pipeline())
 
-        pipeline = get_process_instance(  
-             self.diagramView.get_current_pipeline())
-
         # Reading config
+        engine = self.diagramView.get_current_pipeline().get_study_config().engine
         config = Config()
-        spm_standalone_path = config.get_spm_standalone_path()
-        spm_path = config.get_spm_path()
-        matlab_path = config.get_matlab_path()
-        matlab_standalone_path = config.get_matlab_standalone_path()
-        use_spm = config.get_use_spm()
-        use_spm_standalone = config.get_use_spm_standalone()
-        use_matlab = config.get_use_matlab()
-
-        study_config = StudyConfig(
-            modules=StudyConfig.default_modules + ['FreeSurferConfig',
-                                                   'NipypeConfig'])
-        sconf = {}
-        if use_spm_standalone == True and os.path.exists(
-                spm_standalone_path) and os.path.exists(
-            matlab_standalone_path):
-
-            if os.path.exists(matlab_path):
-                sconf.update(dict(
-                    use_spm=True,
-                    spm_directory=spm_standalone_path,
-                    spm_exec=matlab_standalone_path,
-                    matlab_exec=matlab_path,
-                    output_directory=spm_standalone_path, spm_standalone=True))
-            else:
-                sconf.update(dict(
-                    use_spm=True, spm_directory=spm_standalone_path,
-                    spm_exec=matlab_standalone_path,
-                    output_directory=spm_standalone_path, spm_standalone=True))
-
-        # Using without SPM standalone
-        elif use_spm == True and use_matlab == True:
-            sconf.update(dict(
-                use_spm=True, matlab_exec=matlab_path,
-                spm_directory=spm_path, spm_standalone=False,
-                use_matlab=True, output_directory=spm_path))
-        else:
-            sconf.update(dict(use_spm=False))
-
-        study_config.import_from_dict(sconf)
+        capsul_config = config.get_capsul_config()
+        for module in capsul_config.get('engine_modules', []):
+            engine.load_module(module)
+        study_config = engine.study_config
+        study_config.import_from_dict(capsul_config.get('study_config', {}))
         study_config.reset_process_counter()
         cwd = os.getcwd()
+
+        pipeline = engine.get_process_instance(
+             self.diagramView.get_current_pipeline())
 
         try:
             study_config.run(pipeline, verbose=1)
