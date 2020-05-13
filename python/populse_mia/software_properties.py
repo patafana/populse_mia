@@ -225,7 +225,7 @@ class Config:
                 spm_exec = spm_exec[0]
                 sconf['spm_exec'] = spm_exec
 
-            if matlab_path and os.path.exists(matlab_path):
+            if use_matlab and matlab_path and os.path.exists(matlab_path):
 
                 sconf.update(dict(
                     use_spm=True,
@@ -611,7 +611,7 @@ class Config:
 
         matlab_path = capsul_config.get('matlab_exec')
         use_matlab = capsul_config.get('use_matlab', None)
-        if use_matlab and matlab_exec:
+        if use_matlab and matlab_path:
             self.set_matlab_path(matlab_path)
             self.set_use_matlab(True)
         elif use_matlab is False:
@@ -625,8 +625,8 @@ class Config:
                 mcr = os.path.join(spm_dir, 'mcr', 'v713')
                 if os.path.isdir(mcr) and os.path.isdir(spm_dir):
                     self.set_spm_standalone_path(spm_dir)
-                    self.set_use_spm_standalone(True)
                     self.set_matlab_standalone_path(mcr)
+                    self.set_use_spm_standalone(True)
                     self.set_use_matlab_standalone(True)
             else:
                 self.set_use_spm_standalone(False)

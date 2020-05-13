@@ -2376,10 +2376,29 @@ class PopUpPreferences(QDialog):
         cancel.clicked.connect(dialog.reject)
         result = dialog.exec()
         if result:
-            print('validate Capsul settings')
             sc_dict = engine.study_config.export_to_dict()
             capsul_config['study_config'] = sc_dict
             config.set_capsul_config(capsul_config)
+
+            # update matlab/SPM GUI which might have changed
+            use_matlab = config.get_use_matlab()
+            use_matlab = Qt.Qt.Checked if use_matlab else Qt.Qt.Unchecked
+            self.use_matlab_checkbox.setCheckState(use_matlab)
+            self.matlab_choice.setText(config.get_matlab_path())
+            use_matlab_sa = config.get_use_matlab_standalone()
+            use_matlab_sa = Qt.Qt.Checked if use_matlab_sa else Qt.Qt.Unchecked
+            self.use_matlab_standalone_checkbox.setCheckState(use_matlab_sa)
+            self.matlab_standalone_choice.setText(
+                config.get_matlab_standalone_path())
+            use_spm = config.get_use_spm()
+            use_spm = Qt.Qt.Checked if use_spm else Qt.Qt.Unchecked
+            self.use_spm_checkbox.setCheckState(use_spm)
+            self.spm_choice.setText(config.get_spm_path())
+            use_spm_sa = config.get_use_spm_standalone()
+            use_spm_sa = Qt.Qt.Checked if use_spm_sa else Qt.Qt.Unchecked
+            self.use_spm_standalone_checkbox.setCheckState(use_spm_sa)
+            self.spm_standalone_choice.setText(
+                config.get_spm_standalone_path())
 
         del ok, cancel, cwidget, hlayout, layout
         del dialog
