@@ -2004,7 +2004,14 @@ class RunWorker(QThread):
         _check_nipype_processes(self.diagramView.get_current_pipeline())
 
         # Reading config
-        engine = self.diagramView.get_current_pipeline().get_study_config().engine
+        engine \
+            = self.diagramView.get_current_pipeline().get_study_config().engine
+        # workaround unkown problem which erases the database before the
+        # 2nd run. Could not find out what corrupts it.
+        engine2 = capsul_engine()
+        engine._database = engine2._database
+        engine._settings = None
+
         config = Config()
         capsul_config = config.get_capsul_config()
         for module in capsul_config.get('engine_modules', []):
@@ -2121,3 +2128,4 @@ class RunWorker(QThread):
 
         # restore current working directory in cas it has been changed
         os.chdir(cwd)
+
