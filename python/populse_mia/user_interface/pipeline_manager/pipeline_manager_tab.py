@@ -1990,8 +1990,12 @@ class RunWorker(QThread):
     def __init__(self, diagram_view):
         super().__init__()
         self.diagramView = diagram_view
+        #self.gagarun()
 
     def run(self):
+        self.gagarun()
+
+    def gagarun(self):
 
         def _check_nipype_processes(pplne):
             for node_name, node in pplne.nodes.items():
@@ -2006,8 +2010,10 @@ class RunWorker(QThread):
         # Reading config
         engine \
             = self.diagramView.get_current_pipeline().get_study_config().engine
-        # workaround unkown problem which erases the database before the
-        # 2nd run. Could not find out what corrupts it.
+        # in populse_db v1, using the database from a different thread gets
+        # a completely empty database. So we have to rebuild a new one
+        # in the thread. Once populse_db v2 works and is merged, we can remove
+        # the 3 next lines.
         engine2 = capsul_engine()
         engine._database = engine2._database
         engine._settings = None
@@ -2020,6 +2026,10 @@ class RunWorker(QThread):
         study_config.import_from_dict(capsul_config.get('study_config', {}))
         study_config.reset_process_counter()
         cwd = os.getcwd()
+
+        # force database commit
+        #engine.database.db.__exit__(None, None, None)
+        #engine.database.db.__enter__()
 
         pipeline = engine.get_process_instance(
              self.diagramView.get_current_pipeline())
