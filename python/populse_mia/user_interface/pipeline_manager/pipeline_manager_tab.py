@@ -1990,13 +1990,8 @@ class RunWorker(QThread):
     def __init__(self, diagram_view):
         super().__init__()
         self.diagramView = diagram_view
-        #self.gagarun()
 
     def run(self):
-        self.gagarun()
-
-    def gagarun(self):
-
         def _check_nipype_processes(pplne):
             for node_name, node in pplne.nodes.items():
                 if isinstance(node.process, Pipeline):
