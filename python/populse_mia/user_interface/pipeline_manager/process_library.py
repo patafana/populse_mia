@@ -2237,7 +2237,9 @@ class ProcessLibrary(QTreeView):
         self._nodes = node_structure_from_dict(d)
         self._model = DictionaryTreeModel(self._nodes)
         self.setModel(self._model)
-        self.expandAll()
+        # there are too many processes in nipype interfaces, opening
+        # all is untractable.
+        #self.expandAll()
 
     def mousePressEvent(self, event):
         """Event when the mouse is pressed."""
@@ -2345,6 +2347,10 @@ class ProcessLibraryWidget(QWidget):
         self.process_library.setDragEnabled(True)
         self.process_library.setSelectionMode(
             self.process_library.SingleSelection)
+        # we can't leave all trees open because nipype contains far too many
+        # processes
+        self.process_library.collapseAll()
+        self.process_library.expandToDepth(1)
 
         # # Push button to call the package library
         # push_button_pkg_lib = QPushButton()
