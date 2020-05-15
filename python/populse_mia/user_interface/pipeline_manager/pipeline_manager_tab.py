@@ -46,6 +46,8 @@ from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
                         PipelineNode, StudyConfig, Switch, capsul_engine)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
+from capsul.engine import WorkflowExecutionError
+import soma_workflow.constants as swconstants
 
 # PyQt5 imports
 from PyQt5.QtCore import Signal, Qt, QThread
@@ -53,6 +55,7 @@ from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
                              QApplication, QToolBar, QAction, QHBoxLayout,
                              QScrollArea, QMessageBox, QProgressDialog,
                              QPushButton)
+from PyQt5.QtGui import QCursor
 
 # Other import
 import datetime
@@ -62,6 +65,7 @@ import re
 import sys
 import uuid
 import copy
+import threading
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.trait_errors import TraitError
@@ -1958,8 +1962,9 @@ class RunProgress(QProgressDialog):
     def __init__(self, diagram_view, settings=None):
 
         super(RunProgress, self).__init__("Please wait while the pipeline is "
-                                          "running...", None, 0, 0)
-        
+                                          "running...", "Stop", 0, 0)
+        QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
+
         if settings:
             self.setWindowTitle(
                 "Pipeline is running ({0}/{1})".format(
@@ -1982,14 +1987,49 @@ class RunProgress(QProgressDialog):
         
         self.worker = RunWorker(self.diagramView)
         self.worker.finished.connect(self.close)
+        self.canceled.connect(self.stop_execution)
         self.worker.start()
-        
+
+    def close(self):
+        super().close()
+        self.worker.wait()
+        QApplication.instance().restoreOverrideCursor()
+        if not hasattr(self.worker, 'exec_id'):
+            QMessageBox.critical(self, 'Failure',
+                                 'Execution has failed before running (!)')
+        else:
+            try:
+                pipeline = self.diagramView.get_current_pipeline()
+                engine = pipeline.get_study_config().engine
+                engine.raise_for_status(self.worker.status,
+                                        self.worker.exec_id)
+            except WorkflowExecutionError as e:
+                QMessageBox.critical(self, 'Failure',
+                                    'Pipeline execution has failed:\n%s'
+                                    % str(e))
+            else:
+                QMessageBox.information(self, 'Success',
+                                        'Pipeline execution was OK.')
+
+    def stop_execution(self):
+        print('*** CANCEL ***')
+        with self.worker.lock:
+            self.worker.interrupt_request = True
+        #self.close()
+
+
 class RunWorker(QThread):
     """Run the pipeline"""
 
     def __init__(self, diagram_view):
         super().__init__()
         self.diagramView = diagram_view
+        # use this lock to modify the worker state from GUI/other thread
+        self.lock = threading.RLock()
+        self.status = swconstants.WORKFLOW_NOT_STARTED
+        # when interrupt_request is set (within a lock session from a different
+        # thread), the worker will interrupt execution and leave the thread.
+        self.interrupt_request = False
 
     def run(self):
         def _check_nipype_processes(pplne):
@@ -2000,37 +2040,74 @@ class RunWorker(QThread):
                 elif isinstance(node.process, NipypeProcess):
                     node.process.activate_copy = False
 
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
+
         _check_nipype_processes(self.diagramView.get_current_pipeline())
 
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
+
         # Reading config
+        config = Config()
+        capsul_config = config.get_capsul_config()
+
         engine \
             = self.diagramView.get_current_pipeline().get_study_config().engine
         # in populse_db v1, using the database from a different thread gets
         # a completely empty database. So we have to rebuild a new one
         # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the 3 next lines.
+        # the 4 next lines.
         engine2 = capsul_engine()
         engine._database = engine2._database
         engine._settings = None
+        engine._loaded_modules = set()
 
-        config = Config()
-        capsul_config = config.get_capsul_config()
         for module in capsul_config.get('engine_modules', []):
             engine.load_module(module)
+
+        # remove the 3 next lines when settings are thread safe.
+        empty_config = engine2.study_config.export_to_dict()
+        empty_config.update({'study_name': 'MIA'})
+        engine.study_config.import_from_dict(empty_config)
+
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
+
         study_config = engine.study_config
         study_config.import_from_dict(capsul_config.get('study_config', {}))
         study_config.reset_process_counter()
         cwd = os.getcwd()
 
-        # force database commit
-        #engine.database.db.__exit__(None, None, None)
-        #engine.database.db.__enter__()
-
         pipeline = engine.get_process_instance(
              self.diagramView.get_current_pipeline())
 
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
+
+        print('running pipeline...')
+
         try:
-            study_config.run(pipeline, verbose=1)
+            #study_config.run(pipeline, verbose=1)
+            exec_id = engine.start(pipeline)
+            self.exec_id = exec_id
+            while self.status in (swconstants.WORKFLOW_NOT_STARTED,
+                                  swconstants.WORKFLOW_IN_PROGRESS):
+                with self.lock:
+                    self.status = engine.wait(exec_id, 1, pipeline)
+                    if self.interrupt_request:
+                        print('*** INTERRUPT ***')
+                        engine.interrupt(exec_id)
+                        #break
+                #print(self.status)
 
             #** pathway from the study_config.run(pipeline, verbose=1) command:
             #   (ex. for the User_processes Smooth brick):
