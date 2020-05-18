@@ -50,12 +50,12 @@ from capsul.engine import WorkflowExecutionError
 import soma_workflow.constants as swconstants
 
 # PyQt5 imports
-from PyQt5.QtCore import Signal, Qt, QThread
+from PyQt5.QtCore import Signal, Qt, QThread, QTimer
 from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
                              QApplication, QToolBar, QAction, QHBoxLayout,
                              QScrollArea, QMessageBox, QProgressDialog,
                              QPushButton)
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QIcon
 
 # Other import
 import datetime
@@ -208,12 +208,28 @@ class PipelineManagerTab(QWidget):
         self.save_pipeline_parameters_action.triggered.connect(
             self.saveParameters)
 
-        self.init_pipeline_action = QAction("Initialize pipeline", self)
+        sources_images_dir = config.getSourceImageDir()
+        self.init_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'init32.png')),
+            "Initialize pipeline", self)
         self.init_pipeline_action.triggered.connect(self.initialize)
 
-        self.run_pipeline_action = QAction("Run pipeline", self)
+        self.run_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'run32.png')),
+            "Run pipeline", self)
         self.run_pipeline_action.triggered.connect(self.runPipeline)
         self.run_pipeline_action.setDisabled(True)
+
+        self.stop_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'stop32.png')),
+            "Stop", self)
+        self.stop_pipeline_action.triggered.connect(self.stop_execution)
+        self.stop_pipeline_action.setDisabled(True)
+
+        self.show_pipeline_status_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'gray_cross.png')),
+            "Status", self)
+        self.show_pipeline_status_action.triggered.connect(self.show_status)
 
         # if config.get_user_mode() == True:
         #     self.save_pipeline_action.setDisabled(True)
@@ -1277,6 +1293,8 @@ class PipelineManagerTab(QWidget):
         except Exception as e:
             print("\nError during initialisation: ", e)
             self.test_init = False
+            import traceback
+            traceback.print_stack()
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
@@ -1371,9 +1389,23 @@ class PipelineManagerTab(QWidget):
             QtWidgets.QToolButton.MenuButtonPopup)
         self.tags_tool_button.setMenu(self.tags_menu)
 
+        #self.init_button = QToolButton()
+        #self.init_button.setDefaultAction(self.init_pipeline_action)
+        #self.run_button = QToolButton()
+        #self.run_button.setDefaultAction(self.run_pipeline_action)
+        #self.stop_button = QToolButton()
+        self.menu_toolbar.addAction(self.init_pipeline_action)
+        self.menu_toolbar.addAction(self.run_pipeline_action)
+        self.menu_toolbar.addAction(self.stop_pipeline_action)
+        self.menu_toolbar.addAction(self.show_pipeline_status_action)
+
         # Layouts
 
         self.hLayout.addWidget(self.tags_tool_button)
+        self.hLayout.addWidget(self.menu_toolbar)
+        #self.hLayout.addWidget(self.init_button)
+        #self.hLayout.addWidget(self.run_button)
+        #self.hLayout.addWidget(self.stop_button)
         self.hLayout.addStretch(1)
 
         self.splitterRight.addWidget(self.iterationTable)
@@ -1532,6 +1564,8 @@ class PipelineManagerTab(QWidget):
     def runPipeline(self):
         """Run the current pipeline of the pipeline editor."""
 
+        from soma_workflow import constants as swconstants
+
         name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
         self.brick_list = []
         self.main_window.statusBar().showMessage(
@@ -1541,12 +1575,21 @@ class PipelineManagerTab(QWidget):
         self.ignore = {}
         self.ignore_node = False
 
+        self.last_run_pipeline \
+            = self.pipelineEditorTabs.get_current_pipeline()
+        self.last_status = swconstants.WORKFLOW_NOT_STARTED
+        self.last_run_log = None
+        self.last_pipeline_name \
+            = self.pipelineEditorTabs.get_current_filename()
+
         if self.iterationTable.check_box_iterate.isChecked():
             iterated_tag = self.iterationTable.iterated_tag
             tag_values = self.iterationTable.tag_values_list
             ui_iteration = PopUpSelectIteration(iterated_tag, tag_values)
             if ui_iteration.exec():
                 tag_values = ui_iteration.final_values
+                # how do we assign tag_values to pipeline parameters
+                # (and which parameters ?)
                 pipeline_progress = dict()
                 pipeline_progress['size'] = len(tag_values)
                 pipeline_progress['counter'] = 1
@@ -1569,10 +1612,12 @@ class PipelineManagerTab(QWidget):
                     QApplication.processEvents()
                     self.progress = RunProgress(self.pipelineEditorTabs,
                                                 pipeline_progress)
-                    self.progress.show()
-                    self.progress.exec()
+                    #self.progress.show()
+                    #self.progress.exec()
                     pipeline_progress['counter'] += 1
                     self.init_clicked = False
+
+
                     # # self.init_pipeline(self.pipeline)
                     # idx = self.progress.value()
                     # idx += 1
@@ -1585,23 +1630,68 @@ class PipelineManagerTab(QWidget):
 
         else:
             
-            try:
-                self.progress = RunProgress(self.pipelineEditorTabs)
-                self.progress.show()
-                self.progress.exec()
-                
-            except Exception as e:
-                print('\n When the pipeline was launched, the following '
-                      'exception was raised: {0} ...'.format(e, ))
-                self.main_window.statusBar().showMessage(
-                    'Pipeline "{0}" has not been correctly run.'.format(name))
-                
-            else:
-                self.main_window.statusBar().showMessage(
-                    'Pipeline "{0}" has been correctly run.'.format(name))
+            self.progress = RunProgress(self.pipelineEditorTabs)
+            self.hLayout.addWidget(self.progress)
+            #self.progress.show()
+            #self.progress.exec()
+            self.stop_pipeline_action.setEnabled(True)
+            config = Config()
+            sources_images_dir = config.getSourceImageDir()
+            self.show_pipeline_status_action.setIcon(
+                QIcon(os.path.join(sources_images_dir, 'run32.png')))
+            self.progress.worker.finished.connect(self.finish_execution)
+            self.progress.start()
 
-            self.init_clicked = False
-            self.run_pipeline_action.setDisabled(True)
+        self.init_clicked = False
+        self.run_pipeline_action.setDisabled(True)
+
+    def stop_execution(self):
+        print('stop_execution')
+        self.progress.stop_execution()
+
+    def finish_execution(self):
+        """
+        Callback called after a pipeline execution ends (in any way)
+        """
+        from soma_workflow import constants as swconstants
+        self.stop_pipeline_action.setEnabled(False)
+        status = self.progress.worker.status
+        self.last_status = status
+        try:
+            engine = self.last_run_pipeline.get_study_config().engine
+            engine.raise_for_status(status, self.progress.worker.exec_id)
+        except WorkflowExecutionError as e:
+            self.last_run_log = str(e)
+            print('\n When the pipeline was launched, the following '
+                  'exception was raised: {0} ...'.format(e, ))
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" has not been correctly run.'.format(
+                    self.last_pipeline_name))
+        else:
+            self.last_run_log = None
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" has been correctly run.'.format(
+                    self.last_pipeline_name))
+        if status == swconstants.WORKFLOW_DONE:
+            icon = 'green_v.png'
+        else:
+            icon = 'red_cross32.png'
+        config = Config()
+        sources_images_dir = config.getSourceImageDir()
+        self.show_pipeline_status_action.setIcon(
+            QIcon(os.path.join(sources_images_dir, icon)))
+        del self.progress
+
+    def show_status(self):
+        """
+        Show the last run status and execution info, errors etc.
+        """
+        print('show_status')
+        edit = QtWidgets.QTextBrowser()
+        edit.setText(self.last_run_log)
+        edit.resize(600, 800)
+        edit.show()
+        self.last_run_widget = edit
 
     def saveParameters(self):
         """
@@ -1950,7 +2040,79 @@ class PipelineManagerTab(QWidget):
         self.processLibrary.pkg_library.save()
 
 
-class RunProgress(QProgressDialog):
+#class RunProgress(QProgressDialog):
+    #"""Create the pipeline progress bar and launch the thread.
+
+    #The progress bar is closed when the thread finishes.
+
+    #:param diagram_view: A pipelineEditorTabs
+    #:param settings: dictionary of settings when the pipeline is iterated
+    #"""
+
+    #def __init__(self, diagram_view, settings=None):
+
+        ##super(RunProgress, self).__init__("Please wait while the pipeline is "
+                                          ##"running...", "Stop", 0, 0)
+        #super(RunProgress, self).__init__()
+        ##QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
+
+        ##if settings:
+            ##self.setWindowTitle(
+                ##"Pipeline is running ({0}/{1})".format(
+                    ##settings["counter"], settings["size"]))
+            ##self.setLabelText('Pipeline is running for {0} in {1}. '
+                              ##'Please wait.'.format(settings['tag_value'],
+                                                    ##settings['tag']))
+        ##else:
+            ##self.setWindowTitle("Pipeline running")
+            
+        ##self.setWindowFlags(
+            ##Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        ##self.setModal(True)
+
+        #self.diagramView = diagram_view
+
+        #self.setMinimumDuration(0)
+        #self.setValue(0)
+        #self.setMinimumWidth(350) # For mac OS
+        
+        #self.worker = RunWorker(self.diagramView)
+        #self.worker.finished.connect(self.close)
+        ##self.canceled.connect(self.stop_execution)
+        ##self.worker.start()
+
+    #def start(self):
+        #self.worker.start()
+
+    #def close(self):
+        #super().close()
+        #self.worker.wait()
+        #QApplication.instance().restoreOverrideCursor()
+        #if not hasattr(self.worker, 'exec_id'):
+            #QMessageBox.critical(self, 'Failure',
+                                 #'Execution has failed before running (!)')
+        #else:
+            #try:
+                #pipeline = self.diagramView.get_current_pipeline()
+                #engine = pipeline.get_study_config().engine
+                #engine.raise_for_status(self.worker.status,
+                                        #self.worker.exec_id)
+            #except WorkflowExecutionError as e:
+                #QMessageBox.critical(self, 'Failure',
+                                    #'Pipeline execution has failed:\n%s'
+                                    #% str(e))
+            #else:
+                #QMessageBox.information(self, 'Success',
+                                        #'Pipeline execution was OK.')
+
+    #def stop_execution(self):
+        #print('*** CANCEL ***')
+        #with self.worker.lock:
+            #self.worker.interrupt_request = True
+        ##self.close()
+
+
+class RunProgress(QWidget):
     """Create the pipeline progress bar and launch the thread.
 
     The progress bar is closed when the thread finishes.
@@ -1961,42 +2123,36 @@ class RunProgress(QProgressDialog):
 
     def __init__(self, diagram_view, settings=None):
 
-        super(RunProgress, self).__init__("Please wait while the pipeline is "
-                                          "running...", "Stop", 0, 0)
-        QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
-
-        if settings:
-            self.setWindowTitle(
-                "Pipeline is running ({0}/{1})".format(
-                    settings["counter"], settings["size"]))
-            self.setLabelText('Pipeline is running for {0} in {1}. '
-                              'Please wait.'.format(settings['tag_value'],
-                                                    settings['tag']))
-        else:
-            self.setWindowTitle("Pipeline running")
-            
-        self.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
-        self.setModal(True)
+        super(RunProgress, self).__init__()
 
         self.diagramView = diagram_view
 
-        self.setMinimumDuration(0)
-        self.setValue(0)
-        self.setMinimumWidth(350) # For mac OS
-        
+        self.progressbar = QtWidgets.QProgressBar()
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self.progressbar)
+
+        self.progressbar.setRange(0, 0)
+        self.progressbar.setValue(0)
+        self.progressbar.setMinimumWidth(350) # For mac OS
+
         self.worker = RunWorker(self.diagramView)
         self.worker.finished.connect(self.close)
-        self.canceled.connect(self.stop_execution)
+
+    def start(self):
         self.worker.start()
+        #self.progressbar.setValue(20)
 
     def close(self):
         super().close()
         self.worker.wait()
         QApplication.instance().restoreOverrideCursor()
+
         if not hasattr(self.worker, 'exec_id'):
-            QMessageBox.critical(self, 'Failure',
-                                 'Execution has failed before running (!)')
+            mbox_icon = QMessageBox.Critical
+            mbox_title = 'Failure'
+            mbox_text = 'Execution has failed before running.\n' \
+                'Please see details using the status report button'
         else:
             try:
                 pipeline = self.diagramView.get_current_pipeline()
@@ -2004,12 +2160,17 @@ class RunProgress(QProgressDialog):
                 engine.raise_for_status(self.worker.status,
                                         self.worker.exec_id)
             except WorkflowExecutionError as e:
-                QMessageBox.critical(self, 'Failure',
-                                    'Pipeline execution has failed:\n%s'
-                                    % str(e))
+                mbox_icon = QMessageBox.Critical
+                mbox_title = 'Failure'
+                mbox_text = 'Pipeline execution has failed:\n' \
+                    'Please see details using the status report button'
             else:
-                QMessageBox.information(self, 'Success',
-                                        'Pipeline execution was OK.')
+                mbox_icon = QMessageBox.Information
+                mbox_title = 'Success'
+                mbox_text = 'Pipeline execution was OK.'
+        mbox = QMessageBox(mbox_icon, mbox_title, mbox_text)
+        timer = QTimer.singleShot(2000, mbox.accept)
+        mbox.exec()
 
     def stop_execution(self):
         print('*** CANCEL ***')
@@ -2101,13 +2262,13 @@ class RunWorker(QThread):
             self.exec_id = exec_id
             while self.status in (swconstants.WORKFLOW_NOT_STARTED,
                                   swconstants.WORKFLOW_IN_PROGRESS):
+                #print(self.status)
                 with self.lock:
                     self.status = engine.wait(exec_id, 1, pipeline)
                     if self.interrupt_request:
                         print('*** INTERRUPT ***')
                         engine.interrupt(exec_id)
                         #break
-                #print(self.status)
 
             #** pathway from the study_config.run(pipeline, verbose=1) command:
             #   (ex. for the User_processes Smooth brick):
