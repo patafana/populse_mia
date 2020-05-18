@@ -2376,7 +2376,8 @@ class PopUpPreferences(QDialog):
         cancel.clicked.connect(dialog.reject)
         result = dialog.exec()
         if result:
-            sc_dict = engine.study_config.export_to_dict()
+            sc_dict = engine.study_config.export_to_dict(
+                dict_class=dict, exclude_none=True, exclude_undefined=True)
             capsul_config['study_config'] = sc_dict
             config.set_capsul_config(capsul_config)
 

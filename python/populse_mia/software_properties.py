@@ -575,7 +575,10 @@ class Config:
                     return yaml.load(decrypted)
 
             except yaml.YAMLError as exc:
+                print('error loading YAML file: %s' % config_file)
                 print(exc)
+                #import traceback
+                #traceback.print_stack()
         # in case of problem, return an empty config
         return {}
 
@@ -586,7 +589,6 @@ class Config:
         if not os.path.exists(os.path.dirname(config_file)):
             os.makedirs(os.path.dirname(config_file))
         with open(config_file, 'wb') as configfile:
-
             stream = yaml.dump(self.config, default_flow_style=False,
                       allow_unicode=True)
             configfile.write(f.encrypt(stream.encode()))
