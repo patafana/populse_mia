@@ -560,6 +560,36 @@ class PipelineManagerTab(QWidget):
                         Qt.KeepAspectRatio)
                     self.previewBlock.setAlignment(Qt.AlignCenter)
 
+    def get_capsul_engine(self):
+        """
+        Get a CapsulEngine object from the edited pipeline, and set it up from
+        MIA config object
+        """
+        # Reading config
+        config = Config()
+        capsul_config = config.get_capsul_config()
+
+        engine = self.pipelineEditorTabs.get_current_pipeline().\
+            get_study_config().engine
+        # in populse_db v1, using the database from a different thread gets
+        # a completely empty database. So we have to rebuild a new one
+        # in the thread. Once populse_db v2 works and is merged, we can remove
+        # the 4 next lines.
+        engine2 = capsul_engine()
+        engine._database = engine2._database
+        engine._settings = None
+        engine._loaded_modules = set()
+
+        for module in capsul_config.get('engine_modules', []):
+            engine.load_module(module)
+
+        # remove the 3 next lines when settings are thread safe.
+        empty_config = engine2.study_config.export_to_dict()
+        empty_config.update({'study_name': 'MIA'})
+        engine.study_config.import_from_dict(empty_config)
+
+        return engine
+
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
         Initialize the current pipeline of the pipeline editor
@@ -587,7 +617,7 @@ class PipelineManagerTab(QWidget):
         QApplication.processEvents()
 
         config = Config()
-        
+
         # nodes_requir_issue is a dictionary whose keys are the names of the
         # nodes and whose values are the compatibility of the requirements of
         # this node with the current configuration of MIA.
@@ -634,6 +664,12 @@ class PipelineManagerTab(QWidget):
 
         else:
             main_pipeline = False
+
+        engine = self.get_capsul_engine()
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        if completion:
+            completion.complete_parameters()
 
         # Test, if it works, comment.
         #if hasattr(pipeline, 'pipeline_steps'):
@@ -765,6 +801,10 @@ class PipelineManagerTab(QWidget):
                 COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
             self.project.saveModifications()
 
+            if not hasattr(node, 'process'):
+                # custom node (switch or other)
+                continue
+
             process = node.process
             process_name = str(process).split('.')[0].split('_')[0][1:]
 
@@ -854,21 +894,21 @@ class PipelineManagerTab(QWidget):
                 try:
                     # The Nipype Process outputs are always
                     # "private" for Capsul
-                    initResult_dict['outputs'] = (process._nipype_interface
-                                                  ._list_outputs())
-                    tmp_dict = {}
-                    
-                    for key, value in initResult_dict['outputs'].items():
-                        tmp_dict['_' + key] = initResult_dict['outputs'][key]
-                        
-                    initResult_dict['outputs'] = tmp_dict
+                    initResult_dict['outputs'] = process.get_outputs()
+                    #tmp_dict = {}
+
+                    #for key, value in initResult_dict['outputs'].items():
+                        #tmp_dict['_' + key] \
+                            #= initResult_dict['outputs'][key]
+
+                    #initResult_dict['outputs'] = tmp_dict
 
                     # For debugging. To be commented if not in debugging.
                     #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict) 
 
                 except TypeError:
                     print('\nInitialisation failed to determine the outputs '
-                          'for the process "{0}":\nDid you correctly defined '
+                          'for the process "{0}":\nDid you correctly define '
                           'the inputs ...?'.format(node_name))
                     check_init[node_name] = False
       
@@ -877,28 +917,30 @@ class PipelineManagerTab(QWidget):
                           'for the process "{0}", due to:\n'
                           '"{1}"...'.format(node_name, e))
                     check_init[node_name] = False
-                    
+
             # Management of the requirement object in initResult_dict
-            if '_nipype_interface' in dir(process):
+            requirements = list(process.requirements().keys())
+            initResult_dict['requirement'] = [x.upper() for x in requirements]
+            #if '_nipype_interface' in dir(process):
 
-                if 'spm' in str(process._nipype_interface):
+                #if 'spm' in str(process._nipype_interface):
 
-                    if 'requirement' not in initResult_dict:
-                        initResult_dict['requirement'] = ['MATLAB', 'SPM']
+                    #if 'requirement' not in initResult_dict:
+                        #initResult_dict['requirement'] = ['MATLAB', 'SPM']
 
-                elif 'requirement' not in initResult_dict:
-                    initResult_dict['requirement'] = []
+                #elif 'requirement' not in initResult_dict:
+                    #initResult_dict['requirement'] = []
 
-            if initResult_dict['requirement'] is not None:
-                
-                for n, i in enumerate(initResult_dict['requirement']):
+            #if initResult_dict.get('requirement') is not None:
 
-                    if re.search('MATLAB', i,  re.IGNORECASE):
-                        initResult_dict['requirement'][n] = 'MATLAB'
+                #for n, i in enumerate(initResult_dict['requirement']):
 
-                    if re.search('SPM', i,  re.IGNORECASE):
-                        initResult_dict['requirement'][n] = 'SPM'
-                    
+                    #if re.search('MATLAB', i,  re.IGNORECASE):
+                        #initResult_dict['requirement'][n] = 'MATLAB'
+
+                    #if re.search('SPM', i,  re.IGNORECASE):
+                        #initResult_dict['requirement'][n] = 'SPM'
+
             # Management of the outputs and the inheritance_dict objects
             # in the initResult_dict
             if 'outputs' not in initResult_dict:
@@ -1294,7 +1336,7 @@ class PipelineManagerTab(QWidget):
             print("\nError during initialisation: ", e)
             self.test_init = False
             import traceback
-            traceback.print_stack()
+            traceback.print_exc()
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
