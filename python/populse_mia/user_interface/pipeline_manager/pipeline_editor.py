@@ -1775,8 +1775,8 @@ def get_path(name, dictionary, prev_paths=None, pckg=None):
 
         if pckg is not None:
             prev_paths.append(pckg)
-            dictionary = dictionary[pckg]
-        
+            dictionary = dictionary.get(pckg, {})
+
     # new_paths is a list containing the packages to the desired module
     new_paths = prev_paths.copy()
     for idx, (key, value) in enumerate(dictionary.items()):
