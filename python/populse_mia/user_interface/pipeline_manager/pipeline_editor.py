@@ -333,8 +333,18 @@ class PipelineEditor(PipelineDevelopperView):
           using a redo
         :param links: list of links (using when undo/redo)
         """
-
+        
         pipeline = self.scene.pipeline
+
+        if class_process is False:
+            proc_name_gui = PipelineDevelopperView.ProcessModuleInput()
+            proc_name_gui.resize(800, proc_name_gui.sizeHint().height())
+            res = proc_name_gui.exec_()
+        
+            if res:
+                class_process = six.text_type(proc_name_gui.proc_line.text())
+                node_name = str(proc_name_gui.name_line.text())
+
         if not node_name:
             class_name = class_process.__name__
             i = 1
