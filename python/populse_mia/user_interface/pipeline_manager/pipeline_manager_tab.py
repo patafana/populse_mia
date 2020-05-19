@@ -43,7 +43,7 @@ from populse_mia.software_properties import Config
 
 # Capsul imports
 from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
-                        PipelineNode, StudyConfig, Switch, capsul_engine)
+                        PipelineNode, StudyConfig, Switch)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
@@ -565,40 +565,31 @@ class PipelineManagerTab(QWidget):
         Get a CapsulEngine object from the edited pipeline, and set it up from
         MIA config object
         """
-        # Reading config
-        config = Config()
-        capsul_config = config.get_capsul_config()
+        return self.pipelineEditorTabs.get_capsul_engine()
 
-        engine = self.pipelineEditorTabs.get_current_pipeline(). \
-            get_study_config().engine
-        # in populse_db v1, using the database from a different thread gets
-        # a completely empty database. So we have to rebuild a new one
-        # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the 4 next lines.
-        engine2 = capsul_engine()
-        engine._database = engine2._database
-        engine._settings = None
-        engine._loaded_modules = set()
+    def complete_pipeline_parameters(self, pipeline=None):
+        """
+        Complete pipeline parameters using Capsul's completion engine
+        mechanism.
+        This engine works using a set of attributes which can be retreived from
+        the database.
+        """
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
 
-        for module in capsul_config.get('engine_modules', []):
-            engine.load_module(module)
+        # get a working / configured CapsulEngine
+        engine = self.get_capsul_engine()
+        if not pipeline:
+            pipeline = self.pipelineEditorTabs.get_current_pipeline()
+        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        if completion:
+            attributes = completion.get_attribute_values()
+            # try to find out attribute values from files in parameters
+            # this is a temporary trick which should be replaced with a proper
+            # attributes selection from the database (directly)
+            #for name, trait in pipeline.user_traits().items():
 
-        # remove the 3 next lines when settings are thread safe.
-        empty_config = engine2.study_config.export_to_dict()
-        empty_config.update({'study_name': 'MIA'})
-        engine.study_config.import_from_dict(empty_config)
 
-        study_config = engine.study_config
-        study_config.import_from_dict(capsul_config.get('study_config', {}))
-
-        study_config.input_directory = os.path.join(
-            os.path.abspath(self.project.folder), 'data', 'raw_data')
-        study_config.output_directory = os.path.join(
-            os.path.abspath(self.project.folder), 'data', 'derived_data')
-        print('input_directory:', engine.study_config.input_directory)
-        print('output_directory:', engine.study_config.output_directory)
-
-        return engine
+            completion.complete_parameters()
 
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
@@ -675,11 +666,7 @@ class PipelineManagerTab(QWidget):
         else:
             main_pipeline = False
 
-        engine = self.get_capsul_engine()
-        from capsul.attributes.completion_engine import ProcessCompletionEngine
-        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
-        if completion:
-            completion.complete_parameters()
+        self.complete_pipeline_parameters(pipeline)
 
         # Test, if it works, comment.
         #if hasattr(pipeline, 'pipeline_steps'):
@@ -1705,10 +1692,16 @@ class PipelineManagerTab(QWidget):
         self.run_pipeline_action.setDisabled(True)
 
     def _set_anim_frame(self):
+        """
+        Callback which sets the animated icon frame to the status action icon
+        """
         self.show_pipeline_status_action.setIcon(
             QIcon(self._mmovie.currentPixmap()))
 
     def stop_execution(self):
+        """
+        Request interruption of pipeline execution
+        """
         print('stop_execution')
         self.progress.stop_execution()
 
