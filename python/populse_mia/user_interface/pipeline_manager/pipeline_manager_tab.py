@@ -55,7 +55,7 @@ from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
                              QApplication, QToolBar, QAction, QHBoxLayout,
                              QScrollArea, QMessageBox, QProgressDialog,
                              QPushButton)
-from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtGui import QCursor, QIcon, QMovie
 
 # Other import
 import datetime
@@ -569,7 +569,7 @@ class PipelineManagerTab(QWidget):
         config = Config()
         capsul_config = config.get_capsul_config()
 
-        engine = self.pipelineEditorTabs.get_current_pipeline().\
+        engine = self.pipelineEditorTabs.get_current_pipeline(). \
             get_study_config().engine
         # in populse_db v1, using the database from a different thread gets
         # a completely empty database. So we have to rebuild a new one
@@ -587,6 +587,16 @@ class PipelineManagerTab(QWidget):
         empty_config = engine2.study_config.export_to_dict()
         empty_config.update({'study_name': 'MIA'})
         engine.study_config.import_from_dict(empty_config)
+
+        study_config = engine.study_config
+        study_config.import_from_dict(capsul_config.get('study_config', {}))
+
+        study_config.input_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'raw_data')
+        study_config.output_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'derived_data')
+        print('input_directory:', engine.study_config.input_directory)
+        print('output_directory:', engine.study_config.output_directory)
 
         return engine
 
@@ -1652,8 +1662,7 @@ class PipelineManagerTab(QWidget):
                         'Pipeline "{0}" is getting run for {1} {2}. '
                         'Please wait.'.format(name, iterated_tag, tag_value))
                     QApplication.processEvents()
-                    self.progress = RunProgress(self.pipelineEditorTabs,
-                                                pipeline_progress)
+                    self.progress = RunProgress(self, pipeline_progress)
                     #self.progress.show()
                     #self.progress.exec()
                     pipeline_progress['counter'] += 1
@@ -1672,20 +1681,32 @@ class PipelineManagerTab(QWidget):
 
         else:
             
-            self.progress = RunProgress(self.pipelineEditorTabs)
+            self.progress = RunProgress(self)
             self.hLayout.addWidget(self.progress)
             #self.progress.show()
             #self.progress.exec()
             self.stop_pipeline_action.setEnabled(True)
             config = Config()
             sources_images_dir = config.getSourceImageDir()
-            self.show_pipeline_status_action.setIcon(
-                QIcon(os.path.join(sources_images_dir, 'run32.png')))
+
+            mmovie = QMovie(
+                os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
+            self._mmovie = mmovie
+            mmovie.stop()
+            mmovie.frameChanged.connect(self._set_anim_frame)
+            mmovie.start()
+
+            #self.show_pipeline_status_action.setIcon(
+                #QIcon(os.path.join(sources_images_dir, 'run32.png')))
             self.progress.worker.finished.connect(self.finish_execution)
             self.progress.start()
 
         self.init_clicked = False
         self.run_pipeline_action.setDisabled(True)
+
+    def _set_anim_frame(self):
+        self.show_pipeline_status_action.setIcon(
+            QIcon(self._mmovie.currentPixmap()))
 
     def stop_execution(self):
         print('stop_execution')
@@ -1722,6 +1743,7 @@ class PipelineManagerTab(QWidget):
         sources_images_dir = config.getSourceImageDir()
         self.show_pipeline_status_action.setIcon(
             QIcon(os.path.join(sources_images_dir, icon)))
+        del self._mmovie
         del self.progress
 
     def show_status(self):
@@ -2159,15 +2181,15 @@ class RunProgress(QWidget):
 
     The progress bar is closed when the thread finishes.
 
-    :param diagram_view: A pipelineEditorTabs
+    :param pipeline_manager: A PipelineManagerTab
     :param settings: dictionary of settings when the pipeline is iterated
     """
 
-    def __init__(self, diagram_view, settings=None):
+    def __init__(self, pipeline_manager, settings=None):
 
         super(RunProgress, self).__init__()
 
-        self.diagramView = diagram_view
+        self.pipeline_manager = pipeline_manager
 
         self.progressbar = QtWidgets.QProgressBar()
         layout = QHBoxLayout()
@@ -2178,7 +2200,7 @@ class RunProgress(QWidget):
         self.progressbar.setValue(0)
         self.progressbar.setMinimumWidth(350) # For mac OS
 
-        self.worker = RunWorker(self.diagramView)
+        self.worker = RunWorker(self.pipeline_manager)
         self.worker.finished.connect(self.close)
 
     def start(self):
@@ -2197,7 +2219,8 @@ class RunProgress(QWidget):
                 'Please see details using the status report button'
         else:
             try:
-                pipeline = self.diagramView.get_current_pipeline()
+                pipeline = self.pipeline_manager.pipelineEditorTabs. \
+                    get_current_pipeline()
                 engine = pipeline.get_study_config().engine
                 engine.raise_for_status(self.worker.status,
                                         self.worker.exec_id)
@@ -2224,9 +2247,9 @@ class RunProgress(QWidget):
 class RunWorker(QThread):
     """Run the pipeline"""
 
-    def __init__(self, diagram_view):
+    def __init__(self, pipeline_manager):
         super().__init__()
-        self.diagramView = diagram_view
+        self.pipeline_manager = pipeline_manager
         # use this lock to modify the worker state from GUI/other thread
         self.lock = threading.RLock()
         self.status = swconstants.WORKFLOW_NOT_STARTED
@@ -2248,7 +2271,9 @@ class RunWorker(QThread):
                 print('*** INTERRUPT ***')
                 return
 
-        _check_nipype_processes(self.diagramView.get_current_pipeline())
+        pipeline = self.pipeline_manager.pipelineEditorTabs. \
+            get_current_pipeline()
+        _check_nipype_processes(pipeline)
 
         with self.lock:
             if self.interrupt_request:
@@ -2259,37 +2284,17 @@ class RunWorker(QThread):
         config = Config()
         capsul_config = config.get_capsul_config()
 
-        engine \
-            = self.diagramView.get_current_pipeline().get_study_config().engine
-        # in populse_db v1, using the database from a different thread gets
-        # a completely empty database. So we have to rebuild a new one
-        # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the 4 next lines.
-        engine2 = capsul_engine()
-        engine._database = engine2._database
-        engine._settings = None
-        engine._loaded_modules = set()
-
-        for module in capsul_config.get('engine_modules', []):
-            engine.load_module(module)
-
-        # remove the 3 next lines when settings are thread safe.
-        empty_config = engine2.study_config.export_to_dict()
-        empty_config.update({'study_name': 'MIA'})
-        engine.study_config.import_from_dict(empty_config)
+        engine = self.pipeline_manager.get_capsul_engine()
 
         with self.lock:
             if self.interrupt_request:
                 print('*** INTERRUPT ***')
                 return
 
-        study_config = engine.study_config
-        study_config.import_from_dict(capsul_config.get('study_config', {}))
-        study_config.reset_process_counter()
+        engine.study_config.reset_process_counter()
         cwd = os.getcwd()
 
-        pipeline = engine.get_process_instance(
-             self.diagramView.get_current_pipeline())
+        pipeline = engine.get_process_instance(pipeline)
 
         with self.lock:
             if self.interrupt_request:
@@ -2299,7 +2304,6 @@ class RunWorker(QThread):
         print('running pipeline...')
 
         try:
-            #study_config.run(pipeline, verbose=1)
             exec_id = engine.start(pipeline)
             self.exec_id = exec_id
             while self.status in (swconstants.WORKFLOW_NOT_STARTED,
@@ -2388,28 +2392,6 @@ class RunWorker(QThread):
                                                                e))
             import traceback
             traceback.print_exc()
-        # haven't yet found how to raise the exception in the try block in
-        # PipelineManagerTab.runPipeline() above. So the
-        # self.main_window.statusBar().showMessage() gives the
-        # "has been correctly run" message even if a problem has occurred here!
-
-            #self.diagramView.main_window.statusBar().showMessage(
-            #        'Pipeline "{0}" has not been correctly run.'.format(pipeline.name))
-            
-            #self.msg = QMessageBox()
-            #self.msg.setIcon(QMessageBox.Critical)
-            #self.msg.setText("SPM standalone is not set")
-            #self.msg.setInformativeText(
-            #    "SPM processes cannot be run with SPM standalone not set.\n"
-            #    "You can activate it and set the paths in MIA preferences.")
-            #self.msg.setWindowTitle("Error")
-            #self.msg.setStandardButtons(QMessageBox.Ok)
-            #self.msg.buttonClicked.connect(self.msg.close)
-            #self.msg.show()
-
-            #except ValueError as e:
-            #    print("\n{0} has not been launched:\n{1}\n".format(pipeline.name,
-            #                                                       e))
 
         # restore current working directory in cas it has been changed
         os.chdir(cwd)
