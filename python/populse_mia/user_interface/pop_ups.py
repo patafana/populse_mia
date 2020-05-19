@@ -2529,7 +2529,11 @@ class PopUpPreferences(QDialog):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
                         output, err = p.communicate()
-                        if err == b'' and output != b'':
+                        if ((err == b'' and output != b'')
+                                or output.startswith(b'SPM8 ')):
+                            # spm8 standalone doesn't accept --version argument
+                            # but prints a message that we can interpret as
+                            # saying that SPM8 is working anyway.
                             if self.use_spm_standalone_checkbox.isChecked():
                                 config.set_use_spm_standalone(True)
                                 config.set_use_matlab_standalone(True)
