@@ -345,21 +345,25 @@ class PipelineEditor(PipelineDevelopperView):
 
             if res:
                 class_process = six.text_type(proc_name_gui.proc_line.text())
+                class_process = class_process.strip()
                 node_name = str(proc_name_gui.name_line.text())
 
                 if node_name.isspace():
-                    node_name == ''
+                    node_name = ''
 
                 node_name = re.sub(r"\s+", "_", node_name, flags=re.UNICODE)
 
                 if node_name == '' and class_process:
-                    i=1
-                    node_name = class_process.split('.')[-1].lower() + str(i)
+                    node_name = class_process.split('.')[-1].lower()
 
-                    while node_name in pipeline.nodes and i < 100:
-                        i += 1
-                        node_name = class_process.split('.')[-1].lower() + str(
-                                                                              i)
+                i=1
+                node_name_list = [node_name, node_name + str(i)]
+
+                while node_name_list[-1] in pipeline.nodes and i < 100:
+                    i += 1
+                    node_name_list[-1] = node_name_list[0] + str(i)
+
+                node_name = node_name_list[-1]
 
         if not node_name and class_process:
             class_name = class_process.__name__
