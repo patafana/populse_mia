@@ -24,10 +24,11 @@ Contains:
 ##########################################################################
 
 import os
+import re
 import sys
 import six
-import yaml
 import json
+import yaml
 from traits.api import TraitError
 
 # PyQt5 imports
@@ -36,8 +37,8 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
 from capsul.api import get_process_instance, Process, PipelineNode, Switch
-from capsul.qt_gui.widgets.pipeline_developper_view import \
-    PipelineDevelopperView, NodeGWidget
+from capsul.qt_gui.widgets.pipeline_developper_view import (
+                                            NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
 from capsul.pipeline.python_export import save_py_pipeline
 
@@ -45,7 +46,8 @@ from capsul.pipeline.python_export import save_py_pipeline
 from soma.utils.weak_proxy import weak_proxy
 
 # Populse_MIA imports
-from populse_mia.user_interface.pipeline_manager.node_controller import FilterWidget
+from populse_mia.user_interface.pipeline_manager.node_controller import (
+                                                                   FilterWidget)
 from populse_mia.user_interface.pop_ups import PopUpClosePipeline
 from populse_mia.software_properties import Config
 from populse_mia.software_properties import verCmp
@@ -337,18 +339,31 @@ class PipelineEditor(PipelineDevelopperView):
         pipeline = self.scene.pipeline
 
         if class_process is False:
-            proc_name_gui = PipelineDevelopperView.ProcessModuleInput()
+            proc_name_gui = self.ProcessModuleInput()
             proc_name_gui.resize(800, proc_name_gui.sizeHint().height())
             res = proc_name_gui.exec_()
-        
+
             if res:
                 class_process = six.text_type(proc_name_gui.proc_line.text())
                 node_name = str(proc_name_gui.name_line.text())
 
-        if not node_name:
+                if node_name.isspace():
+                    node_name == ''
+
+                node_name = re.sub(r"\s+", "_", node_name, flags=re.UNICODE)
+
+                if node_name == '' and class_process:
+                    i=1
+                    node_name = class_process.split('.')[-1].lower() + str(i)
+
+                    while node_name in pipeline.nodes and i < 100:
+                        i += 1
+                        node_name = class_process.split('.')[-1].lower() + str(
+                                                                              i)
+
+        if not node_name and class_process:
             class_name = class_process.__name__
             i = 1
-
             node_name = class_name.lower() + str(i)
 
             while node_name in pipeline.nodes and i < 100:
@@ -363,6 +378,7 @@ class PipelineEditor(PipelineDevelopperView):
         try:
             process = get_process_instance(
                 process_to_use)
+            
         except Exception as e:
             print(e)
             return
@@ -398,18 +414,20 @@ class PipelineEditor(PipelineDevelopperView):
         if from_undo:
             # Adding the arguments to make the redo correctly
             history_maker.append(node_name)
+
         else:
             # Adding the arguments to make the undo correctly
             history_maker.append(node_name)
             history_maker.append(class_process)
 
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+
+        if not (self.main_window.pipeline_manager.
+                iterationTable.check_box_iterate.isChecked)():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
-        self.main_window.statusBar().showMessage(
-            "Node {0} has been added.".format(node_name))
+                                                                           True)
+        self.main_window.statusBar().showMessage("Node {0} has been "
+                                                 "added.".format(node_name))
 
     def check_modifications(self):
         """Check if the nodes of the pipeline have been modified."""
