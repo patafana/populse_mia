@@ -1683,8 +1683,6 @@ class PipelineManagerTab(QWidget):
             mmovie.frameChanged.connect(self._set_anim_frame)
             mmovie.start()
 
-            #self.show_pipeline_status_action.setIcon(
-                #QIcon(os.path.join(sources_images_dir, 'run32.png')))
             self.progress.worker.finished.connect(self.finish_execution)
             self.progress.start()
 
@@ -1715,8 +1713,10 @@ class PipelineManagerTab(QWidget):
         self.last_status = status
         try:
             engine = self.last_run_pipeline.get_study_config().engine
+            if not hasattr(self.progress.worker, 'exec_id'):
+                raise RuntimeError('Execution aborted before running')
             engine.raise_for_status(status, self.progress.worker.exec_id)
-        except WorkflowExecutionError as e:
+        except (WorkflowExecutionError, RuntimeError) as e:
             self.last_run_log = str(e)
             print('\n When the pipeline was launched, the following '
                   'exception was raised: {0} ...'.format(e, ))
@@ -1734,6 +1734,7 @@ class PipelineManagerTab(QWidget):
             icon = 'red_cross32.png'
         config = Config()
         sources_images_dir = config.getSourceImageDir()
+        self._mmovie.stop()
         self.show_pipeline_status_action.setIcon(
             QIcon(os.path.join(sources_images_dir, icon)))
         del self._mmovie
@@ -1744,11 +1745,10 @@ class PipelineManagerTab(QWidget):
         Show the last run status and execution info, errors etc.
         """
         print('show_status')
-        edit = QtWidgets.QTextBrowser()
-        edit.setText(self.last_run_log)
-        edit.resize(600, 800)
-        edit.show()
-        self.last_run_widget = edit
+        log = getattr(self, 'last_run_log', '')
+        status_widget = StatusWidget(self)
+        status_widget.show()
+        self.status_widget = status_widget
 
     def saveParameters(self):
         """
@@ -2388,4 +2388,61 @@ class RunWorker(QThread):
 
         # restore current working directory in cas it has been changed
         os.chdir(cwd)
+
+
+class StatusWidget(QWidget):
+    """
+    Status widget: displays info about the current or last pipeline execution
+    """
+    def __init__(self, pipeline_manager):
+        super().__init__()
+        self.pipeline_manager = pipeline_manager
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.edit = QtWidgets.QTextBrowser()
+        log = getattr(pipeline_manager, 'last_run_log', '')
+        self.edit.setText(log)
+
+        status_box = QtWidgets.QGroupBox('Status:')
+        slayout = QVBoxLayout()
+        status_box.setLayout(slayout)
+        status = getattr(pipeline_manager, 'last_status',
+                         'No pipeline execution')
+        slayout.addWidget(QtWidgets.QLabel('<b>status:</b> %s' % status))
+
+        swf_box = QtWidgets.QGroupBox('Soma-Workflow monitoring:')
+        wlayout = QVBoxLayout()
+        swf_box.setLayout(wlayout)
+        swf_box.setCheckable(True)
+        swf_box.setChecked(False)
+        self.swf_widget = None
+        self.swf_box = swf_box
+        swf_box.toggled.connect(self.toggle_soma_workflow)
+
+        layout.addWidget(status_box)
+        layout.addWidget(swf_box)
+        layout.addWidget(QtWidgets.QLabel('Execution log:'))
+        layout.addWidget(self.edit)
+        self.resize(600, 800)
+        self.setWindowTitle('Execution status')
+
+    def toggle_soma_workflow(self, checked):
+        if self.swf_widget is not None:
+            self.swf_widget.setVisible(checked)
+            if not checked:
+                return
+        else:
+            from soma_workflow.gui.workflowGui import ApplicationModel, MainWindow, SomaWorkflowWidget
+            model = ApplicationModel()
+            sw_widget = MainWindow(
+                model,
+                None,
+                True,
+                None,
+                None,
+                interactive=False)
+            self.swf_widget = sw_widget
+            self.swf_box.layout().addWidget(sw_widget)
+
+
 
