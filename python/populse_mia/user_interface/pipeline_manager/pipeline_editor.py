@@ -1320,15 +1320,22 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         config = Config()
         capsul_config = config.get_capsul_config()
 
-        engine = self.get_current_pipeline().get_study_config().engine
+        pipeline = self.get_current_pipeline()
+        engine = pipeline.get_study_config().engine
         # in populse_db v1, using the database from a different thread gets
         # a completely empty database. So we have to rebuild a new one
         # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the 4 next lines.
+        # the copy operation.
         engine2 = capsul_engine()
         engine._database = engine2._database
         engine._settings = None
         engine._loaded_modules = set()
+        # save completion attributes for the current pipeline (other pipelines
+        # will lose their values)
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        if completion:
+            att_values = completion.get_attribute_values().export_to_dict()
 
         for module in capsul_config.get('engine_modules', []):
             engine.load_module(module)
@@ -1346,6 +1353,12 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         study_config.output_directory = os.path.join(
             os.path.abspath(self.project.folder), 'data', 'derived_data')
 
+        # restore completion attributes
+        if completion:
+            completion \
+                = ProcessCompletionEngine.get_completion_engine(pipeline)
+            if completion:
+                completion.get_attribute_values().import_from_dict(att_values)
         return engine
 
     def get_current_editor(self):
