@@ -583,14 +583,30 @@ class PipelineManagerTab(QWidget):
             pipeline = self.pipelineEditorTabs.get_current_pipeline()
         completion = ProcessCompletionEngine.get_completion_engine(pipeline)
         if completion:
+            # record initial param values to get manually set ones
+            init_params = pipeline.get_inputs()
+            init_params.update(pipeline.get_outputs())
+
             attributes = completion.get_attribute_values()
             # try to find out attribute values from files in parameters
             # this is a temporary trick which should be replaced with a proper
             # attributes selection from the database (directly)
             #for name, trait in pipeline.user_traits().items():
 
+            #print('attributes:', attributes.export_to_dict())
+            #print('SC:', engine.study_config.export_to_dict())
+
+            # TODO....
+
 
             completion.complete_parameters()
+
+            # re-force manually set params
+            for param, value in init_params.items():
+                if value not in (None, Undefined, '') \
+                        and value != getattr(pipeline, param):
+                    print('set back param:', param, ':', getattr(pipeline, param), '->', value)
+                    setattr(pipeline, param, value)
 
     def _register_node_io_in_database(self, node, proc_outputs,
                                       pipeline_name=''):
@@ -2583,6 +2599,8 @@ class RunWorker(QThread):
     def run(self):
         def _check_nipype_processes(pplne):
             for node_name, node in pplne.nodes.items():
+                if not hasattr(node, 'process'):
+                    continue  # not a process node
                 if isinstance(node.process, Pipeline):
                     if node_name != "":
                         _check_nipype_processes(node.process)
