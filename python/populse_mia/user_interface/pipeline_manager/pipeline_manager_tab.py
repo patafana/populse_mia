@@ -43,16 +43,20 @@ from populse_mia.software_properties import Config
 
 # Capsul imports
 from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
-                        PipelineNode, StudyConfig, Switch)
+                        PipelineNode, ProcessNode, StudyConfig, Switch)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
+from capsul.engine import WorkflowExecutionError
+from capsul.pipeline import pipeline_tools
+import soma_workflow.constants as swconstants
 
 # PyQt5 imports
-from PyQt5.QtCore import Signal, Qt, QThread
+from PyQt5.QtCore import Signal, Qt, QThread, QTimer
 from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
                              QApplication, QToolBar, QAction, QHBoxLayout,
                              QScrollArea, QMessageBox, QProgressDialog,
                              QPushButton)
+from PyQt5.QtGui import QCursor, QIcon, QMovie
 
 # Other import
 import datetime
@@ -62,6 +66,7 @@ import re
 import sys
 import uuid
 import copy
+import threading
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.trait_errors import TraitError
@@ -204,12 +209,28 @@ class PipelineManagerTab(QWidget):
         self.save_pipeline_parameters_action.triggered.connect(
             self.saveParameters)
 
-        self.init_pipeline_action = QAction("Initialize pipeline", self)
+        sources_images_dir = config.getSourceImageDir()
+        self.init_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'init32.png')),
+            "Initialize pipeline", self)
         self.init_pipeline_action.triggered.connect(self.initialize)
 
-        self.run_pipeline_action = QAction("Run pipeline", self)
+        self.run_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'run32.png')),
+            "Run pipeline", self)
         self.run_pipeline_action.triggered.connect(self.runPipeline)
         self.run_pipeline_action.setDisabled(True)
+
+        self.stop_pipeline_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'stop32.png')),
+            "Stop", self)
+        self.stop_pipeline_action.triggered.connect(self.stop_execution)
+        self.stop_pipeline_action.setDisabled(True)
+
+        self.show_pipeline_status_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'gray_cross.png')),
+            "Status", self)
+        self.show_pipeline_status_action.triggered.connect(self.show_status)
 
         # if config.get_user_mode() == True:
         #     self.save_pipeline_action.setDisabled(True)
@@ -540,6 +561,164 @@ class PipelineManagerTab(QWidget):
                         Qt.KeepAspectRatio)
                     self.previewBlock.setAlignment(Qt.AlignCenter)
 
+    def get_capsul_engine(self):
+        """
+        Get a CapsulEngine object from the edited pipeline, and set it up from
+        MIA config object
+        """
+        return self.pipelineEditorTabs.get_capsul_engine()
+
+    def complete_pipeline_parameters(self, pipeline=None):
+        """
+        Complete pipeline parameters using Capsul's completion engine
+        mechanism.
+        This engine works using a set of attributes which can be retreived from
+        the database.
+        """
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+
+        # get a working / configured CapsulEngine
+        engine = self.get_capsul_engine()
+        if not pipeline:
+            pipeline = self.pipelineEditorTabs.get_current_pipeline()
+        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        if completion:
+            # record initial param values to get manually set ones
+            init_params = pipeline.get_inputs()
+            init_params.update(pipeline.get_outputs())
+
+            attributes = completion.get_attribute_values()
+            # try to find out attribute values from files in parameters
+            # this is a temporary trick which should be replaced with a proper
+            # attributes selection from the database (directly)
+            #for name, trait in pipeline.user_traits().items():
+
+            #print('attributes:', attributes.export_to_dict())
+            #print('SC:', engine.study_config.export_to_dict())
+
+            # TODO....
+
+
+            completion.complete_parameters()
+
+            # re-force manually set params
+            for param, value in init_params.items():
+                if value not in (None, Undefined, '') \
+                        and value != getattr(pipeline, param):
+                    print('set back param:', param, ':', getattr(pipeline, param), '->', value)
+                    setattr(pipeline, param, value)
+
+    def _register_node_io_in_database(self, node, proc_outputs,
+                                      pipeline_name=''):
+        if not hasattr(node, 'process'):
+            # not a process, skip.
+            return
+        process = node.process
+
+        # Adding I/O to database history
+        inputs = process.get_inputs()
+        self.inputs = inputs
+
+        for key in inputs:
+
+            if inputs[key] in [Undefined, [Undefined]]:
+                inputs[key] = "<undefined>"
+
+        outputs = process.get_outputs()
+
+        for key in outputs:
+            value = outputs[key]
+
+            if value in [Undefined, [Undefined]]:
+                outputs[key] = "<undefined>"
+
+        self.project.saveModifications()
+        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
+                                        BRICK_INPUTS, inputs)
+        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
+                                        BRICK_OUTPUTS, outputs)
+
+        node_name = node.name
+
+        # Updating the database with output values obtained from
+        # initialisation. If a plug name is in
+        # proc_output['notInDb'], then the corresponding
+        # output value is not added to the database.
+        if proc_outputs:
+
+            for plug_name, plug_value in proc_outputs.items():
+                add_plug_value_flag = False
+
+                if plug_name not in node.plugs.keys():
+                    continue
+
+                if plug_value not in ["<undefined>", Undefined, [Undefined]]:
+
+                    if pipeline_name != "":
+                        full_name = pipeline_name + "." + node_name
+
+                    else:
+                        full_name = node_name
+
+                    if 'notInDb' in proc_outputs:
+
+                        if plug_name not in proc_outputs['notInDb']:
+                            add_plug_value_flag = True
+
+                    else:
+                        add_plug_value_flag = True
+
+                    if add_plug_value_flag:
+                        self.add_plug_value_to_database(plug_value,
+                                                        self.brick_id,
+                                                        node_name,
+                                                        plug_name,
+                                                        full_name)
+
+
+                list_info_link = list(node.plugs[plug_name].links_to)
+
+                try:
+                    node.set_plug_value(plug_name, plug_value)
+
+                except TraitError:
+
+                    if type(plug_value) is list and len(
+                            plug_value) == 1:
+
+                        try:
+                            node.set_plug_value(plug_name, plug_value[0])
+
+                        except TraitError as e:
+                            print('Trait error for the "{0}" plug of the '
+                                  '"{1}" node:\n'
+                                  '{2} ...'.format(plug_name, node_name, e))
+
+        # Adding I/O to database history again to update outputs
+        inputs = process.get_inputs()
+
+        for key in inputs:
+            value = inputs[key]
+
+            if value in [Undefined, [Undefined]]:
+                inputs[key] = "<undefined>"
+
+        outputs = process.get_outputs()
+
+        for key in outputs:
+            value = outputs[key]
+
+            if value in [Undefined, [Undefined]]:
+                outputs[key] = "<undefined>"
+
+        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
+                                        BRICK_INPUTS, inputs)
+        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
+                                        BRICK_OUTPUTS, outputs)
+        # Setting brick init state if init finished correctly
+        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
+                                        BRICK_INIT, "Done")
+
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
         Initialize the current pipeline of the pipeline editor
@@ -547,6 +726,218 @@ class PipelineManagerTab(QWidget):
         :param pipeline: not None if this method call a sub-pipeline
         :param pipeline_name: name of the parent pipeline
         """
+
+        # Denis: I don't understand everything of this 700 lines function.
+        # It's quite difficult to follow. I understand that there are checks
+        # for every node in the pipeline. But they don't expect non-process
+        # nodes (switches, custom nodes), and they don't bother about disabled
+        # nodes. There are lots of special cases (nipype or non-nipype
+        # processes, SPM handling), sometimes I suspect assumptions that
+        # processes are MiaProcesses and not regular Capsul  ones.
+        # So we cannot use this initialization for any pipeline.
+        # I assume (can't say "I understand") that init is doing the following
+        # operations:
+        # * fill some "common" parameters values (output_directory, SPM
+        #   settings...)
+        # * check that all mandatory parameters are filled with valid values
+        # * check processes requirements
+        # * record parameters values in the database
+        #
+        # I'm sorry I am writing another code for that.
+
+        name = os.path.basename(
+            self.pipelineEditorTabs.get_current_filename())
+        self.main_window.statusBar().showMessage(
+            'Pipeline "{0}" is getting initialized. '
+            'Please wait.'.format(name))
+
+        QApplication.processEvents()
+        # If the initialisation is launch for the main pipeline
+        if not pipeline:
+            pipeline = get_process_instance(
+                self.pipelineEditorTabs.get_current_pipeline())
+            main_pipeline = True
+
+        else:
+            main_pipeline = False
+
+        # Capsul parameters completion
+        self.complete_pipeline_parameters(pipeline)
+
+        nodes_list = [n for n in pipeline.nodes.items()
+                      if n[0] != ''
+                          and pipeline_tools.is_node_enabled(pipeline, n[0],
+                                                             n[1])]
+
+        # add "project" attribute in processes using it
+        all_nodes = list(nodes_list)
+        while nodes_list:
+            node_name, node = nodes_list.pop(0)
+            if hasattr(node, 'process'):
+                process = node.process
+
+                if hasattr(process, 'use_project') and process.use_project:
+                    process.project = self.project
+                if isinstance(node, PipelineNode):
+                    new_nodes = [
+                        n for n in process.nodes.items()
+                        if n[0] != ''
+                            and pipeline_tools.is_node_enabled(process, n[0],
+                                                               n[1])]
+                    nodes_list += new_nodes
+                    all_nodes += new_nodes
+
+        init_result = True
+
+        # check missing inputs
+        missing_inputs = pipeline.get_missing_mandatory_parameters()
+        if len(missing_inputs) != 0:
+            ptype = 'pipeline'
+            print('In %s %s: missing mandatory parameters: %s'
+                  % (ptype, pipeline.name, ', '.join(missing_inputs)))
+            init_result = False
+        missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
+        if missing_inputs:
+            print('Some input files do not exist:')
+            for name, params in missing_inputs.items():
+                print('node:', name)
+                for pname, fname in params:
+                    print('%s:' % pname, fname)
+            init_result = False
+
+        # check requirements
+        requirements = pipeline.check_requirements('global')
+        if requirements is None:
+            print('Pipeline requirements are not met')
+            init_result = False
+
+        # add process characteristics in  the database
+        for node_name, node in all_nodes:
+            # Adding the brick to the bricks history
+            self.brick_id = str(uuid.uuid4())
+            self.brick_list.append(self.brick_id)
+            self.project.session.add_document(COLLECTION_BRICK,
+                                              self.brick_id)
+            self.project.session.set_value(
+                COLLECTION_BRICK, self.brick_id, BRICK_NAME, node_name)
+            self.project.session.set_value(
+                COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
+                datetime.datetime.now())
+            self.project.session.set_value(
+                COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
+
+            # SPM settings are normally managed through CapsulEngine.
+
+            if isinstance(node, ProcessNode):
+                process = node.process
+
+                # output_directory is a trick here. If Capsul completion is
+                # active it should have set something here.
+                # This code is useful for MIA processes.
+                if process.trait('output_directory') \
+                        and process.output_directory in (None, Undefined, ''):
+                    out_dir = os.path.abspath(
+                        self.project.folder + os.sep + 'scripts')
+                    if not os.path.exists(out_dir):
+                        try:
+                            os.makedirs(out_dir)
+                        except IOError:
+                            pass
+                    process.output_directory = out_dir
+
+                # MIA-specific
+                if hasattr(process, 'list_outputs'):
+                    # Getting the inheritance_dict, the requirement (dict) and the node
+                    # outputs list according to its inputs: initResult_dict.
+                    # - initResult_dict['requirement']:
+                    # the requirement for the process (list)
+                    # - initResult_dict['outputs']:
+                    # a dictionary whose keys are the output plugs name and whose keys
+                    # are the correponding value
+                    # - initResult_dict['inheritance_dict']:
+                    # a dictionary whose keys are the names of the scans in the output
+                    # plugs and whose values are the names of the scans in the input
+                    # plugs from that the output scans will inherit the tags
+
+                    # The state, linked or not, of the plugs is passed to the
+                    # list_outputs method, only for nodes not coming from nipype
+                    # (so those coming from mia_processes and those created
+                    # by the user): is_plugged object.
+                    is_plugged = {key: (bool(plug.links_to)
+                                        or bool(plug.links_from))
+                                                for key, plug in node.plugs.items()}
+                    initResult_dict = process.list_outputs(
+                        is_plugged=is_plugged)
+                    if not initResult_dict.get('outputs'):
+                        print("\nInitialisation failed to determine the "
+                              "outputs for the process {0}, did you correctly "
+                              "define the inputs ...?".format(node_name))
+                        init_result = False
+                    outputs = initResult_dict['outputs']
+                else:
+                    # regular process
+                    outputs = process.get_outputs()
+
+                self._register_node_io_in_database(node, outputs,
+                                                   pipeline_name)
+
+        self.project.saveModifications()
+
+        # Updating the node controller
+        # Display the updated parameters in right part of
+        # the Pipeline Manager (controller)
+        if main_pipeline:
+            node_controller_node_name = self.nodeController.node_name
+            #### Todo: Fix the problem of the controller that
+            #### keeps the name of the old brick deleted until
+            #### a click on the new one. This can cause a mia
+            #### crash during the initialisation, for example.
+
+            if node_controller_node_name in ['inputs', 'outputs']:
+                node_controller_node_name = ''
+
+            self.nodeController.display_parameters(
+                self.nodeController.node_name,
+                pipeline.nodes[node_controller_node_name].process,
+                pipeline)
+
+
+            if not init_result:
+                self.msg = QMessageBox()
+                self.msg.setIcon(QMessageBox.Critical)
+                self.msg.setWindowTitle("MIA configuration warning!")
+                message = 'The pipeline could not be initialized properly.'
+                self.msg.setText(message)
+
+                yes_button = self.msg.addButton("Open MIA preferences",
+                                                QMessageBox.YesRole)
+
+                ok_button = self.msg.addButton(QMessageBox.Ok)
+
+                self.msg.exec()
+
+                if self.msg.clickedButton() == yes_button:
+                    self.main_window.software_preferences_pop_up()
+                    self.msg.close()
+
+                else:
+                    self.msg.close()
+
+                self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" was not initialised successfully.'.format(name))
+
+            else:
+                for i in range(0, len(self.pipelineEditorTabs)-1):
+                    self.pipelineEditorTabs.get_editor_by_index(
+                        i).initialized = False
+                self.pipelineEditorTabs.get_current_editor().initialized = True
+
+                self.main_window.statusBar().showMessage(
+                    'Pipeline "{0}" has been initialised.'.format(name))
+
+        return init_result
+
+        # BEGINNING OF THE FORMER METHOD
 
         # Should we add a progress bar for the initialization?
         # self.enable_progress_bar = True
@@ -567,7 +958,7 @@ class PipelineManagerTab(QWidget):
         QApplication.processEvents()
 
         config = Config()
-        
+
         # nodes_requir_issue is a dictionary whose keys are the names of the
         # nodes and whose values are the compatibility of the requirements of
         # this node with the current configuration of MIA.
@@ -614,6 +1005,8 @@ class PipelineManagerTab(QWidget):
 
         else:
             main_pipeline = False
+
+        self.complete_pipeline_parameters(pipeline)
 
         # Test, if it works, comment.
         #if hasattr(pipeline, 'pipeline_steps'):
@@ -745,6 +1138,10 @@ class PipelineManagerTab(QWidget):
                 COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
             self.project.saveModifications()
 
+            if not hasattr(node, 'process'):
+                # custom node (switch or other)
+                continue
+
             process = node.process
             process_name = str(process).split('.')[0].split('_')[0][1:]
 
@@ -834,21 +1231,21 @@ class PipelineManagerTab(QWidget):
                 try:
                     # The Nipype Process outputs are always
                     # "private" for Capsul
-                    initResult_dict['outputs'] = (process._nipype_interface
-                                                  ._list_outputs())
-                    tmp_dict = {}
-                    
-                    for key, value in initResult_dict['outputs'].items():
-                        tmp_dict['_' + key] = initResult_dict['outputs'][key]
-                        
-                    initResult_dict['outputs'] = tmp_dict
+                    initResult_dict['outputs'] = process.get_outputs()
+                    #tmp_dict = {}
+
+                    #for key, value in initResult_dict['outputs'].items():
+                        #tmp_dict['_' + key] \
+                            #= initResult_dict['outputs'][key]
+
+                    #initResult_dict['outputs'] = tmp_dict
 
                     # For debugging. To be commented if not in debugging.
                     #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict) 
 
                 except TypeError:
                     print('\nInitialisation failed to determine the outputs '
-                          'for the process "{0}":\nDid you correctly defined '
+                          'for the process "{0}":\nDid you correctly define '
                           'the inputs ...?'.format(node_name))
                     check_init[node_name] = False
       
@@ -857,28 +1254,30 @@ class PipelineManagerTab(QWidget):
                           'for the process "{0}", due to:\n'
                           '"{1}"...'.format(node_name, e))
                     check_init[node_name] = False
-                    
+
             # Management of the requirement object in initResult_dict
-            if '_nipype_interface' in dir(process):
+            requirements = list(process.requirements().keys())
+            initResult_dict['requirement'] = [x.upper() for x in requirements]
+            #if '_nipype_interface' in dir(process):
 
-                if 'spm' in str(process._nipype_interface):
+                #if 'spm' in str(process._nipype_interface):
 
-                    if 'requirement' not in initResult_dict:
-                        initResult_dict['requirement'] = ['MATLAB', 'SPM']
+                    #if 'requirement' not in initResult_dict:
+                        #initResult_dict['requirement'] = ['MATLAB', 'SPM']
 
-                elif 'requirement' not in initResult_dict:
-                    initResult_dict['requirement'] = []
+                #elif 'requirement' not in initResult_dict:
+                    #initResult_dict['requirement'] = []
 
-            if initResult_dict['requirement'] is not None:
-                
-                for n, i in enumerate(initResult_dict['requirement']):
+            #if initResult_dict.get('requirement') is not None:
 
-                    if re.search('MATLAB', i,  re.IGNORECASE):
-                        initResult_dict['requirement'][n] = 'MATLAB'
+                #for n, i in enumerate(initResult_dict['requirement']):
 
-                    if re.search('SPM', i,  re.IGNORECASE):
-                        initResult_dict['requirement'][n] = 'SPM'
-                    
+                    #if re.search('MATLAB', i,  re.IGNORECASE):
+                        #initResult_dict['requirement'][n] = 'MATLAB'
+
+                    #if re.search('SPM', i,  re.IGNORECASE):
+                        #initResult_dict['requirement'][n] = 'SPM'
+
             # Management of the outputs and the inheritance_dict objects
             # in the initResult_dict
             if 'outputs' not in initResult_dict:
@@ -1115,11 +1514,13 @@ class PipelineManagerTab(QWidget):
 
             if node_controller_node_name in ['inputs', 'outputs']:
                 node_controller_node_name = ''
-  
+
             self.nodeController.display_parameters(
                 self.nodeController.node_name,
                 pipeline.nodes[node_controller_node_name].process,
                 pipeline)
+
+          # REDONE UP TO HERE
 
         nodes_requir_miss = [nodeName for nodeName in nodes_requir_issue
                              if nodes_requir_issue[nodeName] == 'MISSING']
@@ -1260,6 +1661,8 @@ class PipelineManagerTab(QWidget):
         """Clean previous initialization then initialize the current
         pipeline."""
 
+        QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
+
         if self.init_clicked:
             for brick in self.brick_list:
                 self.main_window.data_browser.table_data.delete_from_brick(
@@ -1273,6 +1676,8 @@ class PipelineManagerTab(QWidget):
         except Exception as e:
             print("\nError during initialisation: ", e)
             self.test_init = False
+            import traceback
+            traceback.print_exc()
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
@@ -1335,6 +1740,8 @@ class PipelineManagerTab(QWidget):
         ).node_parameters_tmp)
         self.pipelineEditorTabs.update_current_node()
 
+        QApplication.instance().restoreOverrideCursor()
+
     def layout_view(self):
         """Initialize layout for the pipeline manager tab"""
 
@@ -1367,9 +1774,23 @@ class PipelineManagerTab(QWidget):
             QtWidgets.QToolButton.MenuButtonPopup)
         self.tags_tool_button.setMenu(self.tags_menu)
 
+        #self.init_button = QToolButton()
+        #self.init_button.setDefaultAction(self.init_pipeline_action)
+        #self.run_button = QToolButton()
+        #self.run_button.setDefaultAction(self.run_pipeline_action)
+        #self.stop_button = QToolButton()
+        self.menu_toolbar.addAction(self.init_pipeline_action)
+        self.menu_toolbar.addAction(self.run_pipeline_action)
+        self.menu_toolbar.addAction(self.stop_pipeline_action)
+        self.menu_toolbar.addAction(self.show_pipeline_status_action)
+
         # Layouts
 
         self.hLayout.addWidget(self.tags_tool_button)
+        self.hLayout.addWidget(self.menu_toolbar)
+        #self.hLayout.addWidget(self.init_button)
+        #self.hLayout.addWidget(self.run_button)
+        #self.hLayout.addWidget(self.stop_button)
         self.hLayout.addStretch(1)
 
         self.splitterRight.addWidget(self.iterationTable)
@@ -1528,6 +1949,8 @@ class PipelineManagerTab(QWidget):
     def runPipeline(self):
         """Run the current pipeline of the pipeline editor."""
 
+        from soma_workflow import constants as swconstants
+
         name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
         self.brick_list = []
         self.main_window.statusBar().showMessage(
@@ -1537,12 +1960,21 @@ class PipelineManagerTab(QWidget):
         self.ignore = {}
         self.ignore_node = False
 
+        self.last_run_pipeline \
+            = self.pipelineEditorTabs.get_current_pipeline()
+        self.last_status = swconstants.WORKFLOW_NOT_STARTED
+        self.last_run_log = None
+        self.last_pipeline_name \
+            = self.pipelineEditorTabs.get_current_filename()
+
         if self.iterationTable.check_box_iterate.isChecked():
             iterated_tag = self.iterationTable.iterated_tag
             tag_values = self.iterationTable.tag_values_list
             ui_iteration = PopUpSelectIteration(iterated_tag, tag_values)
             if ui_iteration.exec():
                 tag_values = ui_iteration.final_values
+                # how do we assign tag_values to pipeline parameters
+                # (and which parameters ?)
                 pipeline_progress = dict()
                 pipeline_progress['size'] = len(tag_values)
                 pipeline_progress['counter'] = 1
@@ -1563,12 +1995,13 @@ class PipelineManagerTab(QWidget):
                         'Pipeline "{0}" is getting run for {1} {2}. '
                         'Please wait.'.format(name, iterated_tag, tag_value))
                     QApplication.processEvents()
-                    self.progress = RunProgress(self.pipelineEditorTabs,
-                                                pipeline_progress)
-                    self.progress.show()
-                    self.progress.exec()
+                    self.progress = RunProgress(self, pipeline_progress)
+                    #self.progress.show()
+                    #self.progress.exec()
                     pipeline_progress['counter'] += 1
                     self.init_clicked = False
+
+
                     # # self.init_pipeline(self.pipeline)
                     # idx = self.progress.value()
                     # idx += 1
@@ -1581,23 +2014,87 @@ class PipelineManagerTab(QWidget):
 
         else:
             
-            try:
-                self.progress = RunProgress(self.pipelineEditorTabs)
-                self.progress.show()
-                self.progress.exec()
-                
-            except Exception as e:
-                print('\n When the pipeline was launched, the following '
-                      'exception was raised: {0} ...'.format(e, ))
-                self.main_window.statusBar().showMessage(
-                    'Pipeline "{0}" has not been correctly run.'.format(name))
-                
-            else:
-                self.main_window.statusBar().showMessage(
-                    'Pipeline "{0}" has been correctly run.'.format(name))
+            self.progress = RunProgress(self)
+            self.hLayout.addWidget(self.progress)
+            #self.progress.show()
+            #self.progress.exec()
+            self.stop_pipeline_action.setEnabled(True)
+            config = Config()
+            sources_images_dir = config.getSourceImageDir()
 
-            self.init_clicked = False
-            self.run_pipeline_action.setDisabled(True)
+            mmovie = QMovie(
+                os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
+            self._mmovie = mmovie
+            mmovie.stop()
+            mmovie.frameChanged.connect(self._set_anim_frame)
+            mmovie.start()
+
+            self.progress.worker.finished.connect(self.finish_execution)
+            self.progress.start()
+
+        self.init_clicked = False
+        self.run_pipeline_action.setDisabled(True)
+
+    def _set_anim_frame(self):
+        """
+        Callback which sets the animated icon frame to the status action icon
+        """
+        self.show_pipeline_status_action.setIcon(
+            QIcon(self._mmovie.currentPixmap()))
+
+    def stop_execution(self):
+        """
+        Request interruption of pipeline execution
+        """
+        print('stop_execution')
+        self.progress.stop_execution()
+
+    def finish_execution(self):
+        """
+        Callback called after a pipeline execution ends (in any way)
+        """
+        from soma_workflow import constants as swconstants
+        self.stop_pipeline_action.setEnabled(False)
+        status = self.progress.worker.status
+        self.last_status = status
+        try:
+            engine = self.last_run_pipeline.get_study_config().engine
+            if not hasattr(self.progress.worker, 'exec_id'):
+                raise RuntimeError('Execution aborted before running')
+            engine.raise_for_status(status, self.progress.worker.exec_id)
+        except (WorkflowExecutionError, RuntimeError) as e:
+            self.last_run_log = str(e)
+            print('\n When the pipeline was launched, the following '
+                  'exception was raised: {0} ...'.format(e, ))
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" has not been correctly run.'.format(
+                    self.last_pipeline_name))
+        else:
+            self.last_run_log = None
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" has been correctly run.'.format(
+                    self.last_pipeline_name))
+        if status == swconstants.WORKFLOW_DONE:
+            icon = 'green_v.png'
+        else:
+            icon = 'red_cross32.png'
+        config = Config()
+        sources_images_dir = config.getSourceImageDir()
+        self._mmovie.stop()
+        self.show_pipeline_status_action.setIcon(
+            QIcon(os.path.join(sources_images_dir, icon)))
+        del self._mmovie
+        del self.progress
+
+    def show_status(self):
+        """
+        Show the last run status and execution info, errors etc.
+        """
+        print('show_status')
+        log = getattr(self, 'last_run_log', '')
+        status_widget = StatusWidget(self)
+        status_widget.show()
+        self.status_widget = status_widget
 
     def saveParameters(self):
         """
@@ -1946,112 +2443,219 @@ class PipelineManagerTab(QWidget):
         self.processLibrary.pkg_library.save()
 
 
-class RunProgress(QProgressDialog):
+#class RunProgress(QProgressDialog):
+    #"""Create the pipeline progress bar and launch the thread.
+
+    #The progress bar is closed when the thread finishes.
+
+    #:param diagram_view: A pipelineEditorTabs
+    #:param settings: dictionary of settings when the pipeline is iterated
+    #"""
+
+    #def __init__(self, diagram_view, settings=None):
+
+        ##super(RunProgress, self).__init__("Please wait while the pipeline is "
+                                          ##"running...", "Stop", 0, 0)
+        #super(RunProgress, self).__init__()
+        ##QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
+
+        ##if settings:
+            ##self.setWindowTitle(
+                ##"Pipeline is running ({0}/{1})".format(
+                    ##settings["counter"], settings["size"]))
+            ##self.setLabelText('Pipeline is running for {0} in {1}. '
+                              ##'Please wait.'.format(settings['tag_value'],
+                                                    ##settings['tag']))
+        ##else:
+            ##self.setWindowTitle("Pipeline running")
+            
+        ##self.setWindowFlags(
+            ##Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        ##self.setModal(True)
+
+        #self.diagramView = diagram_view
+
+        #self.setMinimumDuration(0)
+        #self.setValue(0)
+        #self.setMinimumWidth(350) # For mac OS
+        
+        #self.worker = RunWorker(self.diagramView)
+        #self.worker.finished.connect(self.close)
+        ##self.canceled.connect(self.stop_execution)
+        ##self.worker.start()
+
+    #def start(self):
+        #self.worker.start()
+
+    #def close(self):
+        #super().close()
+        #self.worker.wait()
+        #QApplication.instance().restoreOverrideCursor()
+        #if not hasattr(self.worker, 'exec_id'):
+            #QMessageBox.critical(self, 'Failure',
+                                 #'Execution has failed before running (!)')
+        #else:
+            #try:
+                #pipeline = self.diagramView.get_current_pipeline()
+                #engine = pipeline.get_study_config().engine
+                #engine.raise_for_status(self.worker.status,
+                                        #self.worker.exec_id)
+            #except WorkflowExecutionError as e:
+                #QMessageBox.critical(self, 'Failure',
+                                    #'Pipeline execution has failed:\n%s'
+                                    #% str(e))
+            #else:
+                #QMessageBox.information(self, 'Success',
+                                        #'Pipeline execution was OK.')
+
+    #def stop_execution(self):
+        #print('*** CANCEL ***')
+        #with self.worker.lock:
+            #self.worker.interrupt_request = True
+        ##self.close()
+
+
+class RunProgress(QWidget):
     """Create the pipeline progress bar and launch the thread.
 
     The progress bar is closed when the thread finishes.
 
-    :param diagram_view: A pipelineEditorTabs
+    :param pipeline_manager: A PipelineManagerTab
     :param settings: dictionary of settings when the pipeline is iterated
     """
 
-    def __init__(self, diagram_view, settings=None):
+    def __init__(self, pipeline_manager, settings=None):
 
-        super(RunProgress, self).__init__("Please wait while the pipeline is "
-                                          "running...", None, 0, 0)
-        
-        if settings:
-            self.setWindowTitle(
-                "Pipeline is running ({0}/{1})".format(
-                    settings["counter"], settings["size"]))
-            self.setLabelText('Pipeline is running for {0} in {1}. '
-                              'Please wait.'.format(settings['tag_value'],
-                                                    settings['tag']))
-        else:
-            self.setWindowTitle("Pipeline running")
-            
-        self.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
-        self.setModal(True)
+        super(RunProgress, self).__init__()
 
-        self.diagramView = diagram_view
+        self.pipeline_manager = pipeline_manager
 
-        self.setMinimumDuration(0)
-        self.setValue(0)
-        self.setMinimumWidth(350) # For mac OS
-        
-        self.worker = RunWorker(self.diagramView)
+        self.progressbar = QtWidgets.QProgressBar()
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self.progressbar)
+
+        self.progressbar.setRange(0, 0)
+        self.progressbar.setValue(0)
+        self.progressbar.setMinimumWidth(350) # For mac OS
+
+        self.worker = RunWorker(self.pipeline_manager)
         self.worker.finished.connect(self.close)
+
+    def start(self):
         self.worker.start()
-        
+        #self.progressbar.setValue(20)
+
+    def close(self):
+        super().close()
+        self.worker.wait()
+        QApplication.instance().restoreOverrideCursor()
+
+        if not hasattr(self.worker, 'exec_id'):
+            mbox_icon = QMessageBox.Critical
+            mbox_title = 'Failure'
+            mbox_text = 'Execution has failed before running.\n' \
+                'Please see details using the status report button'
+        else:
+            try:
+                pipeline = self.pipeline_manager.pipelineEditorTabs. \
+                    get_current_pipeline()
+                engine = pipeline.get_study_config().engine
+                engine.raise_for_status(self.worker.status,
+                                        self.worker.exec_id)
+            except WorkflowExecutionError as e:
+                mbox_icon = QMessageBox.Critical
+                mbox_title = 'Failure'
+                mbox_text = 'Pipeline execution has failed:\n' \
+                    'Please see details using the status report button'
+            else:
+                mbox_icon = QMessageBox.Information
+                mbox_title = 'Success'
+                mbox_text = 'Pipeline execution was OK.'
+        mbox = QMessageBox(mbox_icon, mbox_title, mbox_text)
+        timer = QTimer.singleShot(2000, mbox.accept)
+        mbox.exec()
+
+    def stop_execution(self):
+        print('*** CANCEL ***')
+        with self.worker.lock:
+            self.worker.interrupt_request = True
+        #self.close()
+
+
 class RunWorker(QThread):
     """Run the pipeline"""
 
-    def __init__(self, diagram_view):
+    def __init__(self, pipeline_manager):
         super().__init__()
-        self.diagramView = diagram_view
+        self.pipeline_manager = pipeline_manager
+        # use this lock to modify the worker state from GUI/other thread
+        self.lock = threading.RLock()
+        self.status = swconstants.WORKFLOW_NOT_STARTED
+        # when interrupt_request is set (within a lock session from a different
+        # thread), the worker will interrupt execution and leave the thread.
+        self.interrupt_request = False
 
     def run(self):
-
         def _check_nipype_processes(pplne):
             for node_name, node in pplne.nodes.items():
+                if not hasattr(node, 'process'):
+                    continue  # not a process node
                 if isinstance(node.process, Pipeline):
                     if node_name != "":
                         _check_nipype_processes(node.process)
                 elif isinstance(node.process, NipypeProcess):
                     node.process.activate_copy = False
 
-        _check_nipype_processes(self.diagramView.get_current_pipeline())
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
 
-        pipeline = get_process_instance(  
-             self.diagramView.get_current_pipeline())
+        pipeline = self.pipeline_manager.pipelineEditorTabs. \
+            get_current_pipeline()
+        _check_nipype_processes(pipeline)
+
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
 
         # Reading config
         config = Config()
-        spm_standalone_path = config.get_spm_standalone_path()
-        spm_path = config.get_spm_path()
-        matlab_path = config.get_matlab_path()
-        matlab_standalone_path = config.get_matlab_standalone_path()
-        use_spm = config.get_use_spm()
-        use_spm_standalone = config.get_use_spm_standalone()
-        use_matlab = config.get_use_matlab()
+        capsul_config = config.get_capsul_config()
 
-        study_config = StudyConfig(
-            modules=StudyConfig.default_modules + ['FreeSurferConfig',
-                                                   'NipypeConfig'])
-        sconf = {}
-        if use_spm_standalone == True and os.path.exists(
-                spm_standalone_path) and os.path.exists(
-            matlab_standalone_path):
+        engine = self.pipeline_manager.get_capsul_engine()
 
-            if os.path.exists(matlab_path):
-                sconf.update(dict(
-                    use_spm=True,
-                    spm_directory=spm_standalone_path,
-                    spm_exec=matlab_standalone_path,
-                    matlab_exec=matlab_path,
-                    output_directory=spm_standalone_path, spm_standalone=True))
-            else:
-                sconf.update(dict(
-                    use_spm=True, spm_directory=spm_standalone_path,
-                    spm_exec=matlab_standalone_path,
-                    output_directory=spm_standalone_path, spm_standalone=True))
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
 
-        # Using without SPM standalone
-        elif use_spm == True and use_matlab == True:
-            sconf.update(dict(
-                use_spm=True, matlab_exec=matlab_path,
-                spm_directory=spm_path, spm_standalone=False,
-                use_matlab=True, output_directory=spm_path))
-        else:
-            sconf.update(dict(use_spm=False))
-
-        study_config.import_from_dict(sconf)
-        study_config.reset_process_counter()
+        engine.study_config.reset_process_counter()
         cwd = os.getcwd()
 
+        pipeline = engine.get_process_instance(pipeline)
+
+        with self.lock:
+            if self.interrupt_request:
+                print('*** INTERRUPT ***')
+                return
+
+        print('running pipeline...')
+
         try:
-            study_config.run(pipeline, verbose=1)
+            exec_id = engine.start(pipeline)
+            self.exec_id = exec_id
+            while self.status in (swconstants.WORKFLOW_NOT_STARTED,
+                                  swconstants.WORKFLOW_IN_PROGRESS):
+                #print(self.status)
+                with self.lock:
+                    self.status = engine.wait(exec_id, 1, pipeline)
+                    if self.interrupt_request:
+                        print('*** INTERRUPT ***')
+                        engine.interrupt(exec_id)
+                        #break
 
             #** pathway from the study_config.run(pipeline, verbose=1) command:
             #   (ex. for the User_processes Smooth brick):
@@ -2129,28 +2733,64 @@ class RunWorker(QThread):
                                                                e))
             import traceback
             traceback.print_exc()
-        # haven't yet found how to raise the exception in the try block in
-        # PipelineManagerTab.runPipeline() above. So the
-        # self.main_window.statusBar().showMessage() gives the
-        # "has been correctly run" message even if a problem has occurred here!
-
-            #self.diagramView.main_window.statusBar().showMessage(
-            #        'Pipeline "{0}" has not been correctly run.'.format(pipeline.name))
-            
-            #self.msg = QMessageBox()
-            #self.msg.setIcon(QMessageBox.Critical)
-            #self.msg.setText("SPM standalone is not set")
-            #self.msg.setInformativeText(
-            #    "SPM processes cannot be run with SPM standalone not set.\n"
-            #    "You can activate it and set the paths in MIA preferences.")
-            #self.msg.setWindowTitle("Error")
-            #self.msg.setStandardButtons(QMessageBox.Ok)
-            #self.msg.buttonClicked.connect(self.msg.close)
-            #self.msg.show()
-
-            #except ValueError as e:
-            #    print("\n{0} has not been launched:\n{1}\n".format(pipeline.name,
-            #                                                       e))
 
         # restore current working directory in cas it has been changed
         os.chdir(cwd)
+
+
+class StatusWidget(QWidget):
+    """
+    Status widget: displays info about the current or last pipeline execution
+    """
+    def __init__(self, pipeline_manager):
+        super().__init__()
+        self.pipeline_manager = pipeline_manager
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.edit = QtWidgets.QTextBrowser()
+        log = getattr(pipeline_manager, 'last_run_log', '')
+        self.edit.setText(log)
+
+        status_box = QtWidgets.QGroupBox('Status:')
+        slayout = QVBoxLayout()
+        status_box.setLayout(slayout)
+        status = getattr(pipeline_manager, 'last_status',
+                         'No pipeline execution')
+        slayout.addWidget(QtWidgets.QLabel('<b>status:</b> %s' % status))
+
+        swf_box = QtWidgets.QGroupBox('Soma-Workflow monitoring:')
+        wlayout = QVBoxLayout()
+        swf_box.setLayout(wlayout)
+        swf_box.setCheckable(True)
+        swf_box.setChecked(False)
+        self.swf_widget = None
+        self.swf_box = swf_box
+        swf_box.toggled.connect(self.toggle_soma_workflow)
+
+        layout.addWidget(status_box)
+        layout.addWidget(swf_box)
+        layout.addWidget(QtWidgets.QLabel('Execution log:'))
+        layout.addWidget(self.edit)
+        self.resize(600, 800)
+        self.setWindowTitle('Execution status')
+
+    def toggle_soma_workflow(self, checked):
+        if self.swf_widget is not None:
+            self.swf_widget.setVisible(checked)
+            if not checked:
+                return
+        else:
+            from soma_workflow.gui.workflowGui import ApplicationModel, MainWindow, SomaWorkflowWidget
+            model = ApplicationModel()
+            sw_widget = MainWindow(
+                model,
+                None,
+                True,
+                None,
+                None,
+                interactive=False)
+            self.swf_widget = sw_widget
+            self.swf_box.layout().addWidget(sw_widget)
+
+
+

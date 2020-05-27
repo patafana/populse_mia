@@ -36,7 +36,8 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
-from capsul.api import get_process_instance, Process, PipelineNode, Switch
+from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
+                        capsul_engine)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                             NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
@@ -1201,6 +1202,9 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.currentChanged.connect(self.update_current_node)
         self.previousIndex = 0
 
+        # init capsul engine config
+        self.get_capsul_engine()
+
     def check_modifications(self, current_index):
         """Check if the nodes of the current pipeline have been modified.
 
@@ -1276,9 +1280,12 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             self.undos[p_e] = []
             self.redos[p_e] = []
 
+            self.get_capsul_engine()
+
         for node_name, node in self.get_current_pipeline().nodes.items():
+            process = getattr(node, 'process', node)
             self.main_window.pipeline_manager.displayNodeParameters(
-                node_name, node.process)
+                node_name, process)
 
     def emit_node_clicked(self, node_name, process):
         """Emit a signal when a node is clicked.
@@ -1325,6 +1332,56 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 node_name, 'input',
                 pipeline_parameter='database_scans')
         self.get_current_editor().scene.update_pipeline()
+
+    def get_capsul_engine(self):
+        """
+        Get a CapsulEngine object from the edited pipeline, and set it up from
+        MIA config object
+        """
+        # Reading config
+        config = Config()
+        capsul_config = config.get_capsul_config()
+
+        pipeline = self.get_current_pipeline()
+        engine = pipeline.get_study_config().engine
+        # in populse_db v1, using the database from a different thread gets
+        # a completely empty database. So we have to rebuild a new one
+        # in the thread. Once populse_db v2 works and is merged, we can remove
+        # the copy operation.
+        engine2 = capsul_engine()
+        engine._database = engine2._database
+        engine._settings = None
+        engine._loaded_modules = set()
+        # save completion attributes for the current pipeline (other pipelines
+        # will lose their values)
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        if completion:
+            att_values = completion.get_attribute_values().export_to_dict()
+
+        for module in capsul_config.get('engine_modules', []):
+            engine.load_module(module)
+
+        # remove the 3 next lines when settings are thread safe.
+        empty_config = engine2.study_config.export_to_dict()
+        empty_config.update({'study_name': 'MIA'})
+        engine.study_config.import_from_dict(empty_config)
+
+        study_config = engine.study_config
+        study_config.import_from_dict(capsul_config.get('study_config', {}))
+
+        study_config.input_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'raw_data')
+        study_config.output_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'derived_data')
+
+        # restore completion attributes
+        if completion:
+            completion \
+                = ProcessCompletionEngine.get_completion_engine(pipeline)
+            if completion:
+                completion.get_attribute_values().import_from_dict(att_values)
+        return engine
 
     def get_current_editor(self):
         """Get the instance of the current editor.
@@ -1496,6 +1553,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 new_tab_opened = True
             # get only the file name to load
             filename = self.get_current_editor().load_pipeline('', False)
+            self.get_capsul_engine()
 
         if filename:
             # Check if this pipeline is already open
@@ -1512,6 +1570,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 editor = self.get_editor_by_index(working_index)
                 # actually load the pipeline
                 filename = editor.load_pipeline(filename)
+                self.get_capsul_engine()
                 if filename:
                     self.setTabText(working_index, os.path.basename(filename))
                     self.update_scans_list()
@@ -1561,6 +1620,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         self.insertTab(self.count() - 1, p_e, name)
         self.set_tab_index(self.count() - 2)
+
+        self.get_capsul_engine()
 
     def open_filter(self, node_name):
         """Open a filter widget.
@@ -1807,8 +1868,8 @@ def get_path(name, dictionary, prev_paths=None, pckg=None):
 
         if pckg is not None:
             prev_paths.append(pckg)
-            dictionary = dictionary[pckg]
-        
+            dictionary = dictionary.get(pckg, {})
+
     # new_paths is a list containing the packages to the desired module
     new_paths = prev_paths.copy()
     for idx, (key, value) in enumerate(dictionary.items()):

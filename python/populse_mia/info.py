@@ -73,6 +73,7 @@ if (3, 6) > sys.version_info >= (3, 5):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
+        'six >= 1.13',
         'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
                             # (> 2.2.1)
 ]
@@ -98,6 +99,7 @@ elif sys.version_info >= (3, 6):
         'sqlalchemy',
         'snakeviz',
         'soma_workflow',
+        'six >= 1.13',
         'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
                             # (> 2.2.1)
 ]

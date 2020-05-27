@@ -23,6 +23,7 @@ pop-up in the config.yml file.
 import os
 import yaml
 import re
+import glob
 from cryptography.fernet import Fernet
 
 CONFIG = b'5YSmesxZ4ge9au2Bxe7XDiQ3U5VCdLeRdqimOOggKyc='
@@ -195,6 +196,57 @@ class Config:
             return self.config["admin_hash"]
         except KeyError:
             return False
+
+    def get_capsul_config(self):
+        """Get CAPSUL config dictionary
+        """
+        capsul_config = self.config.get("capsul_config", {})
+        capsul_config.setdefault(
+            "engine_modules",
+            ['nipype', 'fsl', 'freesurfer', 'matlab', 'spm', 'fom'])
+        sconf = capsul_config.setdefault("study_config", {})
+
+        # update study config from mia config values
+        spm_standalone_path = self.get_spm_standalone_path()
+        spm_path = self.get_spm_path()
+        matlab_path = self.get_matlab_path()
+        matlab_standalone_path = self.get_matlab_standalone_path()
+        use_spm = self.get_use_spm()
+        use_spm_standalone = self.get_use_spm_standalone()
+        use_matlab = self.get_use_matlab()
+
+        if use_spm_standalone and os.path.exists(
+                spm_standalone_path) and os.path.exists(
+                    matlab_standalone_path):
+
+            spm_exec = glob.glob(os.path.join(spm_standalone_path,
+                                              'run_spm*.sh'))
+            if spm_exec:
+                spm_exec = spm_exec[0]
+                sconf['spm_exec'] = spm_exec
+
+            if use_matlab and matlab_path and os.path.exists(matlab_path):
+
+                sconf.update(dict(
+                    use_spm=True,
+                    spm_directory=spm_standalone_path,
+                    matlab_exec=matlab_path,
+                    spm_standalone=True))
+            else:
+                sconf.update(dict(
+                    use_spm=True, spm_directory=spm_standalone_path,
+                    spm_standalone=True))
+
+        # Using without SPM standalone
+        elif use_spm and use_matlab:
+            sconf.update(dict(
+                use_spm=True, matlab_exec=matlab_path,
+                spm_directory=spm_path, spm_standalone=False,
+                use_matlab=True))
+        else:
+            sconf.update(dict(use_spm=False))
+
+        return capsul_config
 
     def get_user_mode(self):
         """Get if user mode is disabled or enabled in the preferences.
@@ -523,7 +575,10 @@ class Config:
                     return yaml.load(decrypted)
 
             except yaml.YAMLError as exc:
+                print('error loading YAML file: %s' % config_file)
                 print(exc)
+                #import traceback
+                #traceback.print_stack()
         # in case of problem, return an empty config
         return {}
 
@@ -534,7 +589,6 @@ class Config:
         if not os.path.exists(os.path.dirname(config_file)):
             os.makedirs(os.path.dirname(config_file))
         with open(config_file, 'wb') as configfile:
-
             stream = yaml.dump(self.config, default_flow_style=False,
                       allow_unicode=True)
             configfile.write(f.encrypt(stream.encode()))
@@ -548,6 +602,44 @@ class Config:
         self.config["admin_hash"] = hash
         # Then save the modification
         self.saveConfig()
+
+    def set_capsul_config(self, capsul_config_dict):
+        """Set CAPSUL configuration dict into MIA config
+        """
+        self.config['capsul_config'] = capsul_config_dict
+
+        # update MIA values
+        capsul_config = capsul_config_dict.get('study_config', {})
+
+        matlab_path = capsul_config.get('matlab_exec')
+        use_matlab = capsul_config.get('use_matlab', None)
+        if use_matlab and matlab_path:
+            self.set_matlab_path(matlab_path)
+            self.set_use_matlab(True)
+        elif use_matlab is False:
+            self.set_use_matlab(False)
+            self.set_matlab_path("")
+
+        if capsul_config.get('use_spm', False):
+            spm_dir = capsul_config.get('spm_directory')
+            spm_standalone = capsul_config.get('spm_standalone')
+            if spm_standalone:
+                mcr = os.path.join(spm_dir, 'mcr', 'v713')
+                if os.path.isdir(mcr) and os.path.isdir(spm_dir):
+                    self.set_spm_standalone_path(spm_dir)
+                    self.set_matlab_standalone_path(mcr)
+                    self.set_use_spm_standalone(True)
+                    self.set_use_matlab_standalone(True)
+            else:
+                self.set_use_spm_standalone(False)
+                if self.get_use_matlab():
+                    self.set_spm_path(spm_dir)
+                    self.set_use_spm(True)
+                else:
+                    self.set_use_spm(False)
+        else:
+            self.set_use_spm(False)
+            self.set_use_spm_standalone(False)
 
     def set_user_mode(self, user_mode):
         """Enable of disable user mode.
