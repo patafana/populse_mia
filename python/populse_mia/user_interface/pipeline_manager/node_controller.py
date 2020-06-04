@@ -327,7 +327,6 @@ class NodeController(QWidget):
         - clearLayout: clear the layouts of the widget
         - display_filter: display a filter widget
         - display_parameters: display the parameters of the selected node
-        - get_index_from_plug_name: return the index of the plug label
         - update_node_name: update the name of the selected node
         - update_parameters: update the parameters values
         - update_plug_value: update the value of a node plug
