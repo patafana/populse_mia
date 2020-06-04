@@ -37,7 +37,7 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
 from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
-                        capsul_engine)
+                        capsul_engine, Node)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                             NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
@@ -1147,7 +1147,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
     """
 
     pipeline_saved = QtCore.pyqtSignal(str)
-    node_clicked = QtCore.pyqtSignal(str, Process)
+    node_clicked = QtCore.pyqtSignal(str, Node)
+    process_clicked = QtCore.pyqtSignal(str, Process)
     switch_clicked = QtCore.pyqtSignal(str, Switch)
 
     def __init__(self, project, scan_list, main_window):
@@ -1294,7 +1295,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param process: process of the corresponding node
         """
 
-        self.node_clicked.emit(node_name, process)
+        if isinstance(process, Process):
+            self.process_clicked.emit(node_name, process)
+        else:
+            self.node_clicked.emit(node_name, process)
 
     def emit_pipeline_saved(self, filename):
         """Emit a signal when a pipeline is saved.

@@ -34,7 +34,7 @@ from populse_mia.data_manager.project import (COLLECTION_CURRENT,
                                               TAG_CHECKSUM, TYPE_NII, TYPE_MAT,
                                               TYPE_TXT, TYPE_UNKNOWN)
 from populse_mia.user_interface.pipeline_manager.node_controller import (
-                                                                 NodeController)
+    NodeController, CapsulNodeController)
 from populse_mia.user_interface.pipeline_manager.pipeline_editor import (
                                                              PipelineEditorTabs)
 from populse_mia.user_interface.pipeline_manager.process_library import (
@@ -81,6 +81,10 @@ if sys.version_info[0] >= 3:
 else:
     def values(d):
         return d.values()
+
+
+# FIXME hack
+NodeController = CapsulNodeController
 
 
 class PipelineManagerTab(QWidget):
@@ -168,6 +172,8 @@ class PipelineManagerTab(QWidget):
         self.pipelineEditorTabs = PipelineEditorTabs(
             self.project, self.scan_list, self.main_window)
         self.pipelineEditorTabs.node_clicked.connect(
+            self.displayNodeParameters)
+        self.pipelineEditorTabs.process_clicked.connect(
             self.displayNodeParameters)
         self.pipelineEditorTabs.switch_clicked.connect(
             self.displayNodeParameters)
@@ -479,6 +485,14 @@ class PipelineManagerTab(QWidget):
             history_maker.append("update_node_name")
             for element in signal_list:
                 history_maker.append(element)
+            # update pipeline view
+            pipeline = self.pipelineEditorTabs.get_current_pipeline()
+            editor = self.pipelineEditorTabs.get_current_editor()
+            rect = editor.sceneRect()
+            trans = editor.transform()
+            editor.set_pipeline(pipeline)
+            editor.setSceneRect(rect)
+            editor.setTransform(trans)
 
         elif case == "plug_value":
             history_maker.append("update_plug_value")
@@ -520,13 +534,10 @@ class PipelineManagerTab(QWidget):
         :return:
         """
 
-        if isinstance(process, Switch):
-            pass
-        else:
-            self.nodeController.display_parameters(
-                node_name, process,
-                self.pipelineEditorTabs.get_current_pipeline())
-            self.scrollArea.setWidget(self.nodeController)
+        self.nodeController.display_parameters(
+            node_name, process,
+            self.pipelineEditorTabs.get_current_pipeline())
+        self.scrollArea.setWidget(self.nodeController)
 
     def find_process(self, path):
         """

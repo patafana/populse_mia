@@ -36,6 +36,8 @@ from PyQt5.QtWidgets import (
 
 # soma-base imports
 from soma.controller import trait_ids
+from capsul.qt_gui.widgets.attributed_process_widget \
+    import AttributedProcessWidget
 
 # Populse_MIA imports
 from populse_mia.user_interface.data_browser.advanced_search import (
@@ -50,6 +52,7 @@ from populse_mia.data_manager.project import TAG_FILENAME, \
 from populse_mia.data_manager.filter import Filter
 from populse_mia.user_interface.pipeline_manager.process_mia import ProcessMIA
 from populse_mia.software_properties import Config
+from . import type_editors
 
 if sys.version_info[0] >= 3:
     unicode = str
@@ -587,46 +590,11 @@ class NodeController(QWidget):
             print("Node name already in pipeline")
 
         else:
-            # Removing links of the selected node and copy
-            # the origin/destination
-            links_to_copy = []
-            for source_parameter, source_plug \
-                    in six.iteritems(old_node.plugs):
-                for (dest_node_name, dest_parameter, dest_node, dest_plug,
-                     weak_link) in source_plug.links_to.copy():
-                    pipeline.remove_link(
-                        self.node_name + "." + source_parameter + "->" +
-                        dest_node_name + "." + dest_parameter)
-                    links_to_copy.append(("to", source_parameter,
-                                          dest_node_name, dest_parameter))
 
-                for (dest_node_name, dest_parameter, dest_node, dest_plug,
-                     weak_link) in source_plug.links_from.copy():
-                    pipeline.remove_link(
-                        dest_node_name + "." + dest_parameter + "->" +
-                        self.node_name + "." + source_parameter)
-                    links_to_copy.append(("from", source_parameter,
-                                          dest_node_name, dest_parameter))
-
-            # Creating a new node with the new name and deleting the former
-            pipeline.nodes[new_node_name] = pipeline.nodes[self.node_name]
-            del pipeline.nodes[self.node_name]
+            pipeline.rename_node(old_node_name, new_node_name)
 
             # Updating the node_name attribute
             self.node_name = new_node_name
-
-            # Setting the same links as the original node
-            for link in links_to_copy:
-
-                if link[0] == "to":
-                    pipeline.add_link(self.node_name + "." + link[1] + "->"
-                                      + link[2] + "." + link[3])
-                elif link[0] == "from":
-                    pipeline.add_link(link[2] + "." + link[3] + "->"
-                                      + self.node_name + "." + link[1])
-
-            # Updating the pipeline
-            pipeline.update_nodes_and_plugs_activation()
 
             # To undo/redo
             self.value_changed.emit(["node_name",
@@ -778,6 +746,124 @@ class NodeController(QWidget):
             res = []
 
         self.update_plug_value("in", plug_name, pipeline, value_type, res)
+
+
+# FIXME temporary: another implementation of NodeController using Capsul
+# AttributedProcessWidget widget
+class CapsulNodeController(QWidget):
+    '''
+    Implementation of NodeController using Capsul AttributedProcessWidget
+    widget
+    '''
+
+    value_changed = pyqtSignal(list)
+
+    def __init__(self, project, scan_list, pipeline_manager_tab,
+                 main_window):
+        super().__init__()
+        self.project = project
+        self.scan_list = scan_list
+        self.main_window = main_window
+        self.node_name = ""
+        self.visibles_tags = []
+
+        # Layouts
+        v_box_final = QVBoxLayout()
+        self.setLayout(v_box_final)
+        self.process_widget = None
+
+        # Node name
+        hlayout = QHBoxLayout()
+        label_node_name = QLabel()
+        label_node_name.setText('Node name:')
+
+        self.line_edit_node_name = QLineEdit()
+        hlayout.addWidget(label_node_name)
+        hlayout.addWidget(self.line_edit_node_name)
+        v_box_final.addLayout(hlayout)
+
+    def display_parameters(self, node_name, process, pipeline):
+        """Display the parameters of the selected node.
+
+        The node parameters are read and line labels/line edits/push buttons
+        are created for each of them. This methods consists mainly in widget
+        and layout organization.
+
+        :param node_name: name of the node
+        :param process: process of the node
+        :param pipeline: current pipeline
+        """
+        self.node_name = node_name
+        # The pipeline global inputs and outputs node name cannot be modified
+        if self.node_name not in ('inputs', 'outputs'):
+            self.line_edit_node_name.setText(self.node_name)
+            self.line_edit_node_name.setReadOnly(False)
+            self.line_edit_node_name.returnPressed.connect(
+                partial(self.update_node_name, pipeline))
+        else:
+            self.line_edit_node_name.setText('Pipeline inputs/outputs')
+            self.line_edit_node_name.setReadOnly(True)
+
+        if self.process_widget:
+            item = self.layout().takeAt(1)
+            self.process_widget.deleteLater()
+            del item
+            self.process_widget = None
+
+        self.process = process
+        self.process_widget = AttributedProcessWidget(
+            process, override_control_types={
+                'File': type_editors.PopulseFileControlWidget,
+                'Directory': type_editors.PopulseDirectoryControlWidget},
+            user_data={'project': self.project,
+                       'scan_list': self.scan_list,
+                       'main_window': self.main_window,
+                       'node_controller': self})
+        self.layout().addWidget(self.process_widget)
+
+    def update_parameters(self, process=None):
+        """Update the parameters values.
+
+        :param process: process of the node
+        """
+        print('update_parameters called.')
+
+    def update_node_name(self, pipeline, new_node_name=None):
+        """Change the name of the selected node and updates the pipeline.
+
+        Because the nodes are stored in a dictionary, we have to create
+        a new node that has the same traits as the selected one and create
+        new links that are the same than the selected node.
+
+        :param pipeline: current pipeline
+        :param new_node_name: new node name (is None except when this method
+        is called from an undo/redo)
+        """
+        # Copying the old node
+        old_node = pipeline.nodes[self.node_name]
+        old_node_name = self.node_name
+
+        if not new_node_name:
+            new_node_name = self.line_edit_node_name.text()
+
+        if new_node_name in list(pipeline.nodes.keys()):
+            print("Node name already in pipeline")
+
+        else:
+
+            pipeline.rename_node(old_node_name, new_node_name)
+
+            # Updating the node_name attribute
+            self.node_name = new_node_name
+
+            # To undo/redo
+            self.value_changed.emit(["node_name",
+                                     pipeline.nodes[new_node_name],
+                                     new_node_name, old_node_name])
+
+            self.main_window.statusBar().showMessage(
+                'Node name "{0}" has been changed to "{1}".'.format(
+                    old_node_name, new_node_name))
 
 
 class PlugFilter(QWidget):
