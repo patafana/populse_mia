@@ -258,7 +258,7 @@ class FilterWidget(QWidget):
         filter = self.table_data.get_current_filter()
         for i in range(len(filter)):
             scan_name = filter[i]
-            tag_name = self.push_button_tag_filter.text()
+            tag_name = self.push_button_tag_filter.text().replace('&', '')
             value = self.project.session.get_value(COLLECTION_CURRENT,
                                                    scan_name, tag_name)
             if tag_name == TAG_FILENAME:
@@ -309,7 +309,7 @@ class FilterWidget(QWidget):
             new_visibilities.append(TAG_FILENAME)
             self.table_data.update_visualized_columns(self.visible_tags,
                                                       new_visibilities)
-            self.node_controller.visibles_tags = new_visibilities
+            #self.node_controller.visibles_tags = new_visibilities
             for row in self.advanced_search.rows:
                 fields = row[2]
                 fields.clear()
@@ -814,7 +814,9 @@ class CapsulNodeController(QWidget):
         self.process_widget = AttributedProcessWidget(
             process, override_control_types={
                 'File': type_editors.PopulseFileControlWidget,
-                'Directory': type_editors.PopulseDirectoryControlWidget},
+                'Directory': type_editors.PopulseDirectoryControlWidget,
+                'List_File':
+                    type_editors.PopulseOffscreenListFileControlWidget},
             user_data={'project': self.project,
                        'scan_list': self.scan_list,
                        'main_window': self.main_window,
