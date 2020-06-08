@@ -24,40 +24,134 @@ mia's GUI.
 # for details.
 ###############################################################################
 
-import sys
+import copy
+import inspect
 import os
 import pkgutil
-import inspect
+import sys
 import yaml
-import copy
 from functools import partial
 from packaging import version
-
-from capsul.api import get_process_instance
 
 # PyQt5 imports
 from PyQt5.QtCore import QDir, QLockFile, Qt
 from PyQt5.QtWidgets import (QApplication, QDialog, QPushButton, QLabel,
                              QFileDialog, QVBoxLayout, QHBoxLayout, QLineEdit)
 
-# soma-base imports
-from soma.qt_gui.qt_backend.Qt import QMessageBox
-
 # Adding populse_mia path to the sys.path if in developer mode
 if not os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))) in sys.path:           # "developer" mode
-
-    print('\nPopulse_MIA in "developer" mode')
-    sys.path.insert(0, os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))))
     DEV_MODE = True
+    root_dev_dir = os.path.dirname(
+                     os.path.dirname(
+                       os.path.dirname(
+                         os.path.dirname(os.path.realpath(__file__)))))
+    i = 0
+    # Adding populse_mia
+    print('\n- Mia in "developer" mode')
+    mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
+    print('  . Using populse_mia package from {} ...'.format(mia_dev_dir))
+    sys.path.insert(i, mia_dev_dir)
+    del mia_dev_dir
+
+    # Adding capsul
+    if os.path.isdir(os.path.join(root_dev_dir, 'capsul')):
+        i += 1
+        capsul_dev_dir = os.path.join(root_dev_dir, 'capsul')
+        print('  . Using capsul package from {} ...'.format(capsul_dev_dir))
+        sys.path.insert(i, capsul_dev_dir)
+        del capsul_dev_dir
+
+    else:
+        import capsul
+        capsul_dir = os.path.dirname(os.path.dirname(capsul.__file__))
+        print('  . Using capsul package from {} ...'.format(capsul_dir))
+        del capsul_dir
+        del capsul
+
+     # Adding soma_base:
+    if os.path.isdir(os.path.join(root_dev_dir, 'soma-base')):
+        i += 1
+        soma_b_dev_dir = os.path.join(root_dev_dir, 'soma-base', 'python')
+        print('  . Using soma package from {} ...'.format(soma_b_dev_dir))
+        sys.path.insert(i, soma_b_dev_dir)
+        del soma_b_dev_dir
+
+    else:
+        import soma
+        soma_b_dir = os.path.dirname(os.path.dirname(soma.__file__))
+        print('  . Using soma package from {} ...'.format(soma_b_dir))
+        del soma_b_dir
+        del soma
+
+    # Adding soma_workflow:
+    if os.path.isdir(os.path.join(root_dev_dir, 'soma-workflow')):
+        i += 1
+        soma_w_dev_dir = os.path.join(root_dev_dir, 'soma-workflow', 'python')
+        print('  . Using soma_workflow package from {} '
+              '...'.format(soma_w_dev_dir))
+        sys.path.insert(i, soma_w_dev_dir)
+        del soma_w_dev_dir
+
+    else:
+        import soma_workflow
+        soma_w_dir = os.path.dirname(os.path.dirname(soma_workflow.__file__))
+        print('  . Using soma_worflow package from {} ...'.format(soma_w_dir))
+        del soma_w_dir
+        del soma_workflow
+
+    # Adding populse_db:
+    if os.path.isdir(os.path.join(root_dev_dir, 'populse_db')):
+        i += 1
+        populse_db_dev_dir = os.path.join(root_dev_dir, 'populse_db', 'python')
+        print('  . Using populse_db package from {} '
+              '...'.format(populse_db_dev_dir))
+        sys.path.insert(i, populse_db_dev_dir)
+        del populse_db_dev_dir
+
+    else:
+        import populse_db
+        populse_db_dir = os.path.dirname(os.path.dirname(populse_db.__file__))
+        print('  . Using populse_db package from {} ...'.format(populse_db_dir))
+        del populse_db_dir
+        del populse_db
+
+    # Adding mia_processes:
+    if os.path.isdir(os.path.join(root_dev_dir, 'mia_processes')):
+        i += 1
+        mia_processes_dev_dir = os.path.join(root_dev_dir,
+                                             'mia_processes',
+                                             'python')
+        print('  . Using mia_processes package from {} '
+              '...'.format(mia_processes_dev_dir))
+        sys.path.insert(i, mia_processes_dev_dir)
+        del mia_processes_dev_dir
+
+    else:
+        import mia_processes
+        mia_processes_dir = os.path.dirname(
+                              os.path.dirname(mia_processes.__file__))
+        print('  . Using mia_processes package from {} '
+              '...'.format(mia_processes_dir))
+        del mia_processes_dir
+        del mia_processes
+
+    del root_dev_dir
 
 elif 'CASA_DISTRO' in os.environ:
     # If the casa distro developpement environment is detected,
     # developer mode is activated.
     DEV_MODE = True
+
 else:  # "user" mode
     DEV_MODE = False
+    print('\n- Mia in "user" mode')
+
+# capsul imports
+from capsul.api import get_process_instance
+
+# soma-base imports
+from soma.qt_gui.qt_backend.Qt import QMessageBox
 
 # populse_mia imports
 from populse_mia.user_interface.main_window import MainWindow
