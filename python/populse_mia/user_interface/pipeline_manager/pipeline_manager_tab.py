@@ -730,7 +730,7 @@ class PipelineManagerTab(QWidget):
                         setattr(process, param, output)
 
                     # rebuild missing_params after setting outputs
-                    missing_params = process.get_missing_mandatory_parameters(
+                    missing_params = node.get_missing_mandatory_parameters(
                         exclude_links=True)
 
             if missing_params:
