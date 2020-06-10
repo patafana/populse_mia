@@ -48,6 +48,7 @@ from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
+from capsul.process import nipype_process
 import soma_workflow.constants as swconstants
 
 # PyQt5 imports
@@ -403,7 +404,7 @@ class PipelineManagerTab(QWidget):
                                 self.inheritance_dict[old_value] = value
 
             # Adding inherited tags
-            if self.inheritance_dict:                
+            if self.inheritance_dict and old_value in self.inheritance_dict:
                 database_parent_file = None
                 parent_file = self.inheritance_dict[old_value]
                 for scan in self.project.session.get_documents_names(
@@ -619,6 +620,163 @@ class PipelineManagerTab(QWidget):
                     print('set back param:', param, ':', getattr(pipeline, param), '->', value)
                     setattr(pipeline, param, value)
 
+    def complete_mia_parameters(self, pipeline):
+        """
+        Recursive parameters completion using MIA's "list_outputs()" method
+        """
+        def satisfied_deps(node, all_nodes, done):
+            for param, plug in node.plugs.items():
+                if not plug.output:
+                    for link in plug.links_from:
+                        snode = link[2]
+                        if snode not in done and (link[0], snode) in all_nodes:
+                            return False
+            return True
+
+        # build complete nodes list
+        nodes_list = [n for n in pipeline.nodes.items()
+                      if n[0] != ''
+                          and pipeline_tools.is_node_enabled(pipeline, n[0],
+                                                             n[1])]
+
+        # add "project" attribute in processes using it
+        all_nodes = set(nodes_list)
+        while nodes_list:
+            node_name, node = nodes_list.pop(0)
+            if hasattr(node, 'process'):
+                process = node.process
+
+                if hasattr(process, 'use_project') and process.use_project:
+                    process.project = self.project
+                if isinstance(node, PipelineNode):
+                    new_nodes = [
+                        n for n in process.nodes.items()
+                        if n[0] != ''
+                            and pipeline_tools.is_node_enabled(process, n[0],
+                                                               n[1])]
+                    nodes_list += new_nodes
+                    all_nodes.update(new_nodes)
+
+        init_result = True
+        done = set()
+        todo = [(node_name, node) for node_name, node in all_nodes
+                if satisfied_deps(node, all_nodes, done)]
+
+        while todo:
+            node_name, node = todo.pop(0)
+            done.add(node)
+
+            missing_params = node.get_missing_mandatory_parameters(
+                exclude_links=True)
+            #missing_inputs = [p for p in missing_params
+                              #if not node.get_trait(p).output]
+            if missing_params:
+                print("\nSome inputs for the node {0} are "
+                      "missing:".format(node_name))
+                print(missing_params)
+                return False
+
+            if isinstance(node, ProcessNode):
+                process = node.process
+
+                # MIA-specific
+                if hasattr(process, 'list_outputs'):
+
+                    # output_directory is a trick here. If Capsul completion is
+                    # active it should have set something here.
+                    # This code is useful for MIA processes.
+                    if process.trait('output_directory') \
+                            and process.output_directory in (None, Undefined,
+                                                             ''):
+                        out_dir = os.path.abspath(
+                            self.project.folder + os.sep + 'scripts')
+                        if not os.path.exists(out_dir):
+                            try:
+                                os.makedirs(out_dir)
+                            except IOError:
+                                pass
+                        process.output_directory = out_dir
+
+                    # Getting the inheritance_dict, the requirement (dict) and the node
+                    # outputs list according to its inputs: initResult_dict.
+                    # - initResult_dict['requirement']:
+                    # the requirement for the process (list)
+                    # - initResult_dict['outputs']:
+                    # a dictionary whose keys are the output plugs name and whose keys
+                    # are the correponding value
+                    # - initResult_dict['inheritance_dict']:
+                    # a dictionary whose keys are the names of the scans in the output
+                    # plugs and whose values are the names of the scans in the input
+                    # plugs from that the output scans will inherit the tags
+
+                    # The state, linked or not, of the plugs is passed to the
+                    # list_outputs method, only for nodes not coming from nipype
+                    # (so those coming from mia_processes and those created
+                    # by the user): is_plugged object.
+                    is_plugged = {key: (bool(plug.links_to)
+                                        or bool(plug.links_from))
+                                                for key, plug in node.plugs.items()}
+                    initResult_dict = process.list_outputs(
+                        is_plugged=is_plugged)
+                    outputs = initResult_dict.get('outputs')
+                    if not outputs:  # outputs is None:
+                        print("\nInitialisation failed to determine the "
+                              "outputs for the process {0}, did you correctly "
+                              "define the inputs ...?".format(node_name))
+                        return False
+
+                    dep_nodes = set()
+                    for param, output in outputs.items():
+                        setattr(process, param, output)
+
+                    # rebuild missing_params after setting outputs
+                    missing_params = process.get_missing_mandatory_parameters(
+                        exclude_links=True)
+
+            if missing_params:
+                print("\nInitialisation failed to determine some "
+                      "parameters for the process {0}, did you correctly "
+                      "define the inputs ...?".format(node_name))
+                print(missing_params)
+                return False
+
+            # insert downstream nodes in todo list
+            for param, plug in node.plugs.items():
+                if not plug.output:
+                    continue
+                links = plug.links_to
+                for l in links:
+                    dnode = l[2]
+                    #print(l[0], dnode in done, dnode in )
+                    if dnode not in done and (l[0], dnode) in all_nodes \
+                            and (l[0], dnode) not in todo \
+                            and satisfied_deps(dnode, all_nodes, done):
+                        todo.append((l[0], dnode))
+                    # release "exists" property on connected traits
+                    if hasattr(dnode, 'process'):
+                        p = l[2].process
+                    else:
+                        p = l[2]
+                    trait = p.trait(l[1])
+                    if trait:
+                        nipype_process.relax_exists_constrain(trait)
+                        if hasattr(p, 'process') \
+                                and hasattr(p.process, 'inputs'):
+                            # MIA custom wrappings of nipype interfaces
+                            # are this way, and do not release the
+                            # exists constrain internally.
+                            nipype_process.relax_exists_constrain(
+                                p.process.inputs.trait(l[1]))
+
+        if len(done) != len(all_nodes):
+            print('Some nodes of the pipeline could not be reached through'
+                  'dependencies. The pipeline structure is probably wrong:')
+            print([node_name for node_name, node in all_nodes
+                   if node not in done])
+            init_result = False
+
+        return init_result
+
     def _register_node_io_in_database(self, node, proc_outputs,
                                       pipeline_name=''):
         if not hasattr(node, 'process'):
@@ -756,6 +914,7 @@ class PipelineManagerTab(QWidget):
         #
         # I'm sorry I am writing another code for that.
 
+        print('init pipeline...')
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -772,41 +931,27 @@ class PipelineManagerTab(QWidget):
         else:
             main_pipeline = False
 
-        # Capsul parameters completion
-        self.complete_pipeline_parameters(pipeline)
-
-        nodes_list = [n for n in pipeline.nodes.items()
-                      if n[0] != ''
-                          and pipeline_tools.is_node_enabled(pipeline, n[0],
-                                                             n[1])]
-
-        # add "project" attribute in processes using it
-        all_nodes = list(nodes_list)
-        while nodes_list:
-            node_name, node = nodes_list.pop(0)
-            if hasattr(node, 'process'):
-                process = node.process
-
-                if hasattr(process, 'use_project') and process.use_project:
-                    process.project = self.project
-                if isinstance(node, PipelineNode):
-                    new_nodes = [
-                        n for n in process.nodes.items()
-                        if n[0] != ''
-                            and pipeline_tools.is_node_enabled(process, n[0],
-                                                               n[1])]
-                    nodes_list += new_nodes
-                    all_nodes += new_nodes
-
         init_result = True
 
-        # check missing inputs
-        missing_inputs = pipeline.get_missing_mandatory_parameters()
-        if len(missing_inputs) != 0:
-            ptype = 'pipeline'
-            print('In %s %s: missing mandatory parameters: %s'
-                  % (ptype, pipeline.name, ', '.join(missing_inputs)))
-            init_result = False
+        # Capsul parameters completion
+        print('Capsul completion...')
+        self.complete_pipeline_parameters(pipeline)
+        # MIA completion
+        print('MIA completion...')
+        init_result = self.complete_mia_parameters(pipeline)
+        if not init_result:
+            print('MIA parameters completion could not complete.')
+        print('completion done.')
+
+        # this is done currently in complete_mia_parameters()
+        ## check missing inputs
+        #missing_inputs = pipeline.get_missing_mandatory_parameters()
+        #if len(missing_inputs) != 0:
+            #ptype = 'pipeline'
+            #print('In %s %s: missing mandatory parameters: %s'
+                  #% (ptype, pipeline.name, ', '.join(missing_inputs)))
+            #init_result = False
+
         missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
         if missing_inputs:
             print('Some input files do not exist:')
@@ -822,75 +967,52 @@ class PipelineManagerTab(QWidget):
             print('Pipeline requirements are not met')
             init_result = False
 
-        # add process characteristics in  the database
-        for node_name, node in all_nodes:
-            # Adding the brick to the bricks history
-            self.brick_id = str(uuid.uuid4())
-            self.brick_list.append(self.brick_id)
-            self.project.session.add_document(COLLECTION_BRICK,
-                                              self.brick_id)
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_NAME, node_name)
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
-                datetime.datetime.now())
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
+        if init_result:
+            # add process characteristics in  the database
+            # if init is otherwise OK
 
-            # SPM settings are normally managed through CapsulEngine.
+            nodes_list = [n for n in pipeline.nodes.items()
+                          if n[0] != ''
+                              and pipeline_tools.is_node_enabled(
+                                  pipeline, n[0], n[1])]
 
-            if isinstance(node, ProcessNode):
-                process = node.process
+            all_nodes = list(nodes_list)
+            while nodes_list:
+                node_name, node = nodes_list.pop(0)
+                if hasattr(node, 'process'):
+                    process = node.process
 
-                # output_directory is a trick here. If Capsul completion is
-                # active it should have set something here.
-                # This code is useful for MIA processes.
-                if process.trait('output_directory') \
-                        and process.output_directory in (None, Undefined, ''):
-                    out_dir = os.path.abspath(
-                        self.project.folder + os.sep + 'scripts')
-                    if not os.path.exists(out_dir):
-                        try:
-                            os.makedirs(out_dir)
-                        except IOError:
-                            pass
-                    process.output_directory = out_dir
+                    if isinstance(node, PipelineNode):
+                        new_nodes = [
+                            n for n in process.nodes.items()
+                            if n[0] != ''
+                                and pipeline_tools.is_node_enabled(
+                                    process, n[0], n[1])]
+                        nodes_list += new_nodes
+                        all_nodes += new_nodes
 
-                # MIA-specific
-                if hasattr(process, 'list_outputs'):
-                    # Getting the inheritance_dict, the requirement (dict) and the node
-                    # outputs list according to its inputs: initResult_dict.
-                    # - initResult_dict['requirement']:
-                    # the requirement for the process (list)
-                    # - initResult_dict['outputs']:
-                    # a dictionary whose keys are the output plugs name and whose keys
-                    # are the correponding value
-                    # - initResult_dict['inheritance_dict']:
-                    # a dictionary whose keys are the names of the scans in the output
-                    # plugs and whose values are the names of the scans in the input
-                    # plugs from that the output scans will inherit the tags
+            for node_name, node in all_nodes:
+                # Adding the brick to the bricks history
+                self.brick_id = str(uuid.uuid4())
+                self.brick_list.append(self.brick_id)
+                self.project.session.add_document(COLLECTION_BRICK,
+                                                  self.brick_id)
+                self.project.session.set_value(
+                    COLLECTION_BRICK, self.brick_id, BRICK_NAME, node_name)
+                self.project.session.set_value(
+                    COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
+                    datetime.datetime.now())
+                self.project.session.set_value(
+                    COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
 
-                    # The state, linked or not, of the plugs is passed to the
-                    # list_outputs method, only for nodes not coming from nipype
-                    # (so those coming from mia_processes and those created
-                    # by the user): is_plugged object.
-                    is_plugged = {key: (bool(plug.links_to)
-                                        or bool(plug.links_from))
-                                                for key, plug in node.plugs.items()}
-                    initResult_dict = process.list_outputs(
-                        is_plugged=is_plugged)
-                    if not initResult_dict.get('outputs'):
-                        print("\nInitialisation failed to determine the "
-                              "outputs for the process {0}, did you correctly "
-                              "define the inputs ...?".format(node_name))
-                        init_result = False
-                    outputs = initResult_dict['outputs']
-                else:
-                    # regular process
+                # SPM settings are normally managed through CapsulEngine.
+
+                if isinstance(node, ProcessNode):
+                    process = node.process
                     outputs = process.get_outputs()
 
-                self._register_node_io_in_database(node, outputs,
-                                                   pipeline_name)
+                    self._register_node_io_in_database(node, outputs,
+                                                       pipeline_name)
 
         self.project.saveModifications()
 
@@ -1779,6 +1901,8 @@ class PipelineManagerTab(QWidget):
         self.tags_menu.addSeparator()
         self.tags_menu.addAction(self.init_pipeline_action)
         self.tags_menu.addAction(self.run_pipeline_action)
+        self.tags_menu.addAction(self.stop_pipeline_action)
+        self.tags_menu.addAction(self.show_pipeline_status_action)
 
         self.tags_tool_button.setText('Pipeline')
         self.tags_tool_button.setPopupMode(
@@ -1794,6 +1918,8 @@ class PipelineManagerTab(QWidget):
         self.menu_toolbar.addAction(self.run_pipeline_action)
         self.menu_toolbar.addAction(self.stop_pipeline_action)
         self.menu_toolbar.addAction(self.show_pipeline_status_action)
+        self.menu_toolbar.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                        QtWidgets.QSizePolicy.Fixed)
 
         # Layouts
 
@@ -2026,6 +2152,8 @@ class PipelineManagerTab(QWidget):
         else:
             
             self.progress = RunProgress(self)
+            self.progress.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                        QtWidgets.QSizePolicy.Fixed)
             self.hLayout.addWidget(self.progress)
             #self.progress.show()
             #self.progress.exec()
