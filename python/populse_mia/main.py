@@ -461,11 +461,10 @@ def main():
     else:  # "user" mode
 
         try:
-
             if not os.path.exists(os.path.dirname(dot_mia_config)):
                 os.mkdir(os.path.dirname(dot_mia_config))
-                print('\nThe {0} directory is created ...'
-                      .format(os.path.exists(os.path.dirname(dot_mia_config))))
+                print('\nThe {0} directory is created '
+                      '...'.format(os.path.dirname(dot_mia_config)))
 
             with open(dot_mia_config, 'r') as stream:
 
