@@ -633,6 +633,8 @@ class PipelineManagerTab(QWidget):
                             return False
             return True
 
+        config = None  # not used yet, will maybe not be used at all
+
         # build complete nodes list
         nodes_list = [n for n in pipeline.nodes.items()
                       if n[0] != ''
@@ -690,12 +692,28 @@ class PipelineManagerTab(QWidget):
                                                              ''):
                         out_dir = os.path.abspath(
                             self.project.folder + os.sep + 'scripts')
-                        if not os.path.exists(out_dir):
-                            try:
-                                os.makedirs(out_dir)
-                            except IOError:
-                                pass
+                        ## FIXME: should be done on server side
+                        #if not os.path.exists(out_dir):
+                            #try:
+                                #os.makedirs(out_dir)
+                            #except IOError:
+                                #pass
                         process.output_directory = out_dir
+
+                    # Test for matlab launch
+                    if process.trait('use_mcr'):
+                        if config is None:
+                            config = Config()
+                        if config.get_use_spm_standalone():
+                            process.use_mcr = True
+                            process.paths \
+                                = config.get_spm_standalone_path().split()
+                            process.matlab_cmd = config.get_matlab_command()
+
+                        elif config.get_use_spm():
+                            process.use_mcr = False
+                            process.paths = config.get_spm_path().split()
+                            process.matlab_cmd = config.get_matlab_command()
 
                     # Getting the inheritance_dict, the requirement (dict) and the node
                     # outputs list according to its inputs: initResult_dict.
@@ -1013,6 +1031,10 @@ class PipelineManagerTab(QWidget):
 
                     self._register_node_io_in_database(node, outputs,
                                                        pipeline_name)
+
+                    # This cannot be done in remote execution
+                    if hasattr(process, 'manage_brick_before_run'):
+                        process.manage_brick_before_run()
 
         self.project.saveModifications()
 
@@ -2225,6 +2247,40 @@ class PipelineManagerTab(QWidget):
         del self._mmovie
         del self.progress
 
+    def postprocess_pipeline_execution(self, pipeline=None):
+        if not pipeline:
+            pipeline = get_process_instance(
+                self.pipelineEditorTabs.get_current_pipeline())
+
+        print('postprocess pipeline:', pipeline)
+
+        nodes_list = [n for n in pipeline.nodes.items()
+                      if n[0] != ''
+                          and pipeline_tools.is_node_enabled(
+                              pipeline, n[0], n[1])]
+
+        all_nodes = list(nodes_list)
+        while nodes_list:
+            node_name, node = nodes_list.pop(0)
+            if hasattr(node, 'process'):
+                process = node.process
+
+                if isinstance(node, PipelineNode):
+                    new_nodes = [
+                        n for n in process.nodes.items()
+                        if n[0] != ''
+                            and pipeline_tools.is_node_enabled(
+                                process, n[0], n[1])]
+                    nodes_list += new_nodes
+                    all_nodes += new_nodes
+
+        for node_name, node in all_nodes:
+            if isinstance(node, ProcessNode):
+                process = node.process
+                # This cannot be done in remote execution
+                if hasattr(process, 'manage_brick_after_run'):
+                    process.manage_brick_before_run()
+
     def show_status(self):
         """
         Show the last run status and execution info, errors etc.
@@ -2866,6 +2922,10 @@ class RunWorker(QThread):
             #** pipeline object introspection: see initialize method in the
             #                                  PipelineManagerTab class, this
             #                                  module
+
+            # postprocess each node to index outputs
+            if self.status == swconstants.WORKFLOW_DONE:
+                self.pipeline_manager.postprocess_pipeline_execution(pipeline)
            
         except (OSError, ValueError, Exception) as e:
             print('\n{0} has not been launched:\n{1}\n'.format(pipeline.name,
@@ -2873,7 +2933,7 @@ class RunWorker(QThread):
             import traceback
             traceback.print_exc()
 
-        # restore current working directory in cas it has been changed
+        # restore current working directory in case it has been changed
         os.chdir(cwd)
 
 

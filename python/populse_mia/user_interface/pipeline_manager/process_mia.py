@@ -63,22 +63,6 @@ class ProcessMIA(Process):
         super(ProcessMIA, self).__init__()
         # self.filters = {}  # use if the filters are set on plugs
 
-    def _after_run_process(self, run_process_result):
-        """Method called after the process being run.
-
-        :param run_process_result: Result of the run process
-        :return: the result of the run process
-        """
-        self.manage_brick_after_run()
-        return run_process_result
-
-    def _before_run_process(self):
-        """Method called before running the process.
-
-        Add the exec status Not Done and exec time to the process history
-        """
-        self.manage_brick_before_run()
-
     def get_brick_to_update(self, bricks):
         """Give the brick to update, given the scan list of bricks.
 
@@ -188,7 +172,9 @@ class ProcessMIA(Process):
 
         Called in bricks.
         """
-        if hasattr(self, "process"):
+        # Note: this is a non-general trick which should probably not be here.
+        if hasattr(self, "process") and hasattr(self.process, 'inputs') \
+                and hasattr(self, 'use_mcr'):
             self.process.inputs.use_mcr = self.use_mcr
             self.process.inputs.paths = self.paths
             self.process.inputs.matlab_cmd = self.matlab_cmd
