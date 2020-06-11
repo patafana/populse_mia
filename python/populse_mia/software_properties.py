@@ -276,10 +276,14 @@ class Config:
 
         """
         if self.config.get("use_spm_standalone"):
-            return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
-                    'run_spm12.sh {0}'.format(self.config[
-                                                 "matlab_standalone"]) +
-                    os.sep + ' script')
+            spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
+                                                'run_spm*.sh'))
+            if spm_script:
+                spm_script = spm_script[0]
+                return '{0} {1} script'.format(
+                    spm_script, self.config["matlab_standalone"])
+            else:
+                return ''  # will not work.
         else:
             return self.config.get("matlab", None)
 
