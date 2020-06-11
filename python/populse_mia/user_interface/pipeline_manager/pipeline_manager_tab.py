@@ -48,7 +48,7 @@ from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
-from capsul.process import nipype_process
+from soma.controller.trait_utils import relax_exists_constrain
 import soma_workflow.constants as swconstants
 
 # PyQt5 imports
@@ -777,13 +777,13 @@ class PipelineManagerTab(QWidget):
                         p = l[2]
                     trait = p.trait(l[1])
                     if trait:
-                        nipype_process.relax_exists_constrain(trait)
+                        relax_exists_constrain(trait)
                         if hasattr(p, 'process') \
                                 and hasattr(p.process, 'inputs'):
                             # MIA custom wrappings of nipype interfaces
                             # are this way, and do not release the
                             # exists constrain internally.
-                            nipype_process.relax_exists_constrain(
+                            relax_exists_constrain(
                                 p.process.inputs.trait(l[1]))
 
         if len(done) != len(all_nodes):
