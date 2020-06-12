@@ -23,6 +23,7 @@ import os
 
 # Capsul imports
 from capsul.api import Process
+from capsul.pipeline.pipeline_nodes import ProcessNode
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
@@ -236,13 +237,17 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         self.set_parameters(process_inputs)
         verbose = False
 
-        process = self.process
-        ## TODO FIXME we need the Node with plugs to check this, not only the
-        ## Process.
-        ##is_plugged = {key: (bool(plug.links_to)
-                            ##or bool(plug.links_from))
-                                    ##for key, plug in node.plugs.items()}
-        initResult_dict = process.list_outputs(is_plugged=None)
+        node = self.process
+        process = node
+        if isinstance(node, ProcessNode):
+            process = node.process
+
+            is_plugged = {key: (bool(plug.links_to)
+                                or bool(plug.links_from))
+                                        for key, plug in node.plugs.items()}
+        else:
+            is_plugged = None  # we cannot get this info
+        initResult_dict = process.list_outputs(is_plugged=is_plugged)
         if not initResult_dict:
             return  # the process is not really configured
         outputs = initResult_dict.get('outputs', {})
@@ -315,7 +320,10 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
         if hasattr(process, 'completion_engine'):
             return process.completion_engine
 
-        if isinstance(process, ProcessMIA):
+        in_process = process
+        if isinstance(process, ProcessNode):
+            in_process = process.process
+        if isinstance(in_process, ProcessMIA):
             return MIAProcessCompletionEngine(process, name)
 
         engine_factory = None
