@@ -48,7 +48,7 @@ from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
-from soma.controller.trait_utils import relax_exists_constrain
+# from soma.controller.trait_utils import relax_exists_constrain
 import soma_workflow.constants as swconstants
 
 # PyQt5 imports
@@ -951,33 +951,36 @@ class PipelineManagerTab(QWidget):
 
         init_result = True
 
+        # complete config for completion
+        study_config = pipeline.get_study_config()
+        study_config.project = self.project
+
         # Capsul parameters completion
         print('Capsul completion...')
         self.complete_pipeline_parameters(pipeline)
-        # MIA completion
-        print('MIA completion...')
-        init_result = self.complete_mia_parameters(pipeline)
-        if not init_result:
-            print('MIA parameters completion could not complete.')
+        ## MIA completion
+        #print('MIA completion...')
+        #init_result = self.complete_mia_parameters(pipeline)
+        #if not init_result:
+            #print('MIA parameters completion could not complete.')
         print('completion done.')
 
-        # this is done currently in complete_mia_parameters()
-        ## check missing inputs
-        #missing_inputs = pipeline.get_missing_mandatory_parameters()
-        #if len(missing_inputs) != 0:
-            #ptype = 'pipeline'
-            #print('In %s %s: missing mandatory parameters: %s'
-                  #% (ptype, pipeline.name, ', '.join(missing_inputs)))
-            #init_result = False
-
-        missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
-        if missing_inputs:
-            print('Some input files do not exist:')
-            for name, params in missing_inputs.items():
-                print('node:', name)
-                for pname, fname in params:
-                    print('%s:' % pname, fname)
+        # check missing inputs
+        missing_inputs = pipeline.get_missing_mandatory_parameters()
+        if len(missing_inputs) != 0:
+            ptype = 'pipeline'
+            print('In %s %s: missing mandatory parameters: %s'
+                  % (ptype, pipeline.name, ', '.join(missing_inputs)))
             init_result = False
+
+        #missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
+        #if missing_inputs:
+            #print('Some input files do not exist:')
+            #for name, params in missing_inputs.items():
+                #print('node:', name)
+                #for pname, fname in params:
+                    #print('%s:' % pname, fname)
+            #init_result = False
 
         # check requirements
         requirements = pipeline.check_requirements('global')
