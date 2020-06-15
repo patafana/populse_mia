@@ -48,8 +48,8 @@ from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
-# from soma.controller.trait_utils import relax_exists_constrain
 import soma_workflow.constants as swconstants
+from soma.controller.trait_utils import is_file_trait
 
 # PyQt5 imports
 from PyQt5.QtCore import Signal, Qt, QThread, QTimer
@@ -268,167 +268,166 @@ class PipelineManagerTab(QWidget):
         self.previewBlock.centerOn(0, 0)
         self.find_process(name_item)
 
-    def add_plug_value_to_database(self, p_value, brick, node_name,
-                                   plug_name, full_name):
+    def add_plug_value_to_database(self, p_value, brick_id, node_name,
+                                   plug_name, full_name, node, trait):
         """Add the plug value to the database.
 
-        :param p_value: plug value, a file name or a list of file names
-        :param brick: brick id
-        :param node_name: name of the node
-        :param plug_name: name of the plug
-        :param full_name: full name of the node, including parent brick(s).
-                          If there is no parent brick, full_name = node_name.
+        Parameters
+        ----------
+        p_value: any
+            plug value, a file name or a list of file names
+        brick_id: str
+            brick id in the database
+        node_name: str
+            name of the node
+        plug_name: str
+            name of the plug
+        full_name:  str
+            full name of the node, including parent brick(s).
+            If there is no parent brick, full_name = node_name.
+        node: Node
+            node containing the plug
+        trait: Trait
+            handler of the plug trait, or sub-trait if the plug is a list.
+            It will be used to check the value type (file or not)
         """
 
-        if type(p_value) in [list, TraitListObject]:
+        if isinstance(p_value, (list, TraitListObject)):
+            inner_trait = trait.handler.inner_traits()[0]
             for elt in p_value:
-                self.add_plug_value_to_database(elt, brick, node_name, 
-                                                plug_name, full_name)
+                self.add_plug_value_to_database(elt, brick_id, node_name,
+                                                plug_name, full_name, node,
+                                                inner_trait)
             return
 
-        # This means that the value is not a filename
-        if p_value in ["<undefined>",
-                       Undefined,
-                       [Undefined]] or not os.path.isdir(
-                os.path.split(p_value)[0]):
+        if not is_file_trait(trait, allow_dir=True) \
+                or p_value in ("<undefined>", Undefined, [Undefined]):
+            # This means that the value is not a filename
             return
-        try:
-            open(p_value, 'a').close()
-        except IOError:
-            raise IOError('Could not open {0} file.'.format(p_value))
+
+        # Deleting the project's folder in the file name so it can
+        # fit to the database's syntax
+        old_value = p_value
+        #p_value = p_value.replace(self.project.folder, "")
+        p_value = p_value.replace(os.path.abspath(self.project.folder), "")
+        if p_value[0] in ["\\", "/"]:
+            p_value = p_value[1:]
+
+        # If the file name is already in the database,
+        # no exception is raised
+        # but the user is warned
+        if self.project.session.get_document(COLLECTION_CURRENT, p_value):
+            print("Path {0} already in database.".format(p_value))
         else:
-            # Deleting the project's folder in the file name so it can
-            # fit to the database's syntax
-            old_value = p_value
-            #p_value = p_value.replace(self.project.folder, "")
-            p_value = p_value.replace(os.path.abspath(self.project.folder), "")
-            if p_value[0] in ["\\", "/"]:
-                p_value = p_value[1:]
+            self.project.session.add_document(COLLECTION_CURRENT, p_value)
+            self.project.session.add_document(COLLECTION_INITIAL, p_value)
 
-            # If the file name is already in the database,
-            # no exception is raised
-            # but the user is warned
-            if self.project.session.get_document(COLLECTION_CURRENT, p_value):
-                print("Path {0} already in database.".format(p_value))
-            else:
-                self.project.session.add_document(COLLECTION_CURRENT, p_value)
-                self.project.session.add_document(COLLECTION_INITIAL, p_value)
+        # Adding the new brick to the output files
+        bricks = self.project.session.get_value(
+            COLLECTION_CURRENT, p_value, TAG_BRICKS)
+        if bricks is None:
+            bricks = []
+        bricks.append(brick_id)
+        self.project.session.set_value(
+            COLLECTION_CURRENT, p_value, TAG_BRICKS, bricks)
+        self.project.session.set_value(
+            COLLECTION_INITIAL, p_value, TAG_BRICKS, bricks)
+        # Type tag
+        filename, file_extension = os.path.splitext(p_value)
+        ptype = TYPE_UNKNOWN
+        if file_extension == ".nii":
+            ptype = TYPE_NII
+        elif file_extension == ".mat":
+            ptype = TYPE_MAT
+        elif file_extension == ".txt":
+            ptype = TYPE_TXT
 
-            # Adding the new brick to the output files
-            bricks = self.project.session.get_value(
-                COLLECTION_CURRENT, p_value, TAG_BRICKS)
-            if bricks is None:
-                bricks = []
-            bricks.append(self.brick_id)
-            self.project.session.set_value(
-                COLLECTION_CURRENT, p_value, TAG_BRICKS, bricks)
-            self.project.session.set_value(
-                COLLECTION_INITIAL, p_value, TAG_BRICKS, bricks)
-            # Type tag
-            filename, file_extension = os.path.splitext(p_value)
-            if file_extension == ".nii":
-                self.project.session.set_value(
-                    COLLECTION_CURRENT, p_value, TAG_TYPE, TYPE_NII)
-                self.project.session.set_value(
-                    COLLECTION_INITIAL, p_value, TAG_TYPE, TYPE_NII)
-            elif file_extension == ".mat":
-                self.project.session.set_value(
-                    COLLECTION_CURRENT, p_value, TAG_TYPE, TYPE_MAT)
-                self.project.session.set_value(
-                    COLLECTION_INITIAL, p_value, TAG_TYPE, TYPE_MAT)
-            elif file_extension == ".txt":
-                self.project.session.set_value(
-                    COLLECTION_CURRENT, p_value, TAG_TYPE, TYPE_TXT)
-                self.project.session.set_value(
-                    COLLECTION_INITIAL, p_value, TAG_TYPE, TYPE_TXT)
-            else:
-                self.project.session.set_value(
-                    COLLECTION_CURRENT, p_value, TAG_TYPE, TYPE_UNKNOWN)
-                self.project.session.set_value(
-                    COLLECTION_INITIAL, p_value, TAG_TYPE, TYPE_UNKNOWN)
+        self.project.session.set_value(
+            COLLECTION_CURRENT, p_value, TAG_TYPE, ptype)
+        self.project.session.set_value(
+            COLLECTION_INITIAL, p_value, TAG_TYPE, ptype)
 
-            inputs = self.inputs
-            # iterate = self.iterationTable.check_box_iterate.isChecked()
-            # Automatically fill inheritance dictionary if empty
-            if self.ignore_node:
-                pass
-            elif ((self.inheritance_dict is None or old_value not in
-                    self.inheritance_dict) and
-                  (node_name not in self.ignore) and
-                  (node_name + plug_name not in self.ignore)):
-                values = {}
-                for key in inputs:
-                    paths = []
-                    if isinstance(inputs[key], list):
-                        for val in inputs[key]:
-                            if isinstance(val, str):
-                                paths.append(val)
-                    elif isinstance(inputs[key], str):
-                        paths.append(inputs[key])
-                    for path in paths:
-                        if os.path.exists(path):
-                            name, extension = os.path.splitext(path)
-                            if extension == ".nii":
-                                values[key] = name + extension
-                if len(values) >= 1:
-                    self.inheritance_dict = {}
-                    if len(values) == 1:
-                        value = values[list(values.keys(
-                        ))[0]]
+        inputs = self.inputs
+        # Automatically fill inheritance dictionary if empty
+        if self.ignore_node:
+            pass
+        elif ((self.inheritance_dict is None or old_value not in
+                self.inheritance_dict) and
+              (node_name not in self.ignore) and
+              (node_name + plug_name not in self.ignore)):
+            values = {}
+            for key in inputs:
+                paths = []
+                if isinstance(inputs[key], list):
+                    for val in inputs[key]:
+                        if isinstance(val, str):
+                            paths.append(val)
+                elif isinstance(inputs[key], str):
+                    paths.append(inputs[key])
+                for path in paths:
+                    if os.path.exists(path):
+                        name, extension = os.path.splitext(path)
+                        if extension == ".nii":
+                            values[key] = name + extension
+            if len(values) >= 1:
+                self.inheritance_dict = {}
+                if len(values) == 1:
+                    value = values[list(values.keys(
+                    ))[0]]
+                    self.inheritance_dict[old_value] = value
+                else:
+                    if node_name in self.key:
+                        value = values[self.key[node_name]]
+                        self.inheritance_dict[old_value] = value
+                    elif node_name + plug_name in self.key:
+                        value = values[self.key[node_name + plug_name]]
                         self.inheritance_dict[old_value] = value
                     else:
-                        if node_name in self.key:
-                            value = values[self.key[node_name]]
-                            self.inheritance_dict[old_value] = value
-                        elif node_name + plug_name in self.key:
-                            value = values[self.key[node_name + plug_name]]
-                            self.inheritance_dict[old_value] = value
-                        else:
-                            pop_up = PopUpInheritanceDict(
-                             values, full_name, plug_name,
-                             self.iterationTable.check_box_iterate.isChecked())
-                            pop_up.exec()
-                            self.ignore_node = pop_up.everything
-                            if pop_up.ignore:
-                                self.inheritance_dict = None
-                                if pop_up.all is True:
-                                    self.ignore[node_name] = True
-                                else:
-                                    self.ignore[node_name+plug_name] = True
+                        pop_up = PopUpInheritanceDict(
+                          values, full_name, plug_name,
+                          self.iterationTable.check_box_iterate.isChecked())
+                        pop_up.exec()
+                        self.ignore_node = pop_up.everything
+                        if pop_up.ignore:
+                            self.inheritance_dict = None
+                            if pop_up.all is True:
+                                self.ignore[node_name] = True
                             else:
-                                value = pop_up.value
-                                if pop_up.all is True:
-                                    self.key[node_name] = pop_up.key
-                                else:
-                                    self.key[node_name+plug_name] = pop_up.key
-                                self.inheritance_dict[old_value] = value
+                                self.ignore[node_name+plug_name] = True
+                        else:
+                            value = pop_up.value
+                            if pop_up.all is True:
+                                self.key[node_name] = pop_up.key
+                            else:
+                                self.key[node_name+plug_name] = pop_up.key
+                            self.inheritance_dict[old_value] = value
 
-            # Adding inherited tags
-            if self.inheritance_dict and old_value in self.inheritance_dict:
-                database_parent_file = None
-                parent_file = self.inheritance_dict[old_value]
-                for scan in self.project.session.get_documents_names(
-                        COLLECTION_CURRENT):
-                    if scan in str(parent_file):
-                        database_parent_file = scan
-                banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
-                                 TAG_CHECKSUM, TAG_FILENAME]
-                for tag in self.project.session.get_fields_names(
-                        COLLECTION_CURRENT):
-                    if tag not in banished_tags and database_parent_file is \
-                            not None:
-                        parent_current_value = self.project.session.get_value(
-                            COLLECTION_CURRENT, database_parent_file, tag)
-                        self.project.session.set_value(
-                            COLLECTION_CURRENT, p_value, tag,
-                            parent_current_value)
-                        parent_initial_value = self.project.session.get_value(
-                            COLLECTION_INITIAL, database_parent_file, tag)
-                        self.project.session.set_value(
-                            COLLECTION_INITIAL, p_value, tag,
-                            parent_initial_value)
+        # Adding inherited tags
+        if self.inheritance_dict and old_value in self.inheritance_dict:
+            database_parent_file = None
+            parent_file = self.inheritance_dict[old_value]
+            for scan in self.project.session.get_documents_names(
+                    COLLECTION_CURRENT):
+                if scan in str(parent_file):
+                    database_parent_file = scan
+            banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
+                              TAG_CHECKSUM, TAG_FILENAME]
+            for tag in self.project.session.get_fields_names(
+                    COLLECTION_CURRENT):
+                if tag not in banished_tags and database_parent_file is \
+                        not None:
+                    parent_current_value = self.project.session.get_value(
+                        COLLECTION_CURRENT, database_parent_file, tag)
+                    self.project.session.set_value(
+                        COLLECTION_CURRENT, p_value, tag,
+                        parent_current_value)
+                    parent_initial_value = self.project.session.get_value(
+                        COLLECTION_INITIAL, database_parent_file, tag)
+                    self.project.session.set_value(
+                        COLLECTION_INITIAL, p_value, tag,
+                        parent_initial_value)
 
-            self.project.saveModifications()
+        self.project.saveModifications()
 
     def add_process_to_preview(self, class_process, node_name=None):
         """Add a process to the pipeline.
@@ -615,28 +614,40 @@ class PipelineManagerTab(QWidget):
 
             # re-force manually set params
             for param, value in init_params.items():
-                if value not in (None, Undefined, '') \
+                if value not in (None, Undefined, '', []) \
                         and value != getattr(pipeline, param):
                     print('set back param:', param, ':', getattr(pipeline, param), '->', value)
                     setattr(pipeline, param, value)
 
     def _register_node_io_in_database(self, node, proc_outputs,
                                       pipeline_name=''):
-        if not hasattr(node, 'process'):
-            # not a process, skip.
-            return
-        process = node.process
+        if isinstance(node, ProcessNode):
+            process = node.process
+            inputs = process.get_inputs()
+            outputs = process.get_outputs()
+            # ProcessMIA / Process_Mia specific
+            if hasattr(process, 'list_outputs') \
+                    and hasattr(process, 'outputs'):
+                # normally same as outputs, but it may contain an additional
+                # "notInDb" key.
+                outputs.update(process.outputs)
+        else:
+            outputs = {
+                param: node.get_plug_value(param)
+                for param, trait in node.user_traits()
+                if trait.output}
+            inputs = {
+                param: node.get_plug_value(param)
+                for param, trait in node.user_traits()
+                if not trait.output}
 
         # Adding I/O to database history
-        inputs = process.get_inputs()
-        self.inputs = inputs
+        self.inputs = inputs  # used during add_plug_value_to_database()
 
         for key in inputs:
 
             if inputs[key] in [Undefined, [Undefined]]:
                 inputs[key] = "<undefined>"
-
-        outputs = process.get_outputs()
 
         for key in outputs:
             value = outputs[key]
@@ -645,26 +656,23 @@ class PipelineManagerTab(QWidget):
                 outputs[key] = "<undefined>"
 
         self.project.saveModifications()
-        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                        BRICK_INPUTS, inputs)
-        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                        BRICK_OUTPUTS, outputs)
 
         node_name = node.name
 
         # Updating the database with output values obtained from
         # initialisation. If a plug name is in
-        # proc_output['notInDb'], then the corresponding
+        # outputs['notInDb'], then the corresponding
         # output value is not added to the database.
-        if proc_outputs:
+        notInDb = set(outputs.get('notInDb', []))
 
-            for plug_name, plug_value in proc_outputs.items():
-                add_plug_value_flag = False
+        for plug_name, plug_value in outputs.items():
 
-                if plug_name not in node.plugs.keys():
-                    continue
+            if plug_name not in node.plugs.keys():
+                continue
 
-                if plug_value not in ["<undefined>", Undefined, [Undefined]]:
+            if plug_value != "<undefined>":
+
+                if plug_name not in notInDb:
 
                     if pipeline_name != "":
                         full_name = pipeline_name + "." + node_name
@@ -672,57 +680,16 @@ class PipelineManagerTab(QWidget):
                     else:
                         full_name = node_name
 
-                    if 'notInDb' in proc_outputs:
+                    trait = node.get_trait(plug_name)
+                    self.add_plug_value_to_database(plug_value,
+                                                    self.brick_id,
+                                                    node_name,
+                                                    plug_name,
+                                                    full_name,
+                                                    node,
+                                                    trait)
 
-                        if plug_name not in proc_outputs['notInDb']:
-                            add_plug_value_flag = True
-
-                    else:
-                        add_plug_value_flag = True
-
-                    if add_plug_value_flag:
-                        self.add_plug_value_to_database(plug_value,
-                                                        self.brick_id,
-                                                        node_name,
-                                                        plug_name,
-                                                        full_name)
-
-
-                list_info_link = list(node.plugs[plug_name].links_to)
-
-                try:
-                    node.set_plug_value(plug_name, plug_value)
-
-                except TraitError:
-
-                    if type(plug_value) is list and len(
-                            plug_value) == 1:
-
-                        try:
-                            node.set_plug_value(plug_name, plug_value[0])
-
-                        except TraitError as e:
-                            print('Trait error for the "{0}" plug of the '
-                                  '"{1}" node:\n'
-                                  '{2} ...'.format(plug_name, node_name, e))
-
-        # Adding I/O to database history again to update outputs
-        inputs = process.get_inputs()
-
-        for key in inputs:
-            value = inputs[key]
-
-            if value in [Undefined, [Undefined]]:
-                inputs[key] = "<undefined>"
-
-        outputs = process.get_outputs()
-
-        for key in outputs:
-            value = outputs[key]
-
-            if value in [Undefined, [Undefined]]:
-                outputs[key] = "<undefined>"
-
+        # Adding I/O to database history
         self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                         BRICK_INPUTS, inputs)
         self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
@@ -781,7 +748,7 @@ class PipelineManagerTab(QWidget):
         study_config.project = self.project
 
         # Capsul parameters completion
-        print('Capsul completion...')
+        print('Completion...')
         self.complete_pipeline_parameters(pipeline)
         print('completion done.')
 
@@ -803,9 +770,14 @@ class PipelineManagerTab(QWidget):
             #init_result = False
 
         # check requirements
-        requirements = pipeline.check_requirements('global')
+        req_messages = []
+        requirements = pipeline.check_requirements('global',
+                                                   message_list=req_messages)
         if requirements is None:
             print('Pipeline requirements are not met')
+            print('\n'.join(req_messages))
+            print('current configuration:')
+            print(study_config.engine.settings.select_configurations('global'))
             init_result = False
 
         if init_result:
@@ -846,18 +818,12 @@ class PipelineManagerTab(QWidget):
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
 
-                # SPM settings are normally managed through CapsulEngine.
+                self._register_node_io_in_database(node, pipeline_name)
+                self.project.saveModifications()
 
-                if isinstance(node, ProcessNode):
-                    process = node.process
-                    outputs = process.get_outputs()
-
-                    self._register_node_io_in_database(node, outputs,
-                                                       pipeline_name)
-
-                    # This cannot be done in remote execution
-                    if hasattr(process, 'manage_brick_before_run'):
-                        process.manage_brick_before_run()
+                # This cannot be done in remote execution
+                if hasattr(process, 'manage_brick_before_run'):
+                    process.manage_brick_before_run()
 
         self.project.saveModifications()
 
@@ -914,726 +880,6 @@ class PipelineManagerTab(QWidget):
                     'Pipeline "{0}" has been initialised.'.format(name))
 
         return init_result
-
-        # BEGINNING OF THE FORMER METHOD
-
-        # Should we add a progress bar for the initialization?
-        # self.enable_progress_bar = True
-        # if self.enable_progress_bar:
-        #     self.progress = InitProgress(
-        #         self.project, self.pipelineEditorTabs, pipeline)
-        #     self.progress.show()
-        #     self.progress.exec()
-        #
-        # else:
-        initial = True
-        check_init = {}
-        name = os.path.basename(
-            self.pipelineEditorTabs.get_current_filename())
-        self.main_window.statusBar().showMessage(
-            'Pipeline "{0}" is getting initialized. '
-            'Please wait.'.format(name))
-        QApplication.processEvents()
-
-        config = Config()
-
-        # nodes_requir_issue is a dictionary whose keys are the names of the
-        # nodes and whose values are the compatibility of the requirements of
-        # this node with the current configuration of MIA.
-        # - If no requirement defined in the process:
-        #   nodes_requir_issue[node_name] == 'MISSING'
-        # - If requirement does not match the current MIA configuration:
-        #   nodes_requir_issue[node_name] = [NameOfTheThirdPartiesWithProblem]
-        # - If requirement matches the current MIA configuration:
-        #   nodes_requir_issue have no key corresponding to node_name
-        nodes_requir_issue ={}
-
-        # nodes_requir_miss == [] if all processes have a defined requirement
-        # object or is a list of node names that do not have a defined
-        # requirement 
-        nodes_requir_miss = None
-        
-        # nodes_requir_fail == [] if all processes have requirements
-        # corresponding to the current mia configuration or nodes_requir_fail
-        # is a list of node names that requirements do not match the current
-        # mia's configuration
-        nodes_requir_fail = None
-        
-        # nodes_to_check contains the node names that need to be update
-        nodes_to_check = []
-        
-        # nodes_inputs_ratio is a dictionary whose keys are the node names
-        # and whose values are a list of two elements: the first one being
-        # the number of activated mandatory input plugs, the second one being
-        # the total number of mandatory input plugs of the corresponding node
-        # nodes_inputs_ratio = OrderedDict()
-        nodes_inputs_ratio = {}
-
-        # nodes_inputs_ratio_list contains the ratio between the number of
-        # activated mandatory input plugs and the total number of mandatory
-        # input plugs of the corresponding node (the order is the same as
-        # nodes_to_check)
-        nodes_inputs_ratio_list = []
-        
-        # If the initialisation is launch for the main pipeline
-        if not pipeline:
-            pipeline = get_process_instance(
-                self.pipelineEditorTabs.get_current_pipeline())
-            main_pipeline = True
-
-        else:
-            main_pipeline = False
-
-        self.complete_pipeline_parameters(pipeline)
-
-        # Test, if it works, comment.
-        #if hasattr(pipeline, 'pipeline_steps'):
-        #    pipeline.pipeline_steps.on_trait_change(
-        #        self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #        remove=True)
-        #pipeline.on_trait_change(
-        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #    'selection_changed', remove=True)
-        #pipeline.on_trait_change(
-        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #    'user_traits_changed', remove=True)
- 
-        for node_name, node in pipeline.nodes.items():            
-            # Updating the project attribute of the processes
-            if hasattr(node, 'process'):
-                process = node.process
-
-                if hasattr(process, 'use_project') and process.use_project:
-                    process.project = self.project
-
-            nb_plugs_from_in = 0
-            nb_plugs = 0
-
-            for plug_name, plug in node.plugs.items():
-                
-                if ((plug.links_from) and
-                    (not plug.output) and
-                    (not plug.optional)):
-                    nb_plugs += 1
-                    
-                    # If the link comes from the pipeline "global" inputs, it is
-                    # added to compute the ratio
-                    if list(plug.links_from)[0][0] == "":
-                        nb_plugs_from_in += 1
-
-            if nb_plugs == 0:
-                ratio = 0
-                
-            else:
-                ratio = nb_plugs_from_in / nb_plugs
-
-            nodes_to_check.append(node_name)
-            nodes_inputs_ratio[node_name] = [nb_plugs_from_in, nb_plugs]
-            nodes_inputs_ratio_list.append(ratio)        
-
-        # Sorting the nodes_to_check list as the order (the nodes having
-        # the highest ratio being at the end of the list)
-        nodes_to_check = [x for (_, x) in sorted(zip(nodes_inputs_ratio_list,
-                                                     nodes_to_check))]
-
-        while nodes_to_check:
-            # Finding one node that has a ratio of 1, which means that all of
-            # its mandatory inputs plugs are "connected" to the Input node
-            key_name = [key for (key, value) in nodes_inputs_ratio.items()
-                            if (value[0] == value[1]) and (value[0] != 0) ]
-
-            if key_name:
-                # This node can be initialized so it is placed at the
-                # end of the nodes_to_check list
-                nodes_to_check.append(key_name[0])
-                
-                # It can also be removed from the dictionary
-                del nodes_inputs_ratio[key_name[0]]
-
-            # Reversing the list so that the node to be initialized is
-            # at the first place. Using OrderedDict allows to remove the
-            # duplicate in the list without losing the order. So if
-            # key_name[0] appears twice, it will stay at the first place
-            nodes_to_check = list(OrderedDict((x, True) for x in
-                                              nodes_to_check[::-1]).keys())
-
-            # print(nodes_to_check)
-            node_name = nodes_to_check.pop(0)
-            nodes_to_check = nodes_to_check[::-1]
-
-            # Inputs/Outputs nodes will be automatically updated with
-            # the method update_nodes_and_plugs_activation of the
-            # pipeline object
-            if node_name in ['', 'inputs', 'outputs']:
-                continue
-
-            # If the node is a pipeline node,
-            # each of its nodes has to be initialised
-            node = pipeline.nodes[node_name]
-
-            if isinstance(node, PipelineNode):
-                sub_pipeline = node.process
-                initial = self.init_pipeline(sub_pipeline, node_name)
-
-                for plug_name in node.plugs.keys():
-
-                    # If the plug is an output and is
-                    # connected to another one
-                    if hasattr(node.plugs[plug_name], 'links_to'):
-                        list_info_link = list(
-                            node.plugs[plug_name].links_to)
-
-                        for info_link in list_info_link:
-
-                            # The third element of info_link contains the
-                            # destination node object
-                            if info_link[2] in pipeline.nodes.values():
-                                dest_node_name = info_link[0]
-
-                                if dest_node_name:
-                                    # Adding the destination node name and
-                                    # incrementing the input counter of the
-                                    # latter if it is not the pipeline
-                                    # "global" outputs ('')
-                                    nodes_to_check.append(dest_node_name)
-                                    nodes_inputs_ratio[dest_node_name][
-                                        0] += 1
-
-                pipeline.update_nodes_and_plugs_activation()
-                continue
-
-            # Adding the brick to the bricks history
-            self.brick_id = str(uuid.uuid4())
-            self.brick_list.append(self.brick_id)
-            self.project.session.add_document(COLLECTION_BRICK,
-                                              self.brick_id)
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_NAME, node_name)
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
-                datetime.datetime.now())
-            self.project.session.set_value(
-                COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
-            self.project.saveModifications()
-
-            if not hasattr(node, 'process'):
-                # custom node (switch or other)
-                continue
-
-            process = node.process
-            process_name = str(process).split('.')[0].split('_')[0][1:]
-
-            print('\nUpdating the launching parameters for {0} '
-                  'process node: {1} ...\n'.format(process_name,
-                                                   node_name))
-
-            # TODO 'except' instead of 'if' to test matlab launch ?
-            # Test for matlab launch
-            if config.get_use_spm_standalone():
-                node.process.use_mcr = True
-                node.process.paths = config.get_spm_standalone_path().split()
-                node.process.matlab_cmd = config.get_matlab_command()
-
-            elif config.get_use_spm():
-                node.process.use_mcr = False
-                node.process.paths = config.get_spm_path().split()
-                node.process.matlab_cmd = config.get_matlab_command()
-
-            # Test for matlab launch
-            if not os.path.isdir(
-                    os.path.abspath(
-                        self.project.folder + os.sep + 'scripts')):
-                os.mkdir(os.path.abspath(
-                    self.project.folder + os.sep + 'scripts'))
-
-            node.process.output_directory = os.path.abspath(
-                                       self.project.folder + os.sep + 'scripts')
-            node.process.mfile = True
-
-            # Getting the inheritance_dict, the requirement (dict) and the node
-            # outputs list according to its inputs: initResult_dic.
-            # - initResult_dic['requirement']:
-            # the requirement for the process (list)
-            # - initResult_dic['outputs']:
-            # a dictionary whose keys are the output plugs name and whose keys
-            # are the correponding value
-            # - initResult_dic['inheritance_dict']:
-            # a dictionary whose keys are the names of the scans in the output
-            # plugs and whose values are the names of the scans in the input
-            # plugs from that the output scans will inherit the tags
-            initResult_dict = {}
-
-            try:
-                # The state, linked or not, of the plugs is passed to the
-                # list_outputs method, only for nodes not coming from nipype
-                # (so those coming from mia_processes and those created
-                # by the user): is_plugged object.
-                is_plugged = {key: (bool(plug.links_to)
-                                    or bool(plug.links_from))
-                                            for key, plug in node.plugs.items()}
-                initResult_dict = process.list_outputs(is_plugged=is_plugged)
-
-                # For debugging. To be commented if not in debugging.
-                #print('initResult_dict after mia brick initialisaton: ',  initResult_dict) 
-
-                try:
-                    if not initResult_dict['outputs']:
-                        print("\nInitialisation failed to determine the "
-                               "outputs for the process {0}, did you correctly "
-                               "define the inputs ...?".format(node_name))
-                        check_init[node_name] = False
-                    else:
-                        check_init[node_name] = True
-                         
-                except KeyError as e:
-                    print('\nDue to "{0}" error,\nthe initialisation failed to '
-                          'determine the outputs for the node '
-                          '{1}...'.format(e, node_name))
-                    check_init[node_name] = False
-
-                except Exception as e:
-                    print('\nThe outputs determination for the node "{0}" '
-                          'failed during the initialisation step, due to:\n'
-                          '"{1}"...'.format(node_name, e))
-                    check_init[node_name] = False
-                    
-            except TraitError as e:
-                print('\nTrait error for node "{0}":\n'
-                      '"{1}" ...'.format(node_name, e))
-                check_init[node_name] = False
-
-            # If the process has no "list_outputs" method,
-            # which is the case for Nipype's
-            except AttributeError:
-
-                try:
-                    # The Nipype Process outputs are always
-                    # "private" for Capsul
-                    initResult_dict['outputs'] = process.get_outputs()
-                    #tmp_dict = {}
-
-                    #for key, value in initResult_dict['outputs'].items():
-                        #tmp_dict['_' + key] \
-                            #= initResult_dict['outputs'][key]
-
-                    #initResult_dict['outputs'] = tmp_dict
-
-                    # For debugging. To be commented if not in debugging.
-                    #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict) 
-
-                except TypeError:
-                    print('\nInitialisation failed to determine the outputs '
-                          'for the process "{0}":\nDid you correctly define '
-                          'the inputs ...?'.format(node_name))
-                    check_init[node_name] = False
-      
-                except Exception as e:
-                    print('Initialisation failed to determine the outputs '
-                          'for the process "{0}", due to:\n'
-                          '"{1}"...'.format(node_name, e))
-                    check_init[node_name] = False
-
-            # Management of the requirement object in initResult_dict
-            requirements = list(process.requirements().keys())
-            initResult_dict['requirement'] = [x.upper() for x in requirements]
-            #if '_nipype_interface' in dir(process):
-
-                #if 'spm' in str(process._nipype_interface):
-
-                    #if 'requirement' not in initResult_dict:
-                        #initResult_dict['requirement'] = ['MATLAB', 'SPM']
-
-                #elif 'requirement' not in initResult_dict:
-                    #initResult_dict['requirement'] = []
-
-            #if initResult_dict.get('requirement') is not None:
-
-                #for n, i in enumerate(initResult_dict['requirement']):
-
-                    #if re.search('MATLAB', i,  re.IGNORECASE):
-                        #initResult_dict['requirement'][n] = 'MATLAB'
-
-                    #if re.search('SPM', i,  re.IGNORECASE):
-                        #initResult_dict['requirement'][n] = 'SPM'
-
-            # Management of the outputs and the inheritance_dict objects
-            # in the initResult_dict
-            if 'outputs' not in initResult_dict:
-                    initResult_dict['outputs'] = {}
-
-            self.inheritance_dict = None
-            if ('inheritance_dict' in initResult_dict and
-                initResult_dict['inheritance_dict'] != {}):
-                self.inheritance_dict = initResult_dict['inheritance_dict']
-
-            # Here, third-party softwares are managed according to the
-            # requirement defined in the bricks.
-            # Third-party software currently managed:
-            # Matlab - SPM - ...
-            if initResult_dict['requirement'] is None:
-                nodes_requir_issue[node_name] = 'MISSING'
-
-            elif initResult_dict['requirement']:
-
-                if (('MATLAB' in initResult_dict['requirement']) and
-                    (not config.get_use_matlab())):
-                    nodes_requir_issue.setdefault(node_name,
-                                                  []).append('MATLAB')
-
-                if (('SPM' in initResult_dict['requirement']) and
-                    ((not config.get_use_spm()) and
-                     (not config.get_use_spm_standalone()))):
-                    nodes_requir_issue.setdefault(node_name,
-                                                  []).append('SPM')
-
-            # Adding I/O to database history
-            inputs = process.get_inputs()
-            self.inputs = inputs
-
-            for key in inputs:
-
-                if inputs[key] in [Undefined, [Undefined]]:
-                    inputs[key] = "<undefined>"
-                        
-            # Automatically fills few plugs. Only for the nipype process
-            if 'NipypeProcess' in str(process.__class__):
-                print('\nUpdating the launching parameters for nipype '
-                      'process node: {0} ...'.format(node_name))
-                # plugs to be filled automatically
-                keys2consider = ['use_mcr', 'paths',
-                                 'matlab_cmd', 'output_directory']
-
-                for key in inputs:
-                    
-                    # use_mcr parameter
-                    if (key == keys2consider[0]) and (
-                            config.get_use_spm_standalone()):
-                        inputs[key] = True
-                        
-                    elif (key == keys2consider[0]) and (
-                            not config.get_use_spm_standalone()):
-                        inputs[key] = False
-                        
-                    # paths parameter
-                    if (key == keys2consider[1]) and (
-                            config.get_use_spm_standalone()):
-                        inputs[key] = config.get_spm_standalone_path().split()
-                        
-                    elif (key == keys2consider[1]) and (config.get_use_spm()):
-                        inputs[key] = config.get_spm_path().split()
-                        
-                    # matlab_cmd parameter
-                    if (key == keys2consider[2]) and (
-                            config.get_use_spm_standalone()):
-                        inputs[key] = config.get_matlab_command()
-                        
-                    elif (key == keys2consider[2]) and (
-                            not config.get_use_spm_standalone()):
-                        inputs[key] = config.get_matlab_path()
-
-                    # output_directory parameter
-                    if key == keys2consider[3]:
-
-                        if not os.path.isdir(os.path.abspath(
-                                self.project.folder + '/scripts')):
-                            os.mkdir(os.path.abspath(self.project.folder
-                                                     + '/scripts'))
-
-                        inputs[key] = os.path.abspath(self.project.folder
-                                                      + '/scripts')
-
-                    try:
-                        node.set_plug_value(key, inputs[key])
-
-                    except TraitError:
-
-                        if isinstance(inputs[key], list) and len(
-                                inputs[key]) == 1:
-
-                            try:
-                                pipeline.nodes[key].set_plug_value(
-                                    key, inputs[key][0])
-
-                            except TraitError as e:
-                                print('Trait error for the "{0}" plug ({1}):\n'
-                                      '{2} ...'.format(key, inputs[key], e))
-
-            outputs = process.get_outputs() 
-
-            for key in outputs:
-                value = outputs[key]
-                
-                if value in [Undefined, [Undefined]]:
-                    outputs[key] = "<undefined>"
-                    
-            self.project.saveModifications()
-            self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                           BRICK_INPUTS, inputs)
-            self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                           BRICK_OUTPUTS, outputs)
-
-            # Updating the database with output values obtained from
-            # initialisation. If a plug name is in
-            # initResult_dict['outputs']['notInDb'], then the corresponding
-            # output value is not added to the database.
-            if initResult_dict['outputs']:
-
-                for plug_name, plug_value in initResult_dict['outputs'].items():
-                    add_plug_value_flag = False
-                    
-                    if plug_name not in node.plugs.keys():
-                        continue
-                    
-                    if plug_value not in ["<undefined>", Undefined, [Undefined]]:
-                        
-                        if pipeline_name != "":
-                            full_name = pipeline_name + "." + node_name
-                            
-                        else:
-                            full_name = node_name
-
-                        if 'notInDb' in initResult_dict['outputs']:
-
-                            if plug_name not in initResult_dict['outputs']['notInDb']:
-                                add_plug_value_flag = True
-
-                        else:
-                            add_plug_value_flag = True        
-
-                        if add_plug_value_flag:
-                            self.add_plug_value_to_database(plug_value,
-                                                            self.brick_id,
-                                                            node_name,
-                                                            plug_name,
-                                                            full_name)
-
-
-                    list_info_link = list(node.plugs[plug_name].links_to)
-
-                    # If the output is connected to another node,
-                    # the latter is added to nodes_to_check
-                    for info_link in list_info_link:
-                        dest_node_name = info_link[0]
-                        
-                        if dest_node_name:
-                            # Adding the destination node name and incrementing
-                            # the input counter of the latter
-                            nodes_to_check.append(dest_node_name)
-                            
-                            if dest_node_name in nodes_inputs_ratio:
-                                nodes_inputs_ratio[dest_node_name][0] += 1
-
-                    try:
-                        node.set_plug_value(plug_name, plug_value)
-                        
-                    except TraitError:
-                        
-                        if type(plug_value) is list and len(
-                                plug_value) == 1:
-                            
-                            try:
-                                node.set_plug_value(plug_name, plug_value[0])
-                                
-                            except TraitError as e:
-                                print('Trait error for the "{0}" plug of the '
-                                      '"{1}" node:\n'
-                                      '{2} ...'.format(plug_name, node_name, e))
-
-                    pipeline.update_nodes_and_plugs_activation()
-
-            # Adding I/O to database history again to update outputs
-            inputs = process.get_inputs()
-            
-            for key in inputs:
-                value = inputs[key]
-                
-                if value in [Undefined, [Undefined]]:
-                    inputs[key] = "<undefined>"
-    
-            outputs = process.get_outputs()
-
-            for key in outputs:
-                value = outputs[key]
-
-                if value in [Undefined, [Undefined]]:
-                    outputs[key] = "<undefined>"
-
-            self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                           BRICK_INPUTS, inputs)
-            self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                           BRICK_OUTPUTS, outputs)
-            # Setting brick init state if init finished correctly
-            self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                           BRICK_INIT, "Done")
-     
-            self.project.saveModifications()
-
-        # Test, if it works, comment.
-        #pipeline.on_trait_change(
-        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #    'selection_changed', dispatch='ui')
-        #pipeline.on_trait_change(
-        #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #    'user_traits_changed', dispatch='ui')
-        #if hasattr(pipeline, 'pipeline_steps'):
-        #    pipeline.pipeline_steps.on_trait_change(
-        #        self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
-        #        dispatch='ui')
-
-        # Updating the node controller
-        # Display the updated parameters in right part of
-        # the Pipeline Manager (controller)
-        if main_pipeline:
-            node_controller_node_name = self.nodeController.node_name
-            #### Todo: Fix the problem of the controller that
-            #### keeps the name of the old brick deleted until
-            #### a click on the new one. This can cause a mia
-            #### crash during the initialisation, for example.
-
-            if node_controller_node_name in ['inputs', 'outputs']:
-                node_controller_node_name = ''
-
-            self.nodeController.display_parameters(
-                self.nodeController.node_name,
-                pipeline.nodes[node_controller_node_name].process,
-                pipeline)
-
-          # REDONE UP TO HERE
-
-        nodes_requir_miss = [nodeName for nodeName in nodes_requir_issue
-                             if nodes_requir_issue[nodeName] == 'MISSING']
-        nodes_requir_fail = [nodeName for nodeName in nodes_requir_issue
-                             if isinstance(nodes_requir_issue[nodeName], list)]
-
-        if ((nodes_requir_miss or nodes_requir_fail) and
-            not (config.get_use_matlab() and
-                (config.get_use_spm() or config.get_use_spm_standalone()))):
-            initial = False
-
-            if ((config.get_use_matlab()) and
-                (not config.get_use_matlab_standalone())):
-
-                if config.get_use_spm():
-                    message_conf = ("The current MIA configuration uses "
-                                    "Matlab and SPM.\n")
-                else:
-                    message_conf = ("The current MIA configuration uses "
-                                    "Matlab but not SPM.\n")
-                        
-            elif ((config.get_use_matlab()) and
-                  (config.get_use_matlab_standalone())):
-
-                if config.get_use_spm_standalone():
-                    message_conf = ("The current MIA configuration uses Matlab "
-                                    "Compiler Runtime and SPM standalone.\n")
-                else:
-                    message_conf = ("The current MIA configuration uses Matlab "
-                                    "Compiler Runtime but not SPM standalone."
-                                    "\n")
-
-            elif not config.get_use_matlab():
-                message_conf = ("The current MIA configuration does not use "
-                                "Matlab (including the Compiler Runtime "
-                                "version) or SPM (including the standalone "
-                                "version).\n")
-            
-            message_base1 = ''
-        
-            if nodes_requir_miss: # So, initResult_dict['requirement'] is None
-
-                if len(nodes_requir_miss) == 1:
-                    message_base1 = ('-'*90 + '\nThe required third-party '
-                                     'products are not properly defined in the '
-                                     'following process:\n- {0}\n'
-                                     .format(nodes_requir_miss[0]))
-
-                else:
-                    message_base1 = ('-'*90 + '\nThe required third-party '
-                                     'products are not properly defined in the '
-                                     'following processes:\n')
-
-                    for nodeName in nodes_requir_miss:
-                        message_base1 = message_base1 + ("- {0}\n"
-                                                         .format(nodeName))
-
-                message_end = ('\nPlease, update your configuration in the MIA '
-                               'preferences, if necessary ...')
-            
-            mess_base2 = ''
-        
-            if nodes_requir_fail: 
-                message_end = ('\nPlease, update your configuration in the MIA '
-                               'preferences to meet the requirements of '
-                               'the pipeline ...')
-
-                if not nodes_requir_miss:
-                    mess_base2 =  mess_base2 + '-'*90 + '\nThe '
-                
-                else:
-                    mess_base2 =  mess_base2 + '\nIn addition, the '
-
-                mess_base2 =  mess_base2 + ('following bricks have '
-                                            'requirements that do not '
-                                            'correspond to the current MIA '
-                                            'configuration (problematic third-'
-                                            'party software(s) is(are) '
-                                            'specified):\n')
-                
-                for nodeName in nodes_requir_fail:
-                    mess_base2 = mess_base2 + ('- {0}: {1}\n'
-                                               .format(nodeName,
-                                                       ', '.join(
-                                                           nodes_requir_issue[
-                                                               nodeName])))
-
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Critical)
-            self.msg.setWindowTitle("MIA configuration warning!")
-            self.msg.setText(message_conf + message_base1 +
-                             mess_base2 + message_end)
-            
-            yes_button = self.msg.addButton("Open MIA preferences",
-                                            QMessageBox.YesRole)
-
-            if (nodes_requir_miss) and (not nodes_requir_fail):
-                ok_button = self.msg.addButton(QMessageBox.Ok)
-
-            self.msg.exec()
-            
-            if self.msg.clickedButton() == yes_button:
-                self.main_window.software_preferences_pop_up()
-                self.msg.close()
-                
-            else:
-                self.msg.close()
-
-            if nodes_requir_fail:
-                self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" was not initialised successfully.'.format(name))
-
-            else:
-                self.main_window.statusBar().showMessage(
-                    'The pipeline "{0}" has been initialised, but the '
-                    'requirements of some bricks must be verified.'
-                    .format(name))
-
-        elif sum(check_init.values()) != len(check_init) or initial is False:
-            self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" was not initialised successfully.'.format(
-                    name))
-            initial = False
-        else:
-            initial = True
-            if main_pipeline:
-                for i in range(0, len(self.pipelineEditorTabs)-1):
-                    self.pipelineEditorTabs.get_editor_by_index(
-                        i).initialized = False
-                self.pipelineEditorTabs.get_current_editor().initialized = True
-
-            self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" has been initialised.'.format(name))
-
-        return initial
 
     def initialize(self):
         """Clean previous initialization then initialize the current
