@@ -475,12 +475,14 @@ class TestMIADataBrowser(unittest.TestCase):
 
         self.assertEqual(count_table.table.horizontalHeaderItem(0).text(), "BandWidth")
         self.assertEqual(count_table.table.horizontalHeaderItem(1).text(), "75")
-        self.assertEqual(count_table.table.horizontalHeaderItem(2).text(), "5.8239923")
+        self.assertAlmostEqual(
+            float(count_table.table.horizontalHeaderItem(2).text()), 5.8239923)
         self.assertEqual(count_table.table.horizontalHeaderItem(3).text(), "5")
         self.assertEqual(count_table.table.verticalHeaderItem(3).text(), "Total")
         self.assertEqual(count_table.table.item(0, 0).text(), "50000")
         self.assertEqual(count_table.table.item(1, 0).text(), "25000")
-        self.assertEqual(count_table.table.item(2, 0).text(), "65789.48")
+        self.assertAlmostEqual(float(count_table.table.item(2, 0).text()),
+                               65789.48)
         self.assertEqual(count_table.table.item(3, 0).text(), "3")
         self.assertEqual(count_table.table.item(0, 1).text(), "2")
         self.assertEqual(count_table.table.item(1, 1).text(), "")
@@ -569,9 +571,9 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(config.getTextColor(), "")
         self.assertEqual(config.getThumbnailTag(), "SequenceName")
 
-        self.assertEqual(version.parse(yaml.__version__) > version.parse("5.1"), True)
+        #self.assertEqual(version.parse(yaml.__version__) > version.parse("5.1"), True)
         self.assertEqual(version.parse(yaml.__version__) > version.parse("9.1"), False)
-        self.assertEqual(version.parse(yaml.__version__) < version.parse("5.1"), False)
+        #self.assertEqual(version.parse(yaml.__version__) < version.parse("5.1"), False)
         self.assertEqual(version.parse(yaml.__version__) < version.parse("9.1"), True)
 
         self.assertEqual(config.get_projects_save_path(),
@@ -2105,7 +2107,10 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         with open(os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml'), 'r') as stream:
-            pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+            if verCmp(yaml.__version__, '5.1', 'sup'):
+                pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+            else:
+                pro_dic = yaml.load(stream)
             self.assertIn("mia_processes", pro_dic["Packages"])
             if os.name != 'nt':
                 self.assertIn("brick_test", pro_dic["Packages"])
@@ -2125,7 +2130,10 @@ class TestMIAPipelineManager(unittest.TestCase):
         with open(os.path.join(config.get_mia_path(),
                                'properties',
                                'process_config.yml'), 'r') as stream:
-            pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+            if verCmp(yaml.__version__, '5.1', 'sup'):
+                pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+            else:
+                pro_dic = yaml.load(stream)
             self.assertNotIn("mia_processes", pro_dic["Packages"])
             self.assertNotIn("brick_test", pro_dic["Packages"])
 
