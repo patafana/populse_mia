@@ -831,7 +831,7 @@ class CapsulNodeController(QWidget):
                 btn.setSizePolicy(Qt.QSizePolicy.Fixed,
                                   Qt.QSizePolicy.Fixed)
                 btn.clicked.connect(self.filter_attributes)
-        self.process_widget.attrib_widget.layout().insertWidget(0, btn)
+                self.process_widget.attrib_widget.layout().insertWidget(0, btn)
         self.layout().addWidget(self.process_widget)
 
     def update_parameters(self, process=None):
