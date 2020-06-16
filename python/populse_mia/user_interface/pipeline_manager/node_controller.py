@@ -816,10 +816,12 @@ class CapsulNodeController(QWidget):
                 'Directory': type_editors.PopulseDirectoryControlWidget,
                 'List_File':
                     type_editors.PopulseOffscreenListFileControlWidget},
+            separate_outputs=True,
             user_data={'project': self.project,
                        'scan_list': self.scan_list,
                        'main_window': self.main_window,
-                       'node_controller': self})
+                       'node_controller': self},
+            scroll=False)
         self.layout().addWidget(self.process_widget)
 
     def update_parameters(self, process=None):
