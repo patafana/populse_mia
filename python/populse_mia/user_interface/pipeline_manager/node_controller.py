@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QVBoxLayout, QWidget, QHBoxLayout, QLabel, QLineEdit,
     QGroupBox, QMessageBox, QToolButton, QDialog, QDialogButtonBox,
     QApplication)
+from PyQt5 import Qt
 
 # soma-base imports
 from soma.controller import trait_ids
@@ -822,6 +823,15 @@ class CapsulNodeController(QWidget):
                        'main_window': self.main_window,
                        'node_controller': self},
             scroll=False)
+        if hasattr(process, 'completion_engine'):
+            compl = process.completion_engine
+            atts = compl.get_attribute_values()
+            if len(atts.user_traits()) != 0:
+                btn = QPushButton('Filter')
+                btn.setSizePolicy(Qt.QSizePolicy.Fixed,
+                                  Qt.QSizePolicy.Fixed)
+                btn.clicked.connect(self.filter_attributes)
+        self.process_widget.attrib_widget.layout().insertWidget(0, btn)
         self.layout().addWidget(self.process_widget)
 
     def update_parameters(self, process=None):
@@ -867,6 +877,42 @@ class CapsulNodeController(QWidget):
             self.main_window.statusBar().showMessage(
                 'Node name "{0}" has been changed to "{1}".'.format(
                     old_node_name, new_node_name))
+
+    def filter_attributes(self):
+        """Display a filter widget.
+
+        :param node_name: name of the node
+        :param plug_name: name of the plug
+        :param parameters: tuple containing the index of the plug, the current
+           pipeline instance and the type of the plug value
+        :param process: process of the node
+        """
+        self.pop_up = AttributesFilter(
+            self.project, self.scan_list, self.process,
+            self.node_name, 'attributes', self, self.main_window)
+        self.pop_up.show()
+        self.pop_up.attributes_selected.connect(
+            self.update_attributes_from_filter)
+
+    def update_attributes_from_filter(self, attributes):
+        compl = self.process.completion_engine
+        atts = compl.get_attribute_values()
+        num_set = 0
+        for name, value in attributes.items():
+            if atts.trait(name):
+                if isinstance(getattr(atts, name), list):
+                    setattr(atts, name, value)
+                else:
+                    setattr(atts, name, value[0])
+                num_set += 1
+        if num_set == 0 and len(attributes) != 0:
+            mbox_icon = QMessageBox.Information
+            mbox_title = 'Unmatching tags / attributes'
+            mbox_text = 'The selected data tags do not match the expected ' \
+                'attributes set for process parameters completion'
+            mbox = QMessageBox(mbox_icon, mbox_title, mbox_text)
+            timer = Qt.QTimer.singleShot(2000, mbox.accept)
+            mbox.exec()
 
 
 class PlugFilter(QWidget):
@@ -1161,3 +1207,43 @@ class PlugFilter(QWidget):
                     fields.addItem(visible_tag)
                 fields.model().sort(0)
                 fields.addItem("All visualized tags")
+
+
+class AttributesFilter(PlugFilter):
+    """Filter widget used on an attributes set for completion.
+
+    The widget displays a browser with the selected files of the database,
+    a rapid search and an advanced search to filter these files. Once the
+    filtering is done, the result (as a list of files) is set to the plug.
+    """
+    attributes_selected = pyqtSignal(dict)
+
+    def ok_clicked(self):
+
+        self.close()
+        attributes = {}
+        points = self.table_data.selectedIndexes()
+
+        # If the use has selected some items
+        if points:
+            for point in points:
+                row = point.row()
+                for tag_name in self.project.session.get_fields_names(
+                        COLLECTION_CURRENT):
+                    # We get the FileName of the scan from the first row
+                    scan_name = self.table_data.item(row, 0).text()
+                    value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                          scan_name, tag_name)
+                    attributes.setdefault(tag_name, []).append(value)
+        else:
+            filter = self.table_data.get_current_filter()
+            for i in range(len(filter)):
+                scan_name = filter[i]
+                for tag_name in self.project.session.get_fields_names(
+                        COLLECTION_CURRENT):
+                    value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                          scan_name, tag_name)
+                    attributes.setdefault(tag_name, []).append(value)
+
+        self.attributes_selected.emit(attributes)
+
