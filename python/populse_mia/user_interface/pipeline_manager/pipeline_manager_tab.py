@@ -904,11 +904,8 @@ class PipelineManagerTab(QWidget):
             traceback.print_exc()
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
-        # successful or the iterate pipeline checkbox is checked
-        if self.test_init or self.iterationTable.check_box_iterate.isChecked():
-            self.run_pipeline_action.setDisabled(False)
-        else:
-            self.run_pipeline_action.setDisabled(True)
+        # successful
+        self.run_pipeline_action.setDisabled(True)
 
         # When clicking on the Pipeline > Initialize
         # pipeline in the Pipeline Manager tab,
@@ -1198,43 +1195,39 @@ class PipelineManagerTab(QWidget):
         if self.iterationTable.check_box_iterate.isChecked():
             iterated_tag = self.iterationTable.iterated_tag
             tag_values = self.iterationTable.tag_values_list
-            ui_iteration = PopUpSelectIteration(iterated_tag, tag_values)
-            if ui_iteration.exec():
-                tag_values = ui_iteration.final_values
-                # how do we assign tag_values to pipeline parameters
-                # (and which parameters ?)
-                pipeline_progress = dict()
-                pipeline_progress['size'] = len(tag_values)
-                pipeline_progress['counter'] = 1
-                pipeline_progress['tag'] = iterated_tag
-                for tag_value in tag_values:
-                    self.brick_list = []
-                    # Status bar update
-                    pipeline_progress['tag_value'] = tag_value
 
-                    idx_combo_box = self.iterationTable.combo_box.findText(
-                        tag_value)
-                    self.iterationTable.combo_box.setCurrentIndex(
-                        idx_combo_box)
-                    self.iterationTable.update_table()
+            pipeline_progress = dict()
+            pipeline_progress['size'] = len(tag_values)
+            pipeline_progress['counter'] = 1
+            pipeline_progress['tag'] = iterated_tag
+            for tag_value in tag_values:
+                self.brick_list = []
+                # Status bar update
+                pipeline_progress['tag_value'] = tag_value
 
-                    self.init_pipeline()
-                    self.main_window.statusBar().showMessage(
-                        'Pipeline "{0}" is getting run for {1} {2}. '
-                        'Please wait.'.format(name, iterated_tag, tag_value))
-                    QApplication.processEvents()
-                    self.progress = RunProgress(self, pipeline_progress)
-                    #self.progress.show()
-                    #self.progress.exec()
-                    pipeline_progress['counter'] += 1
-                    self.init_clicked = False
+                idx_combo_box = self.iterationTable.combo_box.findText(
+                    tag_value)
+                self.iterationTable.combo_box.setCurrentIndex(
+                    idx_combo_box)
+                self.iterationTable.update_table()
+
+                self.init_pipeline()
+                self.main_window.statusBar().showMessage(
+                    'Pipeline "{0}" is getting run for {1} {2}. '
+                    'Please wait.'.format(name, iterated_tag, tag_value))
+                QApplication.processEvents()
+                self.progress = RunProgress(self, pipeline_progress)
+                #self.progress.show()
+                #self.progress.exec()
+                pipeline_progress['counter'] += 1
+                self.init_clicked = False
 
 
-                    # # self.init_pipeline(self.pipeline)
-                    # idx = self.progress.value()
-                    # idx += 1
-                    # self.progress.setValue(idx)
-                    # QApplication.processEvents()
+                # # self.init_pipeline(self.pipeline)
+                # idx = self.progress.value()
+                # idx += 1
+                # self.progress.setValue(idx)
+                # QApplication.processEvents()
 
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
@@ -1616,19 +1609,62 @@ class PipelineManagerTab(QWidget):
         # Necessary for using MIA bricks
         ProcessMIA.project = project
 
-    def update_scans_list(self, iteration_list):
+    def build_iterated_pipeline(self):
+        """
+        Build a new pipeline with an iteration node, iterating over the current
+        pipeline
+        """
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+
+        c_e = self.pipelineEditorTabs.get_current_editor()
+        pipeline = c_e.scene.pipeline
+        engine = self.get_capsul_engine()
+        pipeline_name = 'Iteration_pipeline'
+        node_name = 'iteration'
+        it_pipeline = engine.get_iteration_pipeline(
+            pipeline_name, node_name, pipeline,
+            iterative_plugs=None, do_not_export=None,
+            make_optional=None)
+        compl = ProcessCompletionEngine.get_completion_engine(it_pipeline)
+        return it_pipeline
+
+    def update_scans_list(self, iteration_list, all_iterations_list):
         """
         Update the user-selected list of scans
 
         :param iteration_list: current list of scans in the iteration table
         """
 
+        #if self.check_box_iterate.isChecked():
+            #self.run_pipeline_action.setDisabled(False)
+            #self.init_pipeline_action.setDisabled(True)
+        #else:
+        self.run_pipeline_action.setDisabled(True)
+        self.init_pipeline_action.setDisabled(False)
+
+        c_e = self.pipelineEditorTabs.get_current_editor()
+        pipeline = c_e.scene.pipeline
+        has_iteration = ('iteration' in pipeline.nodes)
+
         if self.iterationTable.check_box_iterate.isChecked():
-            self.iteration_table_scans_list = iteration_list
-            self.pipelineEditorTabs.scan_list = iteration_list
+            if not has_iteration:
+                # move to an iteration pipeline
+                new_pipeline = self.build_iterated_pipeline()
+                c_e.set_pipeline(new_pipeline)
+                self.displayNodeParameters('inputs', new_pipeline)
+
+            self.iteration_table_scans_list = all_iterations_list
+            self.pipelineEditorTabs.scan_list = all_iterations_list
         else:
+            if has_iteration:
+                # get the pipeline out from the iteration node
+                new_pipeline =  pipeline.nodes['iteration'].process.process
+                c_e.set_pipeline(new_pipeline)
+                self.displayNodeParameters('inputs', new_pipeline)
+
             self.iteration_table_scans_list = []
             self.pipelineEditorTabs.scan_list = self.scan_list
+        print('update_scans_list:', all_iterations_list)
         if not self.pipelineEditorTabs.scan_list:
             self.pipelineEditorTabs.scan_list = \
                 self.project.session.get_documents_names(COLLECTION_CURRENT)

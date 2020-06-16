@@ -1826,12 +1826,14 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         for i in range(self.count() - 1):
             pipeline = self.widget(i).scene.pipeline
-            if hasattr(pipeline, "nodes"):
-                for node_name, node in pipeline.nodes.items():
-                    if node_name == "":
-                        for plug_name, plug in node.plugs.items():
-                            if plug_name == "database_scans":
-                                node.set_plug_value(plug_name, self.scan_list)
+            if pipeline.trait('database_scans'):
+                print('set database_scans:', self.scan_list)
+                try:
+                    setattr(pipeline, 'database_scans', self.scan_list)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    # but continue...
 
 
 def find_filename(paths_list, packages_list, file_name):
