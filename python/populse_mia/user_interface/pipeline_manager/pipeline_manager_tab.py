@@ -1192,68 +1192,68 @@ class PipelineManagerTab(QWidget):
         self.last_pipeline_name \
             = self.pipelineEditorTabs.get_current_filename()
 
-        if self.iterationTable.check_box_iterate.isChecked():
-            iterated_tag = self.iterationTable.iterated_tag
-            tag_values = self.iterationTable.tag_values_list
+        #if self.iterationTable.check_box_iterate.isChecked():
+            #iterated_tag = self.iterationTable.iterated_tag
+            #tag_values = self.iterationTable.tag_values_list
 
-            pipeline_progress = dict()
-            pipeline_progress['size'] = len(tag_values)
-            pipeline_progress['counter'] = 1
-            pipeline_progress['tag'] = iterated_tag
-            for tag_value in tag_values:
-                self.brick_list = []
-                # Status bar update
-                pipeline_progress['tag_value'] = tag_value
+            #pipeline_progress = dict()
+            #pipeline_progress['size'] = len(tag_values)
+            #pipeline_progress['counter'] = 1
+            #pipeline_progress['tag'] = iterated_tag
+            #for tag_value in tag_values:
+                #self.brick_list = []
+                ## Status bar update
+                #pipeline_progress['tag_value'] = tag_value
 
-                idx_combo_box = self.iterationTable.combo_box.findText(
-                    tag_value)
-                self.iterationTable.combo_box.setCurrentIndex(
-                    idx_combo_box)
-                self.iterationTable.update_table()
+                #idx_combo_box = self.iterationTable.combo_box.findText(
+                    #tag_value)
+                #self.iterationTable.combo_box.setCurrentIndex(
+                    #idx_combo_box)
+                #self.iterationTable.update_table()
 
-                self.init_pipeline()
-                self.main_window.statusBar().showMessage(
-                    'Pipeline "{0}" is getting run for {1} {2}. '
-                    'Please wait.'.format(name, iterated_tag, tag_value))
-                QApplication.processEvents()
-                self.progress = RunProgress(self, pipeline_progress)
-                #self.progress.show()
-                #self.progress.exec()
-                pipeline_progress['counter'] += 1
-                self.init_clicked = False
+                #self.init_pipeline()
+                #self.main_window.statusBar().showMessage(
+                    #'Pipeline "{0}" is getting run for {1} {2}. '
+                    #'Please wait.'.format(name, iterated_tag, tag_value))
+                #QApplication.processEvents()
+                #self.progress = RunProgress(self, pipeline_progress)
+                ##self.progress.show()
+                ##self.progress.exec()
+                #pipeline_progress['counter'] += 1
+                #self.init_clicked = False
 
 
-                # # self.init_pipeline(self.pipeline)
-                # idx = self.progress.value()
-                # idx += 1
-                # self.progress.setValue(idx)
-                # QApplication.processEvents()
+                ## # self.init_pipeline(self.pipeline)
+                ## idx = self.progress.value()
+                ## idx += 1
+                ## self.progress.setValue(idx)
+                ## QApplication.processEvents()
 
-            self.main_window.statusBar().showMessage(
-                'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
-                    name, iterated_tag, tag_values))
+            #self.main_window.statusBar().showMessage(
+                #'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
+                    #name, iterated_tag, tag_values))
 
-        else:
+        #else:
             
-            self.progress = RunProgress(self)
-            self.progress.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
-                                        QtWidgets.QSizePolicy.Fixed)
-            self.hLayout.addWidget(self.progress)
-            #self.progress.show()
-            #self.progress.exec()
-            self.stop_pipeline_action.setEnabled(True)
-            config = Config()
-            sources_images_dir = config.getSourceImageDir()
+        self.progress = RunProgress(self)
+        self.progress.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                    QtWidgets.QSizePolicy.Fixed)
+        self.hLayout.addWidget(self.progress)
+        #self.progress.show()
+        #self.progress.exec()
+        self.stop_pipeline_action.setEnabled(True)
+        config = Config()
+        sources_images_dir = config.getSourceImageDir()
 
-            mmovie = QMovie(
-                os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
-            self._mmovie = mmovie
-            mmovie.stop()
-            mmovie.frameChanged.connect(self._set_anim_frame)
-            mmovie.start()
+        mmovie = QMovie(
+            os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
+        self._mmovie = mmovie
+        mmovie.stop()
+        mmovie.frameChanged.connect(self._set_anim_frame)
+        mmovie.start()
 
-            self.progress.worker.finished.connect(self.finish_execution)
-            self.progress.start()
+        self.progress.worker.finished.connect(self.finish_execution)
+        self.progress.start()
 
         self.init_clicked = False
         self.run_pipeline_action.setDisabled(True)
@@ -1664,7 +1664,7 @@ class PipelineManagerTab(QWidget):
 
             self.iteration_table_scans_list = []
             self.pipelineEditorTabs.scan_list = self.scan_list
-        print('update_scans_list:', all_iterations_list)
+        #print('update_scans_list:', all_iterations_list)
         if not self.pipelineEditorTabs.scan_list:
             self.pipelineEditorTabs.scan_list = \
                 self.project.session.get_documents_names(COLLECTION_CURRENT)

@@ -390,7 +390,7 @@ class IterationTable(QWidget):
         all_iterations_scans = []
         for tag_value in self.tag_values_list:
             # Searching the database scans that correspond to iterated tag value
-            filter_query2 = "({" + str(self.iterated_tag) + "} " + "==" \
+            filter_query = "({" + str(self.iterated_tag) + "} " + "==" \
                   + " \"" + str(tag_value) + "\")"
             scans_list = self.project.session.filter_documents(
                 COLLECTION_CURRENT, filter_query)
