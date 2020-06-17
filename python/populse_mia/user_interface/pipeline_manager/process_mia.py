@@ -24,6 +24,7 @@ import os
 # Capsul imports
 from capsul.api import Process
 from capsul.pipeline.pipeline_nodes import ProcessNode
+from soma.controller.trait_utils import relax_exists_constraint
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
@@ -114,9 +115,15 @@ class ProcessMIA(Process):
                                                       scan, TAG_BRICKS)
         return []
 
+    def relax_nipype_exists_constraints(self):
+        if hasattr(self, 'process'):
+            ni_inputs = self.process.inputs
+            for name, trait in ni_inputs.traits().items():
+                relax_exists_constraint(trait)
+
     def list_outputs(self):
         """Override the outputs of the process."""
-        pass
+        self.relax_nipype_exists_constraints()
 
     def manage_brick_after_run(self):
         """Manages the brick history after the run (Done status)."""
@@ -247,9 +254,14 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                                         for key, plug in node.plugs.items()}
         else:
             is_plugged = None  # we cannot get this info
-        initResult_dict = process.list_outputs(is_plugged=is_plugged)
+        try:
+            initResult_dict = process.list_outputs(is_plugged=is_plugged)
+        except Exception as e:
+            print(e)
+            initResult_dict = {}
         if not initResult_dict:
             return  # the process is not really configured
+
         outputs = initResult_dict.get('outputs', {})
         for parameter, value in outputs.items():
             if parameter == 'notInDb':
