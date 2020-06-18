@@ -37,7 +37,7 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
 from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
-                        capsul_engine)
+                        capsul_engine, Node)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                             NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
@@ -1147,7 +1147,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
     """
 
     pipeline_saved = QtCore.pyqtSignal(str)
-    node_clicked = QtCore.pyqtSignal(str, Process)
+    node_clicked = QtCore.pyqtSignal(str, Node)
+    process_clicked = QtCore.pyqtSignal(str, Process)
     switch_clicked = QtCore.pyqtSignal(str, Switch)
 
     def __init__(self, project, scan_list, main_window):
@@ -1294,7 +1295,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param process: process of the corresponding node
         """
 
-        self.node_clicked.emit(node_name, process)
+        if isinstance(process, Process):
+            self.process_clicked.emit(node_name, process)
+        else:
+            self.node_clicked.emit(node_name, process)
 
     def emit_pipeline_saved(self, filename):
         """Emit a signal when a pipeline is saved.
@@ -1354,12 +1358,12 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         engine._loaded_modules = set()
         # save completion attributes for the current pipeline (other pipelines
         # will lose their values)
-        from capsul.attributes.completion_engine import ProcessCompletionEngine
-        completion = ProcessCompletionEngine.get_completion_engine(pipeline)
+        completion = getattr(pipeline, 'completion_engine', None)
         if completion:
             att_values = completion.get_attribute_values().export_to_dict()
 
-        for module in capsul_config.get('engine_modules', []):
+        for module in capsul_config.get('engine_modules', []) \
+                + ['attributes', 'nipype']:
             engine.load_module(module)
 
         # remove the 3 next lines when settings are thread safe.
@@ -1375,7 +1379,16 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         study_config.output_directory = os.path.join(
             os.path.abspath(self.project.folder), 'data', 'derived_data')
 
+        # setup completion for MIA processes
+        mia_compl = 'populse_mia.user_interface.pipeline_manager.process_mia'
+        if mia_compl not in study_config.attributes_schema_paths:
+            study_config.attributes_schema_paths \
+                = study_config.attributes_schema_paths + [mia_compl]
+        study_config.process_completion =  'mia_completion'
+
         # restore completion attributes
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+
         if completion:
             completion \
                 = ProcessCompletionEngine.get_completion_engine(pipeline)
@@ -1813,12 +1826,14 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         for i in range(self.count() - 1):
             pipeline = self.widget(i).scene.pipeline
-            if hasattr(pipeline, "nodes"):
-                for node_name, node in pipeline.nodes.items():
-                    if node_name == "":
-                        for plug_name, plug in node.plugs.items():
-                            if plug_name == "database_scans":
-                                node.set_plug_value(plug_name, self.scan_list)
+            if pipeline.trait('database_scans'):
+                print('set database_scans:', self.scan_list)
+                try:
+                    setattr(pipeline, 'database_scans', self.scan_list)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    # but continue...
 
 
 def find_filename(paths_list, packages_list, file_name):

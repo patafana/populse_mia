@@ -19,9 +19,12 @@ Module used by MIA bricks to run processes.
 import datetime
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
+import os
 
 # Capsul imports
 from capsul.api import Process
+from capsul.pipeline.pipeline_nodes import ProcessNode
+from soma.controller.trait_utils import relax_exists_constraint
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
@@ -62,22 +65,6 @@ class ProcessMIA(Process):
     def __init__(self):
         super(ProcessMIA, self).__init__()
         # self.filters = {}  # use if the filters are set on plugs
-
-    def _after_run_process(self, run_process_result):
-        """Method called after the process being run.
-
-        :param run_process_result: Result of the run process
-        :return: the result of the run process
-        """
-        self.manage_brick_after_run()
-        return run_process_result
-
-    def _before_run_process(self):
-        """Method called before running the process.
-
-        Add the exec status Not Done and exec time to the process history
-        """
-        self.manage_brick_before_run()
 
     def get_brick_to_update(self, bricks):
         """Give the brick to update, given the scan list of bricks.
@@ -128,9 +115,15 @@ class ProcessMIA(Process):
                                                       scan, TAG_BRICKS)
         return []
 
+    def relax_nipype_exists_constraints(self):
+        if hasattr(self, 'process'):
+            ni_inputs = self.process.inputs
+            for name, trait in ni_inputs.traits().items():
+                relax_exists_constraint(trait)
+
     def list_outputs(self):
         """Override the outputs of the process."""
-        pass
+        self.relax_nipype_exists_constraints()
 
     def manage_brick_after_run(self):
         """Manages the brick history after the run (Done status)."""
@@ -188,7 +181,9 @@ class ProcessMIA(Process):
 
         Called in bricks.
         """
-        if hasattr(self, "process"):
+        # Note: this is a non-general trick which should probably not be here.
+        if hasattr(self, "process") and hasattr(self.process, 'inputs') \
+                and hasattr(self, 'use_mcr'):
             self.process.inputs.use_mcr = self.use_mcr
             self.process.inputs.paths = self.paths
             self.process.inputs.matlab_cmd = self.matlab_cmd
@@ -217,5 +212,152 @@ class ProcessMIA(Process):
                 self.project.session.set_value(
                             COLLECTION_INITIAL, scan, TAG_BRICKS, output_bricks)
                 self.project.saveModifications()
+
+
+# ---- completion system for Capsul ---
+
+from capsul.attributes.completion_engine import (
+    ProcessCompletionEngine,
+    ProcessCompletionEngineFactory)
+
+
+class MIAProcessCompletionEngine(ProcessCompletionEngine):
+    """
+    A specialized :class:`~cpasul.attributes.completion_engine.ProcessCompletionEngine` for
+    :class:`ProcessMIA` instances completion.
+
+    Such processes use their method :meth:`ProcessMIA.list_outputs` to perform
+    completion from given input parameters. It is currently not based on
+    attributes like in capsul completion.
+
+    Processes also get their matlab / SPM settings filled in from the config if
+    they need them.
+
+    If the process use it and it is in the study config, their "project"
+    parameter is also filled in, as well as the "output_directory" parameter.
+    """
+
+    def complete_parameters(self, process_inputs={}):
+
+        self.completion_progress = 0.
+        self.completion_progress_total = 1.
+        self.set_parameters(process_inputs)
+        verbose = False
+
+        node = self.process
+        process = node
+        if isinstance(node, ProcessNode):
+            process = node.process
+
+            is_plugged = {key: (bool(plug.links_to)
+                                or bool(plug.links_from))
+                                        for key, plug in node.plugs.items()}
+        else:
+            is_plugged = None  # we cannot get this info
+        try:
+            initResult_dict = process.list_outputs(is_plugged=is_plugged)
+        except Exception as e:
+            print(e)
+            initResult_dict = {}
+        if not initResult_dict:
+            return  # the process is not really configured
+
+        outputs = initResult_dict.get('outputs', {})
+        for parameter, value in outputs.items():
+            if parameter == 'notInDb':
+                continue  # special non-param
+            try:
+                setattr(process, parameter, value)
+            except Exception as e:
+                if verbose:
+                    print('Exception:', e)
+                    print('param:', pname)
+                    print('value:', repr(value))
+                    import traceback
+                    traceback.print_exc()
+
+       # Test for matlab launch
+        if process.trait('use_mcr'):
+
+            from populse_mia.software_properties import Config
+
+            config = Config()
+            if config.get_use_spm_standalone():
+                process.use_mcr = True
+                process.paths \
+                    = config.get_spm_standalone_path().split()
+                process.matlab_cmd = config.get_matlab_command()
+
+            elif config.get_use_spm():
+                process.use_mcr = False
+                process.paths = config.get_spm_path().split()
+                process.matlab_cmd = config.get_matlab_command()
+
+        # add "project" attribute if the process is using it
+        if hasattr(process, 'get_study_config'):
+            study_config = process.get_study_config()
+            project = getattr(study_config, 'project', None)
+            if project:
+                if hasattr(process, 'use_project') and process.use_project:
+                    process.project = self.project
+                # set output_directory
+                if process.trait('output_directory') \
+                        and process.output_directory in (None, Undefined, ''):
+                    out_dir = os.path.abspath(os.path.join(project.folder,
+                                                           'scripts'))
+                    process.output_directory = out_dir
+
+        self.completion_progress = self.completion_progress_total
+
+
+class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
+    """
+    Completion engine factory specialization for ProcessMIA process instances.
+    Its ``factory_id`` is "mia_completion".
+
+    This factory is activated in the
+    :class:`~capsul.study_config.study_config.StudyConfig` instance by setting
+    2 parameters::
+
+        study_config.attributes_schema_paths = study_config.attributes_schema_paths \
+            + ['populse_mia.user_interface.pipeline_manager.process_mia']
+        study_config.process_completion =  'mia_completion'
+
+    Once this is done, the completion system will work for all MIA processes.
+    """
+
+    factory_id = 'mia_completion'
+
+    def get_completion_engine(self, process, name=None):
+        if hasattr(process, 'completion_engine'):
+            return process.completion_engine
+
+        in_process = process
+        if isinstance(process, ProcessNode):
+            in_process = process.process
+        if isinstance(in_process, ProcessMIA):
+            return MIAProcessCompletionEngine(process, name)
+
+        engine_factory = None
+        if hasattr(process, 'get_study_config'):
+            study_config = process.get_study_config()
+            engine = study_config.engine
+            if 'capsul.engine.module.attributes' in engine._loaded_modules:
+                try:
+                    former_factory = 'builtin'  # TODO how to store this ?
+                    engine_factory \
+                        = engine._modules_data['attributes'] \
+                            ['attributes_factory'].get(
+                                'process_completion', former_factory)
+                except ValueError:
+                    pass # not found
+        if engine_factory is None:
+
+            from capsul.attributes.completion_engine_factory \
+              import BuiltinProcessCompletionEngineFactory
+
+            engine_factory = BuiltinProcessCompletionEngineFactory()
+
+        return engine_factory.get_completion_engine(process, name=name)
 
 

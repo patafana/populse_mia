@@ -68,7 +68,7 @@ if (3, 6) > sys.version_info >= (3, 5):
         'python-dateutil',
         'pyyaml',
         'scikit-image == 0.15.0',
-        'scipy',
+        'scipy == 1.4.1',   # scipy > 1.4.1 needs python >= 3.6
         'SIP == 5.0.1',
         'sqlalchemy',
         'snakeviz',
