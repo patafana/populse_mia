@@ -105,6 +105,7 @@ class PipelineEditor(PipelineDevelopperView):
         # Undo/Redo
         self.undos = []
         self.redos = []
+        self.userlevel = 1  # FIXME DEBUG
 
     def _del_link(self, link=None, from_undo=False, from_redo=False):
         """Delete a link.
@@ -1379,12 +1380,12 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         study_config.output_directory = os.path.join(
             os.path.abspath(self.project.folder), 'data', 'derived_data')
 
-        # setup completion for MIA processes
-        mia_compl = 'populse_mia.user_interface.pipeline_manager.process_mia'
-        if mia_compl not in study_config.attributes_schema_paths:
-            study_config.attributes_schema_paths \
-                = study_config.attributes_schema_paths + [mia_compl]
-        study_config.process_completion =  'mia_completion'
+        ## setup completion for MIA processes
+        #mia_compl = 'populse_mia.user_interface.pipeline_manager.process_mia'
+        #if mia_compl not in study_config.attributes_schema_paths:
+            #study_config.attributes_schema_paths \
+                #= study_config.attributes_schema_paths + [mia_compl]
+        #study_config.process_completion =  'mia_completion'
 
         # restore completion attributes
         from capsul.attributes.completion_engine import ProcessCompletionEngine
