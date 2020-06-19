@@ -309,8 +309,15 @@ class PipelineManagerTab(QWidget):
         # fit to the database's syntax
         old_value = p_value
         #p_value = p_value.replace(self.project.folder, "")
+        p_value = os.path.abspath(p_value)
+        if not p_value.startswith(os.path.abspath(os.path.join(
+                self.project.folder, ''))):
+            # file name is outside the project folder: don't index it in the
+            # database
+            return
+
         p_value = p_value.replace(os.path.abspath(self.project.folder), "")
-        if p_value[0] in ["\\", "/"]:
+        if p_value and p_value[0] in ["\\", "/"]:
             p_value = p_value[1:]
 
         # If the file name is already in the database,
@@ -597,6 +604,13 @@ class PipelineManagerTab(QWidget):
             # record initial param values to get manually set ones
             init_params = pipeline.get_inputs()
             init_params.update(pipeline.get_outputs())
+
+            nodes = list(pipeline.nodes.items())
+            while nodes:
+                name, node = nodes.pop(0)
+                if name == '': continue
+                if isinstance(node, PipelineNode):
+                    nodes += list(node.process.nodes.items())
 
             attributes = completion.get_attribute_values()
             # try to find out attribute values from files in parameters
