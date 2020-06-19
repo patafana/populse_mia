@@ -810,7 +810,7 @@ class CapsulNodeController(QWidget):
             del item
             self.process_widget = None
 
-        userlevel = 1  # TODO FIXME DEBUG
+        userlevel = Config().get_user_level()
         self.process = process
         self.process_widget = AttributedProcessWidget(
             process, override_control_types={

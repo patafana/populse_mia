@@ -105,7 +105,7 @@ class PipelineEditor(PipelineDevelopperView):
         # Undo/Redo
         self.undos = []
         self.redos = []
-        self.userlevel = 1  # FIXME DEBUG
+        self.userlevel = Config().get_user_level()
 
     def _del_link(self, link=None, from_undo=False, from_redo=False):
         """Delete a link.
