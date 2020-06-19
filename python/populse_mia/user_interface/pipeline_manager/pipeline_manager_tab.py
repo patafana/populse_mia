@@ -1579,6 +1579,12 @@ class PipelineManagerTab(QWidget):
             ).disable_overwrite = False
             self.main_window.action_delete_project.setEnabled(True)
 
+        userlevel = config.get_user_level()
+        if userlevel \
+                != self.pipelineEditorTabs.get_current_editor().userlevel:
+            self.pipelineEditorTabs.get_current_editor().userlevel = userlevel
+            self.nodeController.process_widget.userlevel = userlevel
+
         # If the user mode is chosen, the process library is not available
         # and the user cannot save a pipeline
         # if config.get_user_mode() == True:
