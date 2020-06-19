@@ -1370,7 +1370,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         # remove the 3 next lines when settings are thread safe.
         empty_config = engine2.study_config.export_to_dict()
         empty_config.update({'study_name': 'MIA'})
-        engine.study_config.import_from_dict(empty_config)
+        engine.study_config.import_from_dict(empty_config, clear=True)
 
         study_config = engine.study_config
         study_config.import_from_dict(capsul_config.get('study_config', {}))
