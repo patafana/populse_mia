@@ -285,23 +285,23 @@ class AdvancedSearch(QWidget):
         no_operators_tags.append(FIELD_TYPE_BOOLEAN)
         no_operators_tags.append(None)
 
-        if (tag_row is not None and tag_row.type in no_operators_tags) or \
+        if (tag_row is not None and tag_row.field_type in no_operators_tags) or \
                 tag_name == "All visualized tags":
             condition.removeItem(condition.findText("<"))
             condition.removeItem(condition.findText(">"))
             condition.removeItem(condition.findText("<="))
             condition.removeItem(condition.findText(">="))
             condition.removeItem(condition.findText("BETWEEN"))
-        elif tag_row is None or tag_row.type not in no_operators_tags:
+        elif tag_row is None or tag_row.field_type not in no_operators_tags:
             operators_to_reput = ["<", ">", "<=", ">=", "BETWEEN"]
             for operator in operators_to_reput:
                 is_op_existing = condition.findText(operator) != -1
                 if not is_op_existing:
                     condition.addItem(operator)
 
-        if tag_row is not None and tag_row.type.startswith('list_'):
+        if tag_row is not None and tag_row.field_type.startswith('list_'):
             condition.removeItem(condition.findText("IN"))
-        elif tag_row is None or not tag_row.type.startswith('list_'):
+        elif tag_row is None or not tag_row.field_type.startswith('list_'):
             operators_to_reput = ["IN"]
             for operator in operators_to_reput:
                 is_op_existing = condition.findText(operator) != -1

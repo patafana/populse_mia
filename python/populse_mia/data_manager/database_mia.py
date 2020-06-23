@@ -73,25 +73,8 @@ class DatabaseSessionMIA(DatabaseSession):
         :param unit: Primary key unit
         :param default_value: Primary key default value
         """
-        
-        if not self.engine.has_collection(FIELD_ATTRIBUTES_COLLECTION):
-            super(DatabaseSessionMIA, self).add_collection(FIELD_ATTRIBUTES_COLLECTION)
-            super(DatabaseSessionMIA, self).add_field(
-                FIELD_ATTRIBUTES_COLLECTION, 
-                'visibility',
-                FIELD_TYPE_BOOLEAN)
-            super(DatabaseSessionMIA, self).add_field(
-                FIELD_ATTRIBUTES_COLLECTION, 
-                'origin',
-                FIELD_TYPE_STRING)
-            super(DatabaseSessionMIA, self).add_field(
-                FIELD_ATTRIBUTES_COLLECTION, 
-                'unit',
-                FIELD_TYPE_STRING)
-            super(DatabaseSessionMIA, self).add_field(
-                FIELD_ATTRIBUTES_COLLECTION, 
-                'default_value',
-                FIELD_TYPE_STRING)
+
+        self.add_field_attributes_collection()
         super(DatabaseSessionMIA, self).add_collection(name, primary_key)
         self.add_document(FIELD_ATTRIBUTES_COLLECTION,
                           {
@@ -102,6 +85,27 @@ class DatabaseSessionMIA(DatabaseSession):
                               'unit': unit,
                               'default_value': default_value,
                           })
+
+    def add_field_attributes_collection(self):
+        if not self.engine.has_collection(FIELD_ATTRIBUTES_COLLECTION):
+            super(DatabaseSessionMIA, self).add_collection(
+                FIELD_ATTRIBUTES_COLLECTION)
+            super(DatabaseSessionMIA, self).add_field(
+                FIELD_ATTRIBUTES_COLLECTION,
+                'visibility',
+                FIELD_TYPE_BOOLEAN)
+            super(DatabaseSessionMIA, self).add_field(
+                FIELD_ATTRIBUTES_COLLECTION,
+                'origin',
+                FIELD_TYPE_STRING)
+            super(DatabaseSessionMIA, self).add_field(
+                FIELD_ATTRIBUTES_COLLECTION,
+                'unit',
+                FIELD_TYPE_STRING)
+            super(DatabaseSessionMIA, self).add_field(
+                FIELD_ATTRIBUTES_COLLECTION,
+                'default_value',
+                FIELD_TYPE_STRING)
 
     def add_field(self, collection, name, field_type, description,
                   visibility, origin, unit, default_value,

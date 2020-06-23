@@ -131,6 +131,7 @@ class Project():
         db = 'sqlite:///' + os.path.join(db_folder, 'mia.db')
         self.database = DatabaseMIA(db)
         self.session = self.database.__enter__()
+        self.session.add_field_attributes_collection()
 
         if new_project:
 
