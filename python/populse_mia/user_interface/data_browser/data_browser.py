@@ -1389,14 +1389,30 @@ class TableDataBrowser(QTableWidget):
 
         idx = 0
         row = 0
-        for scan in self.scans_to_visualize:
-            for column in range(0, len(self.horizontalHeader())):
+
+        dbs = self.project.session
+
+        collection_row = dbs.get_collection(COLLECTION_CURRENT)
+        primary_key = collection_row.primary_key
+        if self.scans_to_visualize:
+            req = '%s IN [%s]' \
+                % (primary_key, ', '.join(['"%s"' % x.replace('"', '\"')
+                                           for x in self.scans_to_visualize]))
+            scans = dbs.filter_documents(COLLECTION_CURRENT, req)
+        else:
+            scans = []
+        tags = [self.horizontalHeaderItem(column).text()
+                for column in range(len(self.horizontalHeader()))]
+        tag_types = {field.field_name: field.type
+                     for field in dbs.get_fields(COLLECTION_CURRENT)}
+        tag_types = [tag_types[tag] for tag in tags]
+
+        for scan in scans:
+            for column, current_tag in enumerate(tags):
 
                 idx += 1
                 self.progress.setValue(idx)
                 QApplication.processEvents()
-
-                current_tag = self.horizontalHeaderItem(column).text()
 
                 item = QTableWidgetItem()
 
@@ -1404,22 +1420,22 @@ class TableDataBrowser(QTableWidget):
                     # name tag
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                     # name not editable
-                    set_item_data(item, scan, FIELD_TYPE_STRING)
+                    set_item_data(item, scan[current_tag], FIELD_TYPE_STRING)
                 else:
                     # Other tags
-                    current_value = self.project.session.get_value(
-                        COLLECTION_CURRENT, scan, current_tag)
+                    col_type = tag_types[column]
+                    current_value = scan[current_tag]
                     # The scan has a value for the tag
                     if current_value is not None:
                         if current_tag != TAG_BRICKS:
                             set_item_data(
                                 item, current_value,
-                                self.project.session.get_field(
-                                    COLLECTION_CURRENT, current_tag).type)
+                                col_type)
                         else:
                             # Tag bricks, display list with buttons
                             # Initialization of a widget, it is necessary
                             # to remove it after a sort
+                            #current_value = eval(current_value)
                             widget = QWidget()
                             widget.moveToThread(
                                 QApplication.instance().thread())
@@ -2131,57 +2147,91 @@ class TableDataBrowser(QTableWidget):
 
         # itemChanged signal is always disconnected when calling this method
 
-        for column in range(0, self.columnCount()):
-            if not self.isColumnHidden(column):
-                tag = self.horizontalHeaderItem(column).text()
-                row_number = 0
-                for row in range(0, self.rowCount()):
-                    if not self.isRowHidden(row):
-                        scan = self.item(row, 0).text()
+        tags = [self.horizontalHeaderItem(column).text()
+                for column in range(len(self.horizontalHeader()))]
+        scans = [self.item(row, 0).text() for row in range(self.rowCount())]
 
+        dbs = self.project.session
+        collection_row = dbs.get_collection(COLLECTION_CURRENT)
+        primary_key = collection_row.primary_key
+        collection_init = dbs.get_collection(COLLECTION_INITIAL)
+        primary_key_init = collection_row.primary_key
+        if scans:
+            req = '%s IN [%s]' \
+                % (primary_key, ', '.join(['"%s"' % x.replace('"', '\"')
+                                           for x in scans]))
+            documents = dbs.filter_documents(COLLECTION_CURRENT, req)
+            req = '%s IN [%s]' \
+                % (primary_key_init, ', '.join(['"%s"' % x.replace('"', '\"')
+                                                for x in scans]))
+            documents_init = dbs.filter_documents(COLLECTION_INITIAL, req)
+
+        else:
+            documents = []
+            documents_init = []
+
+        fields = {f.field_name: f for f in dbs.get_fields(COLLECTION_CURRENT)}
+
+        table_scans = {self.item(row, 0).text(): row
+                       for row in range(self.rowCount())}
+        table_tags = {self.horizontalHeaderItem(column).text(): column
+                       for column in range(self.columnCount())}
+        table_tags = [table_tags[tag] for tag in tags]
+
+        # count visible rows odd/even
+        row_even = []
+        even = True
+        for row in range(self.rowCount()):
+            row_even.append(even)
+            if not self.isRowHidden(row):
+                even = not even
+
+        for scan_row, scan_i in enumerate(zip(documents, documents_init)):
+            scan, scan_init = scan_i
+            row = table_scans[scan[tags[0]]]
+
+            if not self.isRowHidden(row):
+                even = row_even[row]
+
+                for column, tag in zip(table_tags, tags):
+                    if not self.isColumnHidden(column):
                         item = self.item(row, column)
 
                         color = QColor()
 
                         if column == 0:
-                            if row_number % 2 == 0:
+                            if even:
                                 color.setRgb(255, 255, 255)  # White
                             else:
                                 color.setRgb(230, 230, 230)  # Grey
                         # Avoid issues after switching tab and not saving
-                        elif (self.project.session.get_field(
-                                COLLECTION_CURRENT, tag) is None):
-                            if row_number % 2 == 0:
+                        elif scan[tag] is None:
+                            if even:
                                 color.setRgb(245, 215, 215)  # Pink
                             else:
                                 color.setRgb(245, 175, 175)  # Red
                         # Raw tag
-                        elif (self.project.session.get_field(
-                                COLLECTION_CURRENT, tag).origin ==
-                                TAG_ORIGIN_BUILTIN):
-                            current_value = self.project.session.get_value(
-                                COLLECTION_CURRENT, scan, tag)
-                            initial_value = self.project.session.get_value(
-                                COLLECTION_INITIAL, scan, tag)
+                        elif fields[tag].origin == TAG_ORIGIN_BUILTIN:
+                            current_value = scan[tag]
+                            initial_value = scan_init[tag]
                             if current_value != initial_value:
-                                if row_number % 2 == 0:
+                                if even:
                                     color.setRgb(200, 230, 245)  # Cyan
                                 else:
                                     color.setRgb(150, 215, 230)  # Blue
                             else:
-                                if row_number % 2 == 0:
+                                if even:
                                     color.setRgb(255, 255, 255)  # White
                                 else:
                                     color.setRgb(230, 230, 230)  # Grey
 
                         # User tag
                         else:
-                            if row_number % 2 == 0:
+                            if even:
                                 color.setRgb(245, 215, 215)  # Pink
                             else:
                                 color.setRgb(245, 175, 175)  # Red
 
-                        row_number += 1
 
                         item.setData(Qt.BackgroundRole, QtCore.QVariant(color))
 
@@ -2221,8 +2271,7 @@ class TableDataBrowser(QTableWidget):
         # The list of scans to visualize
         self.scans_to_visualize = self.project.session.get_documents_names(
             COLLECTION_CURRENT)
-        self.scans_to_search = self.project.session.get_documents_names(
-            COLLECTION_CURRENT)
+        self.scans_to_search = list(self.scans_to_visualize)
 
         # The list of selected scans
         if self.activate_selection:
