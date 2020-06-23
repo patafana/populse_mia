@@ -810,6 +810,7 @@ class CapsulNodeController(QWidget):
             del item
             self.process_widget = None
 
+        userlevel = Config().get_user_level()
         self.process = process
         self.process_widget = AttributedProcessWidget(
             process, override_control_types={
@@ -822,7 +823,8 @@ class CapsulNodeController(QWidget):
                        'scan_list': self.scan_list,
                        'main_window': self.main_window,
                        'node_controller': self},
-            scroll=False)
+            scroll=False,
+            userlevel=userlevel)
         if hasattr(process, 'completion_engine'):
             compl = process.completion_engine
             atts = compl.get_attribute_values()

@@ -205,6 +205,11 @@ class Config:
             "engine_modules",
             ['nipype', 'fsl', 'freesurfer', 'matlab', 'spm', 'fom'])
         sconf = capsul_config.setdefault("study_config", {})
+        sconf.update(
+            {'attributes_schema_paths':
+                ['capsul.attributes.completion_engine_factory',
+                 'populse_mia.user_interface.pipeline_manager.process_mia'],
+            'process_completion': 'mia_completion'})
 
         # update study config from mia config values
         spm_standalone_path = self.get_spm_standalone_path()
@@ -255,6 +260,16 @@ class Config:
 
         """
         return self.config.get("user_mode", False)
+
+    def get_user_level(self):
+        """Get the user level in the Capsul config
+
+        Returns
+        -------
+        userlevel: int
+        """
+        return self.config.get("capsul_config", {}).get(
+            "study_config", {}).get("user_level", 0)
 
     def get_mainwindow_maximized(self):
         """Get the maximized (fullscreen) flag
