@@ -1402,7 +1402,7 @@ class TableDataBrowser(QTableWidget):
             scans = []
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
-        tag_types = {field.field_name: field.type
+        tag_types = {field.field_name: field.field_type
                      for field in dbs.get_fields(COLLECTION_CURRENT)}
         tag_types = [tag_types[tag] for tag in tags]
 
