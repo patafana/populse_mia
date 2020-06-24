@@ -99,6 +99,9 @@ class PipelineEditor(PipelineDevelopperView):
                                         show_sub_pipelines=True,
                                         enable_edition=True)
 
+        engine = Config.get_capsul_engine()
+        self.scene.pipeline.set_study_config(engine.study_config)
+
         self.project = project
         self.main_window = main_window
 
@@ -1343,49 +1346,21 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         Get a CapsulEngine object from the edited pipeline, and set it up from
         MIA config object
         """
-        # Reading config
-        config = Config()
-        capsul_config = config.get_capsul_config()
 
-        pipeline = self.get_current_pipeline()
-        engine = pipeline.get_study_config().engine
-        # in populse_db v1, using the database from a different thread gets
-        # a completely empty database. So we have to rebuild a new one
-        # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the copy operation.
-        engine2 = capsul_engine()
-        engine._database = engine2._database
-        engine._settings = None
-        engine._loaded_modules = set()
         # save completion attributes for the current pipeline (other pipelines
         # will lose their values)
+        pipeline = self.get_current_pipeline()
         completion = getattr(pipeline, 'completion_engine', None)
         if completion:
             att_values = completion.get_attribute_values().export_to_dict()
 
-        for module in capsul_config.get('engine_modules', []) \
-                + ['attributes', 'nipype']:
-            engine.load_module(module)
-
-        # remove the 3 next lines when settings are thread safe.
-        empty_config = engine2.study_config.export_to_dict()
-        empty_config.update({'study_name': 'MIA'})
-        engine.study_config.import_from_dict(empty_config, clear=True)
+        engine = Config.get_capsul_engine()
 
         study_config = engine.study_config
-        study_config.import_from_dict(capsul_config.get('study_config', {}))
-
         study_config.input_directory = os.path.join(
             os.path.abspath(self.project.folder), 'data', 'raw_data')
         study_config.output_directory = os.path.join(
             os.path.abspath(self.project.folder), 'data', 'derived_data')
-
-        ## setup completion for MIA processes
-        #mia_compl = 'populse_mia.user_interface.pipeline_manager.process_mia'
-        #if mia_compl not in study_config.attributes_schema_paths:
-            #study_config.attributes_schema_paths \
-                #= study_config.attributes_schema_paths + [mia_compl]
-        #study_config.process_completion =  'mia_completion'
 
         # restore completion attributes
         from capsul.attributes.completion_engine import ProcessCompletionEngine
@@ -1395,6 +1370,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 = ProcessCompletionEngine.get_completion_engine(pipeline)
             if completion:
                 completion.get_attribute_values().import_from_dict(att_values)
+
         return engine
 
     def get_current_editor(self):
