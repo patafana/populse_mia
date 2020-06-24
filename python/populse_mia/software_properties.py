@@ -259,41 +259,42 @@ class Config:
     def get_capsul_engine():
         """
         Get a global CapsulEngine object used for all operations in MIA
-        application. The engine is created once when needed, and updated at
-        each call of get_capsul_engine.
+        application. The engine is created once when needed.
         """
         from capsul.api import capsul_engine
 
         config = Config()
         capsul_config = config.get_capsul_config()
 
-        engine = Config.capsul_engine
-        if engine is None:
-            engine = capsul_engine()
-            Config.capsul_engine = engine
+        if Config.capsul_engine is None:
+            Config.capsul_engine = capsul_engine()
+            Config().update_capsul_config()
 
-        # in populse_db v1, using the database from a different thread gets
-        # a completely empty database. So we have to rebuild a new one
-        # in the thread. Once populse_db v2 works and is merged, we can remove
-        # the copy operation.
-        engine2 = capsul_engine()
-        engine._database = engine2._database
-        engine._settings = None
-        engine._loaded_modules = set()
+        return Config.capsul_engine
+
+    def update_capsul_config(self):
+        """
+        Update a global CapsulEngine object used for all operations in MIA
+        application. The engine is created once when needed, and updated
+        each time the config is saved.
+        """
+        if self.capsul_engine is None:
+            # don't do anything until the config is really created: this
+            # avoids unneeded updates before it is actually used.
+            return
+
+        capsul_config = self.get_capsul_config()
+        engine = Config.capsul_engine
 
         for module in capsul_config.get('engine_modules', []) \
                 + ['attributes', 'nipype']:
             engine.load_module(module)
 
-        # remove the 3 next lines when settings are thread safe.
-        empty_config = engine2.study_config.export_to_dict()
-        empty_config.update({'study_name': 'MIA'})
-        engine.study_config.import_from_dict(empty_config, clear=True)
-
         study_config = engine.study_config
         study_config.import_from_dict(capsul_config.get('study_config', {}))
 
         return engine
+
 
     def get_user_mode(self):
         """Get if user mode is disabled or enabled in the preferences.
@@ -653,6 +654,8 @@ class Config:
             stream = yaml.dump(self.config, default_flow_style=False,
                       allow_unicode=True)
             configfile.write(f.encrypt(stream.encode()))
+
+        self.update_capsul_config()
 
     def set_admin_hash(self, hash):
         """Set the password hash.
