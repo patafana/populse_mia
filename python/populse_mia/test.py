@@ -1509,7 +1509,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT), [])
         self.assertEqual(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL), [])
         collections = self.main_window.project.session.get_collections_names()
-        self.assertEqual(len(collections), 3)
+        self.assertEqual(len(collections), 4)
         self.assertTrue(COLLECTION_INITIAL in collections)
         self.assertTrue(COLLECTION_CURRENT in collections)
         self.assertTrue(COLLECTION_BRICK in collections)
