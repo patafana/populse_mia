@@ -316,9 +316,9 @@ class TestMIADataBrowser(unittest.TestCase):
 
         bricks_column = self.main_window.data_browser.table_data.get_tag_column("Bricks")
         bricks_widget = self.main_window.data_browser.table_data.cellWidget(8, bricks_column)
-        smmooth_button = bricks_widget.children()[1]
-        self.assertEqual(smmooth_button.text(), "smooth1")
-        QTest.mouseClick(smmooth_button, Qt.LeftButton)
+        smooth_button = bricks_widget.children()[1]
+        self.assertEqual(smooth_button.text(), "smooth1")
+        QTest.mouseClick(smooth_button, Qt.LeftButton)
         brick_history = self.main_window.data_browser.table_data.show_brick_popup
         brick_table = brick_history.table
         self.assertEqual(brick_table.horizontalHeaderItem(0).text(), "Name")
