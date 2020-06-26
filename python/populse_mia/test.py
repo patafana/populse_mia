@@ -106,6 +106,18 @@ class TestMIADataBrowser(unittest.TestCase):
         if os.path.exists(cls.config_path):
             shutil.rmtree(cls.config_path)
 
+    def get_new_test_project(self):
+        # copy the test project in a location we can modify safely
+        project_path = os.path.join(self.config_path, 'project_8')
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+        config = Config(config_path=self.config_path)
+        mia_path = config.get_mia_path()
+        project_8_path = os.path.join(mia_path, 'resources', 'mia',
+                                      'project_8')
+        shutil.copytree(project_8_path, project_path)
+        return project_path
+
     def test_add_path(self):
         """
         Tests the popup to add a path
@@ -142,7 +154,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Testing without tag name
@@ -230,7 +242,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         scans_displayed = []
@@ -311,12 +323,20 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         bricks_column = self.main_window.data_browser.table_data.get_tag_column("Bricks")
+        print('test_brick_history, data:', self.main_window.data_browser.table_data.rowCount())
+        for row in range(self.main_window.data_browser.table_data.rowCount()):
+            print(row, self.main_window.data_browser.table_data.item(row, 0).text())
+
         bricks_widget = self.main_window.data_browser.table_data.cellWidget(8, bricks_column)
-        smooth_button = bricks_widget.children()[1]
+        print('bricks_widget:', bricks_widget)
+        print('children:', bricks_widget.layout())
+        print('children:', bricks_widget.layout().itemAt(0))
+        print('children:', bricks_widget.layout().itemAt(0).widget())
+        smooth_button = bricks_widget.layout().itemAt(1).widget()
         self.assertEqual(smooth_button.text(), "smooth1")
         QTest.mouseClick(smooth_button, Qt.LeftButton)
         brick_history = self.main_window.data_browser.table_data.show_brick_popup
@@ -353,7 +373,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Selecting a cell
@@ -382,7 +402,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Testing without new tag name
@@ -418,7 +438,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(test_row.description, bandwidth_row.description)
         self.assertEqual(test_row.unit, bandwidth_row.unit)
         self.assertEqual(test_row.default_value, bandwidth_row.default_value)
-        self.assertEqual(test_row.type, bandwidth_row.type)
+        self.assertEqual(test_row.field_type, bandwidth_row.field_type)
         self.assertEqual(test_row.origin, TAG_ORIGIN_USER)
         self.assertEqual(test_row.visibility, True)
         test_row = self.main_window.project.session.get_field(COLLECTION_INITIAL, "Test")
@@ -426,7 +446,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(test_row.description, bandwidth_row.description)
         self.assertEqual(test_row.unit, bandwidth_row.unit)
         self.assertEqual(test_row.default_value, bandwidth_row.default_value)
-        self.assertEqual(test_row.type, bandwidth_row.type)
+        self.assertEqual(test_row.field_type, bandwidth_row.field_type)
         self.assertEqual(test_row.origin, TAG_ORIGIN_USER)
         self.assertEqual(test_row.visibility, True)
 
@@ -449,7 +469,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         QTest.mouseClick(self.main_window.data_browser.count_table_button, Qt.LeftButton)
@@ -584,8 +604,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
         scans_displayed = []
         item = self.main_window.data_browser.table_data.item(0, 0)
@@ -602,7 +621,7 @@ class TestMIADataBrowser(unittest.TestCase):
             COLLECTION_CURRENT, scans_displayed[0], "FOV")
         mod = ModifyTable(self.main_window.project,
                           value,
-                          [type("string")],
+                          ["string"],
                           scans_displayed,
                           tag_name)
         mod.update_table_values(True)
@@ -615,7 +634,7 @@ class TestMIADataBrowser(unittest.TestCase):
             COLLECTION_CURRENT, "FOV")
         mod = ModifyTable(self.main_window.project,
                           value,
-                          [tag_object.type],
+                          [tag_object.field_type],
                           scans_displayed,
                           tag_name)
         mod.update_table_values(True)
@@ -631,7 +650,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.main_window.data_browser.table_data.itemChanged.disconnect()
@@ -671,7 +690,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.assertEqual(self.main_window.project.getName(), "project_8")
@@ -706,7 +725,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.main_window.data_browser.open_filter_action.trigger()
@@ -736,8 +755,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        project_8_path = self.get_new_test_project()
 
         os.remove(os.path.join(config.get_config_path(), 'saved_projects.yml'))
 
@@ -778,7 +796,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Checking that the 8 scans are shown in the databrowser
@@ -850,7 +868,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         scans_displayed = []
@@ -931,7 +949,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
@@ -987,7 +1005,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
@@ -1079,7 +1097,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         bw_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
@@ -1115,8 +1133,7 @@ class TestMIADataBrowser(unittest.TestCase):
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         something_path = os.path.join(mia_path, 'projects', 'something')
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        project_8_path = self.get_new_test_project()
 
         self.main_window.saveChoice() # Saves the project 'something'
         self.assertEqual(self.main_window.project.getName(), "something")
@@ -1168,7 +1185,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Checking that the pipeline manager has an empty list at the beginning
@@ -1243,7 +1260,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Checking that the pipeline manager has an empty list at the beginning
@@ -1318,7 +1335,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT, "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii", "BandWidth"))
@@ -1352,7 +1369,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         mixed_bandwidths = []
@@ -1392,8 +1409,7 @@ class TestMIADataBrowser(unittest.TestCase):
     def test_tab_change(self):
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.main_window.tabs.setCurrentIndex(2)
@@ -1415,7 +1431,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia', 'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.assertEqual(self.main_window.project.undos, [])
@@ -1686,6 +1702,18 @@ class TestMIAPipelineManager(unittest.TestCase):
     def tearDownClass(cls):
         if os.path.exists(cls.config_path):
             shutil.rmtree(cls.config_path)
+
+    def get_new_test_project(self):
+        # copy the test project in a location we can modify safely
+        project_path = os.path.join(self.config_path, 'project_8')
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+        config = Config(config_path=self.config_path)
+        mia_path = config.get_mia_path()
+        project_8_path = os.path.join(mia_path, 'resources', 'mia',
+                                      'project_8')
+        shutil.copytree(project_8_path, project_path)
+        return project_path
 
     def test_add_tab(self):
         """
@@ -2028,8 +2056,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
-        project_8_path = os.path.join(mia_path, 'resources', 'mia',
-                                      'project_8')
+        project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         iteration_table = self.main_window.pipeline_manager.iterationTable
