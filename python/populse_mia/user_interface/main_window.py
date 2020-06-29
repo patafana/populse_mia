@@ -819,20 +819,7 @@ class MainWindow(QMainWindow):
                                      'database', 'mia.db'),
                         os.path.abspath(database_path))
 
-            # We remove the Database with all the modifications saved in
-            # the old project
-            os.remove(os.path.join(
-                os.path.abspath(old_folder), 'database', 'mia.db'))
-
-            # We reput the Database without the last modifications
-            # in the old project
-            shutil.copy(os.path.join(os.path.abspath(old_folder), 'database',
-                                     'mia_before_commit.db'),
-                        os.path.join(os.path.abspath(old_folder), 'database',
-                                     'mia.db'))
-
-            os.remove(os.path.join(os.path.abspath(old_folder), 'database',
-                                   'mia_before_commit.db'))
+            reset_old_db = not self.project.isTempProject
 
             # Removing the old project from the list of
             # currently opened projects
@@ -845,6 +832,23 @@ class MainWindow(QMainWindow):
 
             # We remove the useless files from the old project
             self.remove_raw_files_useless()
+
+            if reset_old_db:
+                # We remove the Database with all the modifications saved in
+                # the old project
+                os.remove(os.path.join(
+                    os.path.abspath(old_folder), 'database', 'mia.db'))
+
+                # We reput the Database without the last modifications
+                # in the old project
+                shutil.copy(os.path.join(os.path.abspath(old_folder),
+                                         'database', 'mia_before_commit.db'),
+                            os.path.join(os.path.abspath(old_folder),
+                                         'database', 'mia.db'))
+
+                os.remove(os.path.join(os.path.abspath(old_folder), 'database',
+                                      'mia_before_commit.db'))
+
 
             # project updated everywhere
             self.project = Project(self.exPopup.relative_path, False)
