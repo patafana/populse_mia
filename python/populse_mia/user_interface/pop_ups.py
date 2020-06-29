@@ -2520,10 +2520,10 @@ class PopUpPreferences(QDialog):
                     config.set_use_matlab_standalone(False)
             elif os.path.isdir(spm_input):
                 try:
-                    matlab_cmd = ('restoredefaultpath; '
-                                  ' addpath("' + spm_input + '"); '
-                                  ' [name, ~]=spm("Ver");'
-                                  ' exit')
+                    matlab_cmd = ("restoredefaultpath; "
+                                  "addpath('" + spm_input + "'); "
+                                  "[name, ~]=spm('Ver'); "
+                                  "exit")
                     p = subprocess.Popen([matlab_input, '-nodisplay',
                                           '-nodesktop', '-nosplash',
                                           '-singleCompThread', '-r',
