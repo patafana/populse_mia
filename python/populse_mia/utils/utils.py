@@ -75,7 +75,8 @@ def check_value_type(value, value_type, is_subvalue=False):
             return True
         except Exception:
             return False
-    elif value_type.startswith('list_') and not is_subvalue:
+    elif isinstance(value_type, str) and value_type.startswith('list_') \
+            and not is_subvalue:
         if isinstance(value, str):
             value = ast.literal_eval(value)
         is_valid_value = True

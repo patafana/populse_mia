@@ -151,6 +151,24 @@ class DatabaseSessionMIA(DatabaseSession):
             self.add_field(field[0], field[1], field[2], field[3], field[4],
                            field[5], field[6], field[7], False)
 
+    def remove_field(self, collection, fields):
+        """
+        Removes a field in the collection
+
+        :param collection: Field collection (str, must be existing)
+
+        :param field: Field name (str, must be existing), or list of fields (list of str, must all be existing)
+
+        :raise ValueError: - If the collection does not exist
+                           - If the field does not exist
+        """
+        super(DatabaseSessionMIA, self).remove_field(collection, fields)
+        if isinstance(fields, str):
+            fields = [fields]
+        for field in fields:
+            self.remove_document(FIELD_ATTRIBUTES_COLLECTION,
+                                 '%s|%s' % (collection, field))
+
     def get_field(self, collection, name):
         field = super(DatabaseSessionMIA, self).get_field(collection, name)
         if field is not None:
@@ -173,23 +191,31 @@ class DatabaseSessionMIA(DatabaseSession):
     def get_shown_tags(self):
         """Give the list of visible tags.
 
-        :returns: the list of visible tags
+        Returns
+        -------
+        the list of visible tags
         """
-        visible_names= set()
-        for i in self.filter_documents(FIELD_ATTRIBUTES_COLLECTION, '{visibility} == true'):
-            visible_names.add(i.field)
-        return list(visible_names)
+        visible_names = []
+        names_set = set()
+        for i in self.filter_documents(FIELD_ATTRIBUTES_COLLECTION,
+                                       '{visibility} == true'):
+            if i.field not in names_set:
+                names_set.add(i.field)
+                visible_names.append(i.field)  # respect list order
+        return visible_names
 
-    def set_shown_tags(self, field_showed):
+    def set_shown_tags(self, fields_shown):
         """Set the list of visible tags.
 
-        :param field_showed: list of visible tags
+        Parameters
+        ----------
+        fields_shown: list
+            list of visible tags
         """
 
-        for i in self.filter_documents(
-            FIELD_ATTRIBUTES_COLLECTION, 
-            '{visibility} == false AND {field} IN [%s]' % ','.join('"%s"' % i for i in field_showed)):
-            self.set_value(FIELD_ATTRIBUTES_COLLECTION, i.index, 'visibility', True)
+        for field in self.get_documents(FIELD_ATTRIBUTES_COLLECTION):
+            self.set_value(FIELD_ATTRIBUTES_COLLECTION, field.index,
+                           'visibility', field.field in fields_shown)
 
 class DatabaseMIA(Database):
     """

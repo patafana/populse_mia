@@ -327,16 +327,9 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.switch_project(project_8_path, "project_8")
 
         bricks_column = self.main_window.data_browser.table_data.get_tag_column("Bricks")
-        print('test_brick_history, data:', self.main_window.data_browser.table_data.rowCount())
-        for row in range(self.main_window.data_browser.table_data.rowCount()):
-            print(row, self.main_window.data_browser.table_data.item(row, 0).text())
 
         bricks_widget = self.main_window.data_browser.table_data.cellWidget(8, bricks_column)
-        print('bricks_widget:', bricks_widget)
-        print('children:', bricks_widget.layout())
-        print('children:', bricks_widget.layout().itemAt(0))
-        print('children:', bricks_widget.layout().itemAt(0).widget())
-        smooth_button = bricks_widget.layout().itemAt(1).widget()
+        smooth_button = bricks_widget.layout().itemAt(0).widget()
         self.assertEqual(smooth_button.text(), "smooth1")
         QTest.mouseClick(smooth_button, Qt.LeftButton)
         brick_history = self.main_window.data_browser.table_data.show_brick_popup
@@ -621,9 +614,10 @@ class TestMIADataBrowser(unittest.TestCase):
         # Test that the value will not change if the tag's type is incorrect
         old_value = self.main_window.project.session.get_value(
             COLLECTION_CURRENT, scans_displayed[0], "FOV")
+
         mod = ModifyTable(self.main_window.project,
                           value,
-                          ["string"],
+                          [type("string")],
                           scans_displayed,
                           tag_name)
         mod.update_table_values(True)
@@ -1596,25 +1590,25 @@ class TestMIADataBrowser(unittest.TestCase):
 
         # Testing that FileName is not displayed in the list of visible tags
         settings.tab_tags.search_bar.setText("")
-        visibles_tags = []
+        visible_tags = []
         for row in range (0, settings.tab_tags.list_widget_selected_tags.count()):
             item = settings.tab_tags.list_widget_selected_tags.item(row).text()
-            visibles_tags.append(item)
-        self.assertEqual(len(visibles_tags), 3)
-        self.assertTrue(TAG_BRICKS in visibles_tags)
-        self.assertTrue(TAG_EXP_TYPE in visibles_tags)
-        self.assertTrue(TAG_TYPE in visibles_tags)
+            visible_tags.append(item)
+        self.assertEqual(len(visible_tags), 3)
+        self.assertTrue(TAG_BRICKS in visible_tags)
+        self.assertTrue(TAG_EXP_TYPE in visible_tags)
+        self.assertTrue(TAG_TYPE in visible_tags)
 
         # Testing when hiding a tag
-        settings.tab_tags.list_widget_selected_tags.item(0).setSelected(True) # Bricks tag selected
+        settings.tab_tags.list_widget_selected_tags.item(2).setSelected(True) # Bricks tag selected
         QTest.mouseClick(settings.tab_tags.push_button_unselect_tag, Qt.LeftButton)
-        visibles_tags = []
+        visible_tags = []
         for row in range(0, settings.tab_tags.list_widget_selected_tags.count()):
             item = settings.tab_tags.list_widget_selected_tags.item(row).text()
-            visibles_tags.append(item)
-        self.assertEqual(len(visibles_tags), 2)
-        self.assertTrue(TAG_TYPE in visibles_tags)
-        self.assertTrue(TAG_EXP_TYPE in visibles_tags)
+            visible_tags.append(item)
+        self.assertEqual(len(visible_tags), 2)
+        self.assertTrue(TAG_TYPE in visible_tags)
+        self.assertTrue(TAG_EXP_TYPE in visible_tags)
         QTest.mouseClick(settings.push_button_ok, Qt.LeftButton)
 
         new_visibles = self.main_window.project.session.get_shown_tags()

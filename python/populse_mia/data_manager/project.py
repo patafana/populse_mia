@@ -540,7 +540,7 @@ class Project():
                     else:
                         set_item_data(
                             item, new_value, self.session.get_field(
-                                COLLECTION_CURRENT, tag).type)
+                                COLLECTION_CURRENT, tag).field_type)
                 table.update_colors()
                 table.itemChanged.connect(table.change_cell_color)
 
@@ -733,12 +733,12 @@ class Project():
                     tag_to_reput = tags_removed[i][0]
                     self.session.add_field(
                         COLLECTION_CURRENT, tag_to_reput.field_name,
-                        tag_to_reput.type, tag_to_reput.description,
+                        tag_to_reput.field_type, tag_to_reput.description,
                         tag_to_reput.visibility, tag_to_reput.origin,
                         tag_to_reput.unit, tag_to_reput.default_value)
                     self.session.add_field(
                         COLLECTION_INITIAL, tag_to_reput.field_name,
-                        tag_to_reput.type, tag_to_reput.description,
+                        tag_to_reput.field_type, tag_to_reput.description,
                         tag_to_reput.visibility, tag_to_reput.origin,
                         tag_to_reput.unit, tag_to_reput.default_value)
                 # The third element is a list of tags values (Value class)
@@ -825,7 +825,7 @@ class Project():
                             COLLECTION_CURRENT, scan, tag, old_value)
                         set_item_data(
                             item, old_value, self.session.get_field(
-                                COLLECTION_CURRENT, tag).type)
+                                COLLECTION_CURRENT, tag).field_type)
                         # If the new value is None,
                         # the not defined font must be removed
                         if new_value is None:

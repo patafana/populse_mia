@@ -2386,8 +2386,7 @@ class TableDataBrowser(QTableWidget):
         self.pop_up.tab_widget.setCurrentIndex(0)
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.pop_up.setMinimumWidth(0.5 * width)
-        self.pop_up.setMinimumHeight(0.8 * height)
+        self.pop_up.resize(0.5 * width, 0.8 * height)
         self.pop_up.show()
 
 
