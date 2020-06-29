@@ -151,6 +151,24 @@ class DatabaseSessionMIA(DatabaseSession):
             self.add_field(field[0], field[1], field[2], field[3], field[4],
                            field[5], field[6], field[7], False)
 
+    def remove_field(self, collection, fields):
+        """
+        Removes a field in the collection
+
+        :param collection: Field collection (str, must be existing)
+
+        :param field: Field name (str, must be existing), or list of fields (list of str, must all be existing)
+
+        :raise ValueError: - If the collection does not exist
+                           - If the field does not exist
+        """
+        super(DatabaseSessionMIA, self).remove_field(collection, fields)
+        if isinstance(fields, str):
+            fields = [fields]
+        for field in fields:
+            self.remove_document(FIELD_ATTRIBUTES_COLLECTION,
+                                 '%s|%s' % (collection, field))
+
     def get_field(self, collection, name):
         field = super(DatabaseSessionMIA, self).get_field(collection, name)
         if field is not None:
@@ -175,10 +193,13 @@ class DatabaseSessionMIA(DatabaseSession):
 
         :returns: the list of visible tags
         """
-        visible_names= set()
+        visible_names = []
+        names_set = set()
         for i in self.filter_documents(FIELD_ATTRIBUTES_COLLECTION, '{visibility} == true'):
-            visible_names.add(i.field)
-        return list(visible_names)
+            if i.field not in names_set:
+                names_set.add(i.field)
+                visible_names.append(i.field)  # respect list order
+        return visible_names
 
     def set_shown_tags(self, field_showed):
         """Set the list of visible tags.
