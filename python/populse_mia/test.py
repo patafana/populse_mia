@@ -327,8 +327,6 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.switch_project(project_8_path, "project_8")
 
         bricks_column = self.main_window.data_browser.table_data.get_tag_column("Bricks")
-        for row in range(self.main_window.data_browser.table_data.rowCount()):
-            print(row, self.main_window.data_browser.table_data.item(row, 0).text())
 
         bricks_widget = self.main_window.data_browser.table_data.cellWidget(8, bricks_column)
         smooth_button = bricks_widget.layout().itemAt(0).widget()
