@@ -191,26 +191,31 @@ class DatabaseSessionMIA(DatabaseSession):
     def get_shown_tags(self):
         """Give the list of visible tags.
 
-        :returns: the list of visible tags
+        Returns
+        -------
+        the list of visible tags
         """
         visible_names = []
         names_set = set()
-        for i in self.filter_documents(FIELD_ATTRIBUTES_COLLECTION, '{visibility} == true'):
+        for i in self.filter_documents(FIELD_ATTRIBUTES_COLLECTION,
+                                       '{visibility} == true'):
             if i.field not in names_set:
                 names_set.add(i.field)
                 visible_names.append(i.field)  # respect list order
         return visible_names
 
-    def set_shown_tags(self, field_showed):
+    def set_shown_tags(self, fields_shown):
         """Set the list of visible tags.
 
-        :param field_showed: list of visible tags
+        Parameters
+        ----------
+        fields_shown: list
+            list of visible tags
         """
 
-        for i in self.filter_documents(
-            FIELD_ATTRIBUTES_COLLECTION, 
-            '{visibility} == false AND {field} IN [%s]' % ','.join('"%s"' % i for i in field_showed)):
-            self.set_value(FIELD_ATTRIBUTES_COLLECTION, i.index, 'visibility', True)
+        for field in self.get_documents(FIELD_ATTRIBUTES_COLLECTION):
+            self.set_value(FIELD_ATTRIBUTES_COLLECTION, field.index,
+                           'visibility', field.field in fields_shown)
 
 class DatabaseMIA(Database):
     """
