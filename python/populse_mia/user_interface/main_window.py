@@ -405,9 +405,6 @@ class MainWindow(QMainWindow):
 
             if self.exPopup.exec():
 
-                self.remove_raw_files_useless()  # We remove the useless
-                # files from the old project
-
                 self.exPopup.get_filename(self.exPopup.selectedFiles())
                 file_name = self.exPopup.relative_path
 
@@ -418,6 +415,9 @@ class MainWindow(QMainWindow):
                 opened_projects.remove(self.project.folder)
                 config.set_opened_projects(opened_projects)
                 config.saveConfig()
+
+                self.remove_raw_files_useless()  # We remove the useless
+                # files from the old project
 
                 self.project = Project(self.exPopup.relative_path, True)
 
@@ -637,15 +637,23 @@ class MainWindow(QMainWindow):
             self.pipeline_manager.redo()
 
     def remove_raw_files_useless(self):
-        """Remove the useless raw files of the current project"""
+        """Remove the useless raw files of the current project, close the
+        database connection. The project is not valid any longer after this
+        call."""
+
+        folder = self.project.folder
 
         # If it's unnamed project, we can remove the whole project
         if self.project.isTempProject:
-            shutil.rmtree(self.project.folder)
+            # close database, and files
+            self.project.session = None
+            self.project.database.__exit__(None, None, None)
+            self.project.database = None
+            shutil.rmtree(folder)
         else:
             for filename in glob.glob(
                     os.path.join(os.path.abspath(
-                        self.project.folder), 'data', 'raw_data', '*')):
+                        folder), 'data', 'raw_data', '*')):
                 scan = os.path.basename(filename)
                 # The file is removed only if it's not a scan in the project,
                 # and if it's not a logExport
@@ -685,6 +693,12 @@ class MainWindow(QMainWindow):
                         is None and "logExport" not in scan):
                     os.remove(filename)
                     self.project.unsavedModifications = True
+
+            # close database, and files
+            self.project.session = None
+            self.project.database.__exit__(None, None, None)
+            self.project.database = None
+        self.project = None
 
     def save(self):
         """Save either the current project or the current pipeline"""
@@ -820,9 +834,6 @@ class MainWindow(QMainWindow):
             os.remove(os.path.join(os.path.abspath(old_folder), 'database',
                                    'mia_before_commit.db'))
 
-            self.remove_raw_files_useless()
-            # We remove the useless files from the old project
-
             # Removing the old project from the list of
             # currently opened projects
             config = Config()
@@ -831,6 +842,9 @@ class MainWindow(QMainWindow):
                 opened_projects.remove(self.project.folder)
             config.set_opened_projects(opened_projects)
             config.saveConfig()
+
+            # We remove the useless files from the old project
+            self.remove_raw_files_useless()
 
             # project updated everywhere
             self.project = Project(self.exPopup.relative_path, False)
@@ -973,9 +987,6 @@ class MainWindow(QMainWindow):
                         msg.buttonClicked.connect(msg.close)
                         msg.exec()
 
-                    self.remove_raw_files_useless()
-                    # We remove the useless files from the old project
-
                     # project removed from the opened projects list
                     config = Config()
                     opened_projects = config.get_opened_projects()
@@ -983,6 +994,10 @@ class MainWindow(QMainWindow):
                         opened_projects.remove(self.project.folder)
                     config.set_opened_projects(opened_projects)
                     config.saveConfig()
+
+                    # We remove the useless files from the old project
+                    self.remove_raw_files_useless()
+
                     self.project = temp_database  # New Database
 
                     self.update_project(file_path)
