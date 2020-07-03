@@ -1903,6 +1903,10 @@ class RunProgress(QWidget):
         #self.close()
 
 
+        engine \
+            = self.diagramView.get_current_pipeline().get_study_config().engine
+        with engine.study_config.run_lock:
+            engine.study_config.run_interruption_request = True
 class RunWorker(QThread):
     """Run the pipeline"""
 
@@ -2057,6 +2061,11 @@ class RunWorker(QThread):
                                                                e))
             import traceback
             traceback.print_exc()
+        except RuntimeError as e:
+            print('*** INTERRUPT ***')
+            print(e)
+            return
+
 
         # restore current working directory in case it has been changed
         os.chdir(cwd)
