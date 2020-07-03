@@ -1984,6 +1984,10 @@ class RunProgress(QProgressDialog):
         self.worker.finished.connect(self.close)
         self.worker.start()
         
+        engine \
+            = self.diagramView.get_current_pipeline().get_study_config().engine
+        with engine.study_config.run_lock:
+            engine.study_config.run_interruption_request = True
 class RunWorker(QThread):
     """Run the pipeline"""
 
@@ -2051,7 +2055,8 @@ class RunWorker(QThread):
         cwd = os.getcwd()
 
         try:
-            study_config.run(pipeline, verbose=1)
+            study_config.use_soma_workflow = False
+            result = study_config.run(pipeline, verbose=1)
 
             #** pathway from the study_config.run(pipeline, verbose=1) command:
             #   (ex. for the User_processes Smooth brick):
@@ -2129,6 +2134,11 @@ class RunWorker(QThread):
                                                                e))
             import traceback
             traceback.print_exc()
+        except RuntimeError as e:
+            print('*** INTERRUPT ***')
+            print(e)
+            return
+
         # haven't yet found how to raise the exception in the try block in
         # PipelineManagerTab.runPipeline() above. So the
         # self.main_window.statusBar().showMessage() gives the
