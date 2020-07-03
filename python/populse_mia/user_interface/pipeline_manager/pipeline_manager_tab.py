@@ -2057,11 +2057,6 @@ class RunWorker(QThread):
                                                                e))
             import traceback
             traceback.print_exc()
-        except RuntimeError as e:
-            print('*** INTERRUPT ***')
-            print(e)
-            return
-
 
         # restore current working directory in case it has been changed
         os.chdir(cwd)
