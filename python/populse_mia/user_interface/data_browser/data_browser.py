@@ -788,6 +788,11 @@ class TableDataBrowser(QTableWidget):
         # Adding the column to the table
         self.insertColumn(column)
         item = QtWidgets.QTableWidgetItem()
+
+
+        print('\n prout item dans add_column method de TableDataBrowser classe: ', item)
+
+        
         self.setHorizontalHeaderItem(column, item)
         tag_object = self.project.session.get_field(COLLECTION_CURRENT, tag)
         item.setText(tag)
@@ -2149,6 +2154,15 @@ class TableDataBrowser(QTableWidget):
 
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
+
+
+        print('\n prout dans populse_mia/user_interface/data_browser/data_browser.py self.rowCount(): ', self.rowCount())
+
+        for row in range(self.rowCount()):
+            print('\n prout row: ', row)
+            print('\n prout self.item(row, 0): ', self.item(row, 0))
+            print('\n prout self.item(row, 0).text(): ', self.item(row, 0).text())
+        
         scans = [self.item(row, 0).text() for row in range(self.rowCount())]
 
         dbs = self.project.session
@@ -2264,6 +2278,10 @@ class TableDataBrowser(QTableWidget):
         :param take_tags_to_update: boolean
         """
 
+
+        print('\n prout populse_mia/user_interface/data_browser.data_browser.py class TableDataBrowser method   update_table')
+
+        
         self.setSortingEnabled(False)
 
         self.clearSelection()  # Selection cleared when switching project
@@ -2292,6 +2310,10 @@ class TableDataBrowser(QTableWidget):
         # Columns and rows resized
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+
+
+        print('\n prout self: ', self)
 
         self.update_colors()
 

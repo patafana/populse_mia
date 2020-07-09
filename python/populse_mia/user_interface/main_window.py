@@ -1143,6 +1143,14 @@ class MainWindow(QMainWindow):
         self.pipeline_manager.update_project(self.project)
 
         if call_update_table:
+
+            print('\n prout dans populse_mia/user_interface/main_window.py self: ', self)
+            print('\n prout self.data_browser: ', self.data_browser)
+            print('\n prout self.data_browser.table_data: ', self.data_browser.table_data)
+
+
+
+            
             self.data_browser.table_data.update_table()  # Table updated
 
         # Window name updated
