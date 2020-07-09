@@ -788,11 +788,6 @@ class TableDataBrowser(QTableWidget):
         # Adding the column to the table
         self.insertColumn(column)
         item = QtWidgets.QTableWidgetItem()
-
-
-        print('\n prout item dans add_column method de TableDataBrowser classe: ', item)
-
-        
         self.setHorizontalHeaderItem(column, item)
         tag_object = self.project.session.get_field(COLLECTION_CURRENT, tag)
         item.setText(tag)
@@ -1523,6 +1518,9 @@ class TableDataBrowser(QTableWidget):
         # Filling the headers
         for tag_name in tags:
             item = QtWidgets.QTableWidgetItem()
+
+            print('\n merdouille item dans fill_headers :', item)
+
             self.setHorizontalHeaderItem(column, item)
             item.setText(tag_name)
 
@@ -1607,6 +1605,9 @@ class TableDataBrowser(QTableWidget):
         # for row in range(0, len(self.scans_to_visualize)):
         for row in range(0, self.rowCount()):
             item = self.item(row, 0)
+
+            print('\merdouille item in get_scan_row :', item)
+
             scan_name = item.text()
             if scan_name == scan:
                 return row
@@ -2152,18 +2153,24 @@ class TableDataBrowser(QTableWidget):
 
         # itemChanged signal is always disconnected when calling this method
 
+        print('\n merdouille self :', self)
+        print('\n merdouille self.item', self.item)
+
+
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
 
-
-        print('\n prout dans populse_mia/user_interface/data_browser/data_browser.py self.rowCount(): ', self.rowCount())
-
+        print('\n merdouille rowCount :', self.rowCount())
         for row in range(self.rowCount()):
-            print('\n prout row: ', row)
-            print('\n prout self.item(row, 0): ', self.item(row, 0))
-            print('\n prout self.item(row, 0).text(): ', self.item(row, 0).text())
-        
-        scans = [self.item(row, 0).text() for row in range(self.rowCount())]
+            print('\n merdouille row :', row)
+            print('\n merdouille self.item :', self.item(row, 0))
+
+        scans = []
+        for row in range(self.rowCount()):
+            print('\n merdouille row :', row)
+            scans.append(self.item(row, 0).text())
+            print('\n merdouille self.item :', self.item(row, 0))
+        # scans = [self.item(row, 0).text() for row in range(self.rowCount())]
 
         dbs = self.project.session
         collection_row = dbs.get_collection(COLLECTION_CURRENT)
@@ -2278,10 +2285,6 @@ class TableDataBrowser(QTableWidget):
         :param take_tags_to_update: boolean
         """
 
-
-        print('\n prout populse_mia/user_interface/data_browser.data_browser.py class TableDataBrowser method   update_table')
-
-        
         self.setSortingEnabled(False)
 
         self.clearSelection()  # Selection cleared when switching project
@@ -2310,10 +2313,6 @@ class TableDataBrowser(QTableWidget):
         # Columns and rows resized
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-
-
-        print('\n prout self: ', self)
 
         self.update_colors()
 
@@ -2436,4 +2435,3 @@ class TimeFormatDelegate(QItemDelegate):
         editor = QTimeEdit(parent)
         editor.setDisplayFormat("hh:mm:ss.zzz")
         return editor
-
