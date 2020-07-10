@@ -480,6 +480,9 @@ class MainWindow(QMainWindow):
         files and loads them into the database.
 
         """
+
+        print('\n check import ici')
+
         # Opens the conversion software to convert the MRI files in Nifti/Json
         config = Config()
         home = expanduser("~")
@@ -493,7 +496,7 @@ class MainWindow(QMainWindow):
                                      'CreationDate-SeqNumber-Protocol-'
                                      'SequenceName-AcquisitionTime',
                                      'CloseAfterExport'])
-        
+
         # 'NoLogExport'if we don't want log export
 
         if code_exit == 0:
@@ -516,7 +519,7 @@ class MainWindow(QMainWindow):
 
         elif code_exit == 100: # User only close mri_conv and do nothing
             pass
-        
+
         else:
             print(
                 "\nmri_conv, did not work properly. Current absolute path to "
@@ -598,6 +601,14 @@ class MainWindow(QMainWindow):
                 entire_path = os.path.abspath(file_name)
                 path, name = os.path.split(entire_path)
                 relative_path = os.path.relpath(file_name)
+
+                print('\n départ recent_project')
+                print('\n merdouille open_recent_project file_name : ', file_name)
+                print('\n merdouille open_recent_project entire_path : ', entire_path)
+                print('\n merdouille open_recent_project path : ', path)
+                print('\n merdouille open_recent_project name : ', name)
+                print('\n merdouille open_recent_project relative_path : ', relative_path)
+
                 self.switch_project(relative_path, name)
                 # We switch the project
 
@@ -842,6 +853,12 @@ class MainWindow(QMainWindow):
             self.project.saveModifications()
 
             self.update_project(file_name, call_update_table=False)
+
+            print('\n début save project as')
+            print('\n merdouille in main_window.py after self.update_project self ', self)
+            print('\n merdouille in main_window.py after self.update_project self.data_browser.table_data', self.data_browser.table_data)
+            print('\n merdouille in main_window.py after self.update_project self.data_browser.table_data.item(0,0)', self.data_browser.table_data.item(0,0))
+
             # project updated everywhere
 
             # If some files have been set in the pipeline editors,
@@ -923,7 +940,7 @@ class MainWindow(QMainWindow):
 
                     # We check if the name of the project directory is the
                     # same in its properties
-                    
+
                     with open(os.path.join(file_path, "properties",
                                            "properties.yml"), 'r+') as stream:
 
@@ -934,9 +951,9 @@ class MainWindow(QMainWindow):
 
                         else:
                             properties = yaml.load(stream)
-                            
+
                         path, name = os.path.split(file_path)
-                        
+
                         if properties["name"] != name:
                             properties["name"] = name
                             yaml.dump(properties, stream,
@@ -1138,19 +1155,28 @@ class MainWindow(QMainWindow):
         :param call_update_table: boolean, True if we need to call
         """
 
+        print('\n merdouille étape 1 self.project :', self.project)
+
         self.data_browser.update_database(self.project)
+
+        print('\n prout étape 3 dans populse_mia/user_interface/main_window.py self: ', self)
+        print('\n prout étape 3 self.data_browser: ', self.data_browser)
+        print('\n prout étape 3 self.data_browser.table_data: ', self.data_browser.table_data)
+        print('\n prout étape 3 self.data_browser.table_data.item: ', self.data_browser.table_data.item(0,0))
+
         # Database update data_browser
         self.pipeline_manager.update_project(self.project)
 
         if call_update_table:
 
-            print('\n prout dans populse_mia/user_interface/main_window.py self: ', self)
-            print('\n prout self.data_browser: ', self.data_browser)
-            print('\n prout self.data_browser.table_data: ', self.data_browser.table_data)
+            print('\n prout étape 4 dans populse_mia/user_interface/main_window.py self: ', self)
+            print('\n prout étape 4 self.data_browser: ', self.data_browser)
+            print('\n prout étape 4 self.data_browser.table_data: ', self.data_browser.table_data)
+            print('\n prout étape 4 self.data_browser.table_data.item: ', self.data_browser.table_data.item(0,0))
 
 
 
-            
+
             self.data_browser.table_data.update_table()  # Table updated
 
         # Window name updated
@@ -1180,5 +1206,3 @@ class MainWindow(QMainWindow):
                     self.saved_projects_actions[i].setData(
                         self.saved_projects_list[i])
                     self.saved_projects_actions[i].setVisible(True)
-
-

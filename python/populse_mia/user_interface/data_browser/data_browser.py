@@ -622,9 +622,17 @@ class DataBrowser(QWidget):
         :param database: New instance of Database
         """
 
+        print('\n merdouille étape 2 databse', database)
+
         # Database updated everywhere
         self.project = database
         self.table_data.project = database
+
+        print('\n merdouille étape 2 self.table_data :', self.table_data)
+        print('\n merdouille étape 2 self.table_data.project :', self.table_data.project)
+        print('\n merdouille étape 2 self.table_data.item(0,0) :', self.table_data.item(0,0))
+
+
         self.viewer.project = database
         self.advanced_search.project = database
 
@@ -768,6 +776,7 @@ class TableDataBrowser(QTableWidget):
             self.select_all_column)
         self.horizontalHeader().sectionMoved.connect(self.section_moved)
         self.verticalHeader().setMinimumSectionSize(30)
+
 
         self.update_table(True)
 
@@ -1032,6 +1041,7 @@ class TableDataBrowser(QTableWidget):
                                     item.flags() & ~Qt.ItemIsEditable)
                     self.setItem(rowCount, column, item)
 
+
         # Crash if self.setSortingEnabled(True) because it calls sortByColumn()
         # self.setSortingEnabled(False)
 
@@ -1042,6 +1052,7 @@ class TableDataBrowser(QTableWidget):
         self.update_selection()
 
         self.update_colors()
+
 
         self.itemSelectionChanged.connect(self.selection_changed)
 
@@ -1372,6 +1383,9 @@ class TableDataBrowser(QTableWidget):
 
     def fill_cells_update_table(self):
         """Initialize and fill the cells of the table."""
+
+        print('\n merdouille rentre dans fcut etape 10')
+
         cells_number = len(self.scans_to_visualize) * len(
             self.horizontalHeader())
         self.progress = QProgressDialog(
@@ -1407,7 +1421,12 @@ class TableDataBrowser(QTableWidget):
                      for field in dbs.get_fields(COLLECTION_CURRENT)}
         tag_types = [tag_types[tag] for tag in tags]
 
+        print('\n merdouille étape 10.1 scans :', scans)
+        if scans != []:
+            print('\n merdouille étape 10.1 scans élément :', scans[0])
+
         for scan in scans:
+            print('\n merdouille étape 10.2 scan :', scan)
             for column, current_tag in enumerate(tags):
 
                 idx += 1
@@ -1472,8 +1491,16 @@ class TableDataBrowser(QTableWidget):
                             set_item_data(item, "", FIELD_TYPE_STRING)
                             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                             # bricks not editable
+
+                print('\n merdouille étape 10 item :', item)
+
                 self.setItem(row, column, item)
+
+                print('\n merdouille étape 11 self.item(idx,0) :', self.item(idx,0))
+
+
             row += 1
+            print('\n merdouille étape 10.2 row incrémenté :', row)
 
         # We apply the saved sort when the project is opened or after the
         # tab is changed
@@ -1519,11 +1546,16 @@ class TableDataBrowser(QTableWidget):
         for tag_name in tags:
             item = QtWidgets.QTableWidgetItem()
 
-            print('\n merdouille item dans fill_headers :', item)
+            print('\n merdouille étape 7 self : ', self)
+            print('\n merdouille étape 7 self.iem(0,0)', self.item(0,0))
 
             self.setHorizontalHeaderItem(column, item)
-            item.setText(tag_name)
 
+            print('\n merdouille étape 8 self : ', self)
+            print('\n merdouille étape 8 self.iem(0,0)', self.item(0,0))
+            print('\n merdouille étape 8 self.HorizontalHeaderItem :', self.horizontalHeaderItem(column))
+
+            item.setText(tag_name)
             element = self.project.session.get_field(
                 COLLECTION_CURRENT, tag_name)
             if element is not None:
@@ -1560,6 +1592,10 @@ class TableDataBrowser(QTableWidget):
                         self.setColumnHidden(column, True)
 
             self.setHorizontalHeaderItem(column, item)
+
+            print('\n merdouille étape 9 self : ', self)
+            print('\n merdouille étape 9 self.iem(0,0)', self.item(0,0))
+            print('\n merdouille étape 9 self.HorizontalHeaderItem :', self.horizontalHeaderItem(column))
 
             column += 1
 
@@ -1606,7 +1642,7 @@ class TableDataBrowser(QTableWidget):
         for row in range(0, self.rowCount()):
             item = self.item(row, 0)
 
-            print('\merdouille item in get_scan_row :', item)
+            print('\n étape 10bis merdouille item in get_scan_row :', item)
 
             scan_name = item.text()
             if scan_name == scan:
@@ -2141,7 +2177,14 @@ class TableDataBrowser(QTableWidget):
             self.project.setSortOrder(int(order))
             self.project.setSortedTag(self.horizontalHeaderItem(column).text())
 
+
+            print('\n merdouille de départ self before self.sortItem :', self)
+            print('\n merdouille de départ self.item before self.sortItem :', self.item(0, 0))
+
             self.sortItems(column, order)
+
+            print('\n merdouille de départ self after self.sortItem :', self)
+            print('\n merdouille de départ self.item after self.sortItem :', self.item(0, 0))
 
             self.update_colors()
             self.resizeRowsToContents()
@@ -2153,24 +2196,10 @@ class TableDataBrowser(QTableWidget):
 
         # itemChanged signal is always disconnected when calling this method
 
-        print('\n merdouille self :', self)
-        print('\n merdouille self.item', self.item)
-
-
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
 
-        print('\n merdouille rowCount :', self.rowCount())
-        for row in range(self.rowCount()):
-            print('\n merdouille row :', row)
-            print('\n merdouille self.item :', self.item(row, 0))
-
-        scans = []
-        for row in range(self.rowCount()):
-            print('\n merdouille row :', row)
-            scans.append(self.item(row, 0).text())
-            print('\n merdouille self.item :', self.item(row, 0))
-        # scans = [self.item(row, 0).text() for row in range(self.rowCount())]
+        scans = [self.item(row, 0).text() for row in range(self.rowCount())]
 
         dbs = self.project.session
         collection_row = dbs.get_collection(COLLECTION_CURRENT)
@@ -2287,7 +2316,13 @@ class TableDataBrowser(QTableWidget):
 
         self.setSortingEnabled(False)
 
+        print('\n merdouille étape 5 self before clearSelection :', self)
+        print('\n merdouille étape 5 self.item(0,0) before clearSelection :', self.item(0,0))
+
         self.clearSelection()  # Selection cleared when switching project
+
+        print('\n merdouille étape 6 self after clearSelection :', self)
+        print('\n merdouille étape 6 self.item(0,0) after clearSelection :', self.item(0,0))
 
         # The list of scans to visualize
         self.scans_to_visualize = self.project.session.get_documents_names(
@@ -2303,8 +2338,9 @@ class TableDataBrowser(QTableWidget):
         self.setRowCount(len(self.scans_to_visualize))
 
         # Sort visual management
+        print('\n entre dans fill_header (cf étape 7)')
         self.fill_headers(take_tags_to_update)
-
+        print('\n sort dans fill_header (fin étape 9)')
         # Cells filled
         self.fill_cells_update_table()
 
@@ -2313,6 +2349,9 @@ class TableDataBrowser(QTableWidget):
         # Columns and rows resized
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+        print('\n merdouille 36 self before update_colors :', self)
+        print('\n merdouille 36 self.item(0,0) before update_color :', self.item(0,0))
 
         self.update_colors()
 
