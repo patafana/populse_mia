@@ -2349,36 +2349,49 @@ class PopUpPreferences(QDialog):
 
     def edit_capsul_config(self):
         from capsul.api import capsul_engine
-        from soma.qt_gui.controller_widget import ScrollControllerWidget
+        #from soma.qt_gui.controller_widget import ScrollControllerWidget
+        from capsul.qt_gui.widgets.settings_editor import SettingsEditor
 
         config = Config()
         capsul_config = config.get_capsul_config()
         modules = capsul_config['engine_modules']
         sc_dict = capsul_config['study_config']
         engine = capsul_engine()
-        for module in modules:
+        for module in modules + ['fom', 'axon', 'python', 'fsl', 'freesurfer',
+                                 'nipype']:
             engine.load_module(module)
         engine.study_config.import_from_dict(sc_dict)
+        envs = capsul_config.get('engine', {})
+        for env, conf in envs.items():
+            engine.settings.import_configs(env, conf)
 
-        dialog = Qt.QDialog()
-        layout = Qt.QVBoxLayout()
-        dialog.setLayout(layout)
-        cwidget = ScrollControllerWidget(engine.study_config, live=True)
-        layout.addWidget(cwidget)
-        hlayout = Qt.QHBoxLayout()
-        layout.addLayout(hlayout)
-        ok = Qt.QPushButton("OK", default=True)
-        cancel = Qt.QPushButton("Cancel")
-        hlayout.addStretch(1)
-        hlayout.addWidget(ok)
-        hlayout.addWidget(cancel)
-        ok.clicked.connect(dialog.accept)
-        cancel.clicked.connect(dialog.reject)
+        dialog = SettingsEditor(engine)
+        #dialog = Qt.QDialog()
+        #layout = Qt.QVBoxLayout()
+        #dialog.setLayout(layout)
+        #cwidget = ScrollControllerWidget(engine.study_config, live=True)
+        #layout.addWidget(cwidget)
+        #hlayout = Qt.QHBoxLayout()
+        #layout.addLayout(hlayout)
+        #ok = Qt.QPushButton("OK", default=True)
+        #cancel = Qt.QPushButton("Cancel")
+        #hlayout.addStretch(1)
+        #hlayout.addWidget(ok)
+        #hlayout.addWidget(cancel)
+        #ok.clicked.connect(dialog.accept)
+        #cancel.clicked.connect(dialog.reject)
         result = dialog.exec()
         if result:
-            sc_dict = engine.study_config.export_to_dict(
-                dict_class=dict, exclude_none=True, exclude_undefined=True)
-            capsul_config['study_config'] = sc_dict
+            envs = engine.settings.get_all_environments()
+            settings = {}
+            for env in envs:
+                settings[env] = engine.settings.select_configurations(env)
+            capsul_config['engine'] = settings
+            capsul_config['engine_modules'] = list(engine._loaded_modules)
+
+            #sc_dict = engine.study_config.export_to_dict(
+                #dict_class=dict, exclude_none=True, exclude_undefined=True)
+            #capsul_config['study_config'] = sc_dict
             config.set_capsul_config(capsul_config)
 
             # update matlab/SPM GUI which might have changed
@@ -2401,7 +2414,7 @@ class PopUpPreferences(QDialog):
             self.spm_standalone_choice.setText(
                 config.get_spm_standalone_path())
 
-        del ok, cancel, cwidget, hlayout, layout
+        #del ok, cancel, cwidget, hlayout, layout
         del dialog
         del engine
 

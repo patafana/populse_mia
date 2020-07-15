@@ -205,7 +205,7 @@ class Config:
         capsul_config = self.config.get("capsul_config", {})
         capsul_config.setdefault(
             "engine_modules",
-            ['nipype', 'fsl', 'freesurfer', 'matlab', 'spm', 'fom'])
+            ['nipype', 'fsl', 'freesurfer', 'matlab', 'spm', 'fom', 'python'])
         sconf = capsul_config.setdefault("study_config", {})
         sconf.update(
             {'attributes_schema_paths':
@@ -287,11 +287,16 @@ class Config:
         engine = Config.capsul_engine
 
         for module in capsul_config.get('engine_modules', []) \
-                + ['attributes', 'nipype']:
+                + ['fom', 'nipype', 'python', 'fsl', 'freesurfer', 'axon']:
             engine.load_module(module)
 
         study_config = engine.study_config
         study_config.import_from_dict(capsul_config.get('study_config', {}))
+
+        engine_config = capsul_config.get('engine')
+        if engine_config:
+            for environment, config in engine_config.items():
+                engine.settings.import_configs(environment, config)
 
         return engine
 
@@ -673,7 +678,15 @@ class Config:
         self.config['capsul_config'] = capsul_config_dict
 
         # update MIA values
-        capsul_config = capsul_config_dict.get('study_config', {})
+        engine_config = capsul_config_dict.get('engine')
+        if engine_config:
+            from capsul.api import capsul_engine
+            new_engine = capsul_engine()
+            for environment, config in engine_config.items():
+                new_engine.import_configs(environment, config)
+            capsul_config = new_engine.study_config.export_to_dict()
+        else:
+            capsul_config = capsul_config_dict.get('study_config', {})
 
         matlab_path = capsul_config.get('matlab_exec')
         use_matlab = capsul_config.get('use_matlab', None)
