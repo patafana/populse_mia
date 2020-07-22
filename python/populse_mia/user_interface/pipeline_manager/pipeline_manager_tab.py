@@ -746,11 +746,12 @@ class PipelineManagerTab(QWidget):
             self.project.saveModifications()
 
             process = node.process
-            process_name = str(process).split('.')[0].split('_')[0][1:]
+            process_name = str(process).split('.')[0][1:]
 
-            print('\nUpdating the launching parameters for {0} '
-                  'process node: {1} ...\n'.format(process_name,
-                                                   node_name))
+            if process_name != "capsul":
+                print('\nUpdating the launching parameters for the {0} '
+                      'process node: {1} ...\n'.format(process_name,
+                                                       node_name))
 
             # TODO 'except' instead of 'if' to test matlab launch ?
             # Test for matlab launch
@@ -920,7 +921,7 @@ class PipelineManagerTab(QWidget):
                         
             # Automatically fills few plugs. Only for the nipype process
             if 'NipypeProcess' in str(process.__class__):
-                print('\nUpdating the launching parameters for nipype '
+                print('\nUpdating the launching parameters for the nipype '
                       'process node: {0} ...'.format(node_name))
                 # plugs to be filled automatically
                 keys2consider = ['use_mcr', 'paths',
