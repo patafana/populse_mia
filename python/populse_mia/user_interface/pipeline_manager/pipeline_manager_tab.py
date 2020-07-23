@@ -557,7 +557,7 @@ class PipelineManagerTab(QWidget):
         #     self.progress.exec()
         #
         # else:
-        initial = True
+        init_flag = True
         check_init = {}
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
@@ -702,7 +702,7 @@ class PipelineManagerTab(QWidget):
 
             if isinstance(node, PipelineNode):
                 sub_pipeline = node.process
-                initial = self.init_pipeline(sub_pipeline, node_name)
+                init_flag = self.init_pipeline(sub_pipeline, node_name)
 
                 for plug_name in node.plugs.keys():
 
@@ -1130,7 +1130,7 @@ class PipelineManagerTab(QWidget):
         if ((nodes_requir_miss or nodes_requir_fail) and
             not (config.get_use_matlab() and
                 (config.get_use_spm() or config.get_use_spm_standalone()))):
-            initial = False
+            init_flag = False
 
             if ((config.get_use_matlab()) and
                 (not config.get_use_matlab_standalone())):
@@ -1239,13 +1239,13 @@ class PipelineManagerTab(QWidget):
                     'requirements of some bricks must be verified.'
                     .format(name))
 
-        elif sum(check_init.values()) != len(check_init) or initial is False:
+        elif sum(check_init.values()) != len(check_init) or init_flag is False:
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" was not initialised successfully.'.format(
                     name))
-            initial = False
+            init_flag = False
         else:
-            initial = True
+            init_flag = True
             if main_pipeline:
                 for i in range(0, len(self.pipelineEditorTabs)-1):
                     self.pipelineEditorTabs.get_editor_by_index(
@@ -1255,7 +1255,7 @@ class PipelineManagerTab(QWidget):
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been initialised.'.format(name))
 
-        return initial
+        return init_flag
 
     def initialize(self):
         """Clean previous initialization then initialize the current
