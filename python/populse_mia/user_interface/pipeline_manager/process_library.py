@@ -568,7 +568,7 @@ class InstallProcesses(QDialog):
                 with ZipFile(filename, 'r') as zip_ref:
                     packages_name = [member.split(os.sep)[0] for member in
                                      zip_ref.namelist()
-                                     if (len(member.split(os.sep)) is 2 and not
+                                     if (len(member.split(os.sep)) == 2 and not
                         member.split(os.sep)[-1])]
 
             elif os.path.isdir(
@@ -849,7 +849,7 @@ class Node(object):
 
         """
         
-        if column is 0:
+        if column == 0:
             parent = self._parent
             text = self.name
             while parent.name != 'Root':
@@ -857,7 +857,7 @@ class Node(object):
                 parent = parent._parent
             return text  # self.name
 
-        elif column is 1:
+        elif column == 1:
             return self.value
 
     def insertChild(self, position, child):
@@ -1003,9 +1003,9 @@ class Node(object):
 
         """
         
-        if column is 0:
+        if column == 0:
             self.name = value
-        if column is 1:
+        if column == 1:
             self.value = value
 
     def resource(self):

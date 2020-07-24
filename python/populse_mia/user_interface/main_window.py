@@ -371,7 +371,7 @@ class MainWindow(QMainWindow):
     def create_view_window(self):
         """Create the main window view."""
         sources_images_dir = Config().getSourceImageDir()
-        app_icon = QIcon(os.path.join(sources_images_dir, 'brain_mri.jpeg'))
+        app_icon = QIcon(os.path.join(sources_images_dir, 'Logo_populse_mia_LR.jpeg'))
         self.setWindowIcon(app_icon)
         background_color = self.config.getBackgroundColor()
         text_color = self.config.getTextColor()

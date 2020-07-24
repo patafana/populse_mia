@@ -243,10 +243,10 @@ class ImportWorker(QThread):
                             # Preparing value and type
                             if hasattr(value, '__len__') and type(value) != \
                                     str:
-                                if ((len(value) is 1 and isinstance(value[0],
+                                if ((len(value) == 1 and isinstance(value[0],
                                                                     list))
                                         or
-                                        (len(value) is not 1)):
+                                        (len(value) != 1)):
 
                                     if tag_type == FIELD_TYPE_STRING:
                                         tag_type = FIELD_TYPE_LIST_STRING
@@ -269,7 +269,7 @@ class ImportWorker(QThread):
                                     elif tag_type == FIELD_TYPE_TIME:
                                         tag_type = FIELD_TYPE_LIST_TIME
 
-                                if len(value) is 1:
+                                if len(value) == 1:
                                     value = value[0]
 
                                 else:
