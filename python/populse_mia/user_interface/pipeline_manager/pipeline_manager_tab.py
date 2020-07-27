@@ -557,7 +557,7 @@ class PipelineManagerTab(QWidget):
         #     self.progress.exec()
         #
         # else:
-        initial = True
+        init_flag = True
         check_init = {}
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
@@ -605,6 +605,9 @@ class PipelineManagerTab(QWidget):
         # input plugs of the corresponding node (the order is the same as
         # nodes_to_check)
         nodes_inputs_ratio_list = []
+
+        # nodes_prev_init contains the nodes previously initialised
+        nodes_prev_init = []
         
         # If the initialisation is launch for the main pipeline
         if not pipeline:
@@ -685,8 +688,6 @@ class PipelineManagerTab(QWidget):
             # key_name[0] appears twice, it will stay at the first place
             nodes_to_check = list(OrderedDict((x, True) for x in
                                               nodes_to_check[::-1]).keys())
-
-            # print(nodes_to_check)
             node_name = nodes_to_check.pop(0)
             nodes_to_check = nodes_to_check[::-1]
 
@@ -702,7 +703,7 @@ class PipelineManagerTab(QWidget):
 
             if isinstance(node, PipelineNode):
                 sub_pipeline = node.process
-                initial = self.init_pipeline(sub_pipeline, node_name)
+                init_flag = self.init_pipeline(sub_pipeline, node_name)
 
                 for plug_name in node.plugs.keys():
 
@@ -730,7 +731,7 @@ class PipelineManagerTab(QWidget):
 
                 pipeline.update_nodes_and_plugs_activation()
                 continue
-
+            
             # Adding the brick to the bricks history
             self.brick_id = str(uuid.uuid4())
             self.brick_list.append(self.brick_id)
@@ -746,11 +747,12 @@ class PipelineManagerTab(QWidget):
             self.project.saveModifications()
 
             process = node.process
-            process_name = str(process).split('.')[0].split('_')[0][1:]
+            process_name = str(process).split('.')[0][1:]
 
-            print('\nUpdating the launching parameters for {0} '
-                  'process node: {1} ...\n'.format(process_name,
-                                                   node_name))
+            if process_name != "capsul":
+                print('\nUpdating the launching parameters for the {0} '
+                      'process node: {1} ...\n'.format(process_name,
+                                                       node_name))
 
             # TODO 'except' instead of 'if' to test matlab launch ?
             # Test for matlab launch
@@ -802,14 +804,16 @@ class PipelineManagerTab(QWidget):
                 #print('initResult_dict after mia brick initialisaton: ',  initResult_dict) 
 
                 try:
+
                     if not initResult_dict['outputs']:
                         print("\nInitialisation failed to determine the "
                                "outputs for the process {0}, did you correctly "
                                "define the inputs ...?".format(node_name))
                         check_init[node_name] = False
+
                     else:
                         check_init[node_name] = True
-                         
+
                 except KeyError as e:
                     print('\nDue to "{0}" error,\nthe initialisation failed to '
                           'determine the outputs for the node '
@@ -840,7 +844,7 @@ class PipelineManagerTab(QWidget):
                     
                     for key, value in initResult_dict['outputs'].items():
                         tmp_dict['_' + key] = initResult_dict['outputs'][key]
-                        
+                    
                     initResult_dict['outputs'] = tmp_dict
 
                     # For debugging. To be commented if not in debugging.
@@ -920,7 +924,7 @@ class PipelineManagerTab(QWidget):
                         
             # Automatically fills few plugs. Only for the nipype process
             if 'NipypeProcess' in str(process.__class__):
-                print('\nUpdating the launching parameters for nipype '
+                print('\nUpdating the launching parameters for the nipype '
                       'process node: {0} ...'.format(node_name))
                 # plugs to be filled automatically
                 keys2consider = ['use_mcr', 'paths',
@@ -1008,7 +1012,9 @@ class PipelineManagerTab(QWidget):
                         continue
                     
                     if plug_value not in ["<undefined>", Undefined, [Undefined]]:
-                        
+                        nodes_prev_init.append(node_name)
+                        nodes_prev_init = list(set(nodes_prev_init))
+            
                         if pipeline_name != "":
                             full_name = pipeline_name + "." + node_name
                             
@@ -1030,19 +1036,18 @@ class PipelineManagerTab(QWidget):
                                                             plug_name,
                                                             full_name)
 
-
                     list_info_link = list(node.plugs[plug_name].links_to)
 
                     # If the output is connected to another node,
                     # the latter is added to nodes_to_check
                     for info_link in list_info_link:
                         dest_node_name = info_link[0]
-                        
-                        if dest_node_name:
+
+                        if dest_node_name and dest_node_name not in nodes_prev_init:
                             # Adding the destination node name and incrementing
                             # the input counter of the latter
                             nodes_to_check.append(dest_node_name)
-                            
+
                             if dest_node_name in nodes_inputs_ratio:
                                 nodes_inputs_ratio[dest_node_name][0] += 1
 
@@ -1129,7 +1134,7 @@ class PipelineManagerTab(QWidget):
         if ((nodes_requir_miss or nodes_requir_fail) and
             not (config.get_use_matlab() and
                 (config.get_use_spm() or config.get_use_spm_standalone()))):
-            initial = False
+            init_flag = False
 
             if ((config.get_use_matlab()) and
                 (not config.get_use_matlab_standalone())):
@@ -1238,13 +1243,13 @@ class PipelineManagerTab(QWidget):
                     'requirements of some bricks must be verified.'
                     .format(name))
 
-        elif sum(check_init.values()) != len(check_init) or initial is False:
+        elif sum(check_init.values()) != len(check_init) or init_flag is False:
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" was not initialised successfully.'.format(
                     name))
-            initial = False
+            init_flag = False
         else:
-            initial = True
+            init_flag = True
             if main_pipeline:
                 for i in range(0, len(self.pipelineEditorTabs)-1):
                     self.pipelineEditorTabs.get_editor_by_index(
@@ -1254,7 +1259,7 @@ class PipelineManagerTab(QWidget):
             self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" has been initialised.'.format(name))
 
-        return initial
+        return init_flag
 
     def initialize(self):
         """Clean previous initialization then initialize the current
