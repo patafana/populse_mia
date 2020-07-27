@@ -602,13 +602,6 @@ class MainWindow(QMainWindow):
                 path, name = os.path.split(entire_path)
                 relative_path = os.path.relpath(file_name)
 
-                print('\n départ recent_project')
-                print('\n merdouille open_recent_project file_name : ', file_name)
-                print('\n merdouille open_recent_project entire_path : ', entire_path)
-                print('\n merdouille open_recent_project path : ', path)
-                print('\n merdouille open_recent_project name : ', name)
-                print('\n merdouille open_recent_project relative_path : ', relative_path)
-
                 self.switch_project(relative_path, name)
                 # We switch the project
 
@@ -853,12 +846,6 @@ class MainWindow(QMainWindow):
             self.project.saveModifications()
 
             self.update_project(file_name, call_update_table=False)
-
-            print('\n début save project as')
-            print('\n merdouille in main_window.py after self.update_project self ', self)
-            print('\n merdouille in main_window.py after self.update_project self.data_browser.table_data', self.data_browser.table_data)
-            print('\n merdouille in main_window.py after self.update_project self.data_browser.table_data.item(0,0)', self.data_browser.table_data.item(0,0))
-
             # project updated everywhere
 
             # If some files have been set in the pipeline editors,
@@ -1155,28 +1142,12 @@ class MainWindow(QMainWindow):
         :param call_update_table: boolean, True if we need to call
         """
 
-        print('\n merdouille étape 1 self.project :', self.project)
-
         self.data_browser.update_database(self.project)
-
-        print('\n prout étape 3 dans populse_mia/user_interface/main_window.py self: ', self)
-        print('\n prout étape 3 self.data_browser: ', self.data_browser)
-        print('\n prout étape 3 self.data_browser.table_data: ', self.data_browser.table_data)
-        print('\n prout étape 3 self.data_browser.table_data.item: ', self.data_browser.table_data.item(0,0))
 
         # Database update data_browser
         self.pipeline_manager.update_project(self.project)
 
         if call_update_table:
-
-            print('\n prout étape 4 dans populse_mia/user_interface/main_window.py self: ', self)
-            print('\n prout étape 4 self.data_browser: ', self.data_browser)
-            print('\n prout étape 4 self.data_browser.table_data: ', self.data_browser.table_data)
-            print('\n prout étape 4 self.data_browser.table_data.item: ', self.data_browser.table_data.item(0,0))
-
-
-
-
             self.data_browser.table_data.update_table()  # Table updated
 
         # Window name updated

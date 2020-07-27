@@ -21,6 +21,7 @@ pop-up in the config.yml file.
 ##########################################################################
 
 import os
+import platform
 import yaml
 import re
 from cryptography.fernet import Fernet
@@ -224,10 +225,16 @@ class Config:
 
         """
         if self.config.get("use_spm_standalone"):
-            return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
-                    'run_spm12.sh {0}'.format(self.config[
-                                                 "matlab_standalone"]) +
-                    os.sep + ' script')
+            archi = platform.architecture()
+            if 'Windows' in archi[1]:
+                print('\n os.sep :', os.sep)
+                return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
+                        'spm_win' + archi[0][:2] + '.exe')
+            else:
+                return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
+                        'run_spm12.sh {0}'.format(self.config[
+                                                    "matlab_standalone"]) +
+                                        os.sep + ' script')
         else:
             return self.config.get("matlab", None)
 
@@ -287,7 +294,7 @@ class Config:
                     if verCmp(yaml.__version__, '5.1', 'sup'):
                         mia_home_config = yaml.load(stream,
                                                     Loader=yaml.FullLoader)
-                    else:    
+                    else:
                         mia_home_config = yaml.load(stream)
 
                     if ("dev_mode" in mia_home_config.keys() and
@@ -299,10 +306,10 @@ class Config:
 
                         while "properties" not in os.listdir(config_path):
                             config_path = os.path.dirname(config_path)
-                            
+
                         self.mia_path = config_path
                         return config_path
-                    
+
                     # Only for user mode
                     self.dev_mode = False
 
@@ -808,7 +815,3 @@ class Config:
     #         self.config["paths"]["data"] = path
     #         # Then save the modification
     #         self.saveConfig()
-
-
-
-

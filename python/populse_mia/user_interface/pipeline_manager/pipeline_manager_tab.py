@@ -254,7 +254,7 @@ class PipelineManagerTab(QWidget):
 
         if type(p_value) in [list, TraitListObject]:
             for elt in p_value:
-                self.add_plug_value_to_database(elt, brick, node_name, 
+                self.add_plug_value_to_database(elt, brick, node_name,
                                                 plug_name, full_name)
             return
 
@@ -376,7 +376,7 @@ class PipelineManagerTab(QWidget):
                                 self.inheritance_dict[old_value] = value
 
             # Adding inherited tags
-            if self.inheritance_dict:                
+            if self.inheritance_dict:
                 database_parent_file = None
                 parent_file = self.inheritance_dict[old_value]
                 for scan in self.project.session.get_documents_names(
@@ -567,7 +567,7 @@ class PipelineManagerTab(QWidget):
         QApplication.processEvents()
 
         config = Config()
-        
+
         # nodes_requir_issue is a dictionary whose keys are the names of the
         # nodes and whose values are the compatibility of the requirements of
         # this node with the current configuration of MIA.
@@ -581,18 +581,18 @@ class PipelineManagerTab(QWidget):
 
         # nodes_requir_miss == [] if all processes have a defined requirement
         # object or is a list of node names that do not have a defined
-        # requirement 
+        # requirement
         nodes_requir_miss = None
-        
+
         # nodes_requir_fail == [] if all processes have requirements
         # corresponding to the current mia configuration or nodes_requir_fail
         # is a list of node names that requirements do not match the current
         # mia's configuration
         nodes_requir_fail = None
-        
+
         # nodes_to_check contains the node names that need to be update
         nodes_to_check = []
-        
+
         # nodes_inputs_ratio is a dictionary whose keys are the node names
         # and whose values are a list of two elements: the first one being
         # the number of activated mandatory input plugs, the second one being
@@ -608,7 +608,7 @@ class PipelineManagerTab(QWidget):
 
         # nodes_prev_init contains the nodes previously initialised
         nodes_prev_init = []
-        
+
         # If the initialisation is launch for the main pipeline
         if not pipeline:
             pipeline = get_process_instance(
@@ -617,7 +617,6 @@ class PipelineManagerTab(QWidget):
 
         else:
             main_pipeline = False
-
         # Test, if it works, comment.
         #if hasattr(pipeline, 'pipeline_steps'):
         #    pipeline.pipeline_steps.on_trait_change(
@@ -629,8 +628,8 @@ class PipelineManagerTab(QWidget):
         #pipeline.on_trait_change(
         #    self.pipelineEditorTabs.get_current_editor()._reset_pipeline,
         #    'user_traits_changed', remove=True)
- 
-        for node_name, node in pipeline.nodes.items():            
+
+        for node_name, node in pipeline.nodes.items():
             # Updating the project attribute of the processes
             if hasattr(node, 'process'):
                 process = node.process
@@ -642,12 +641,12 @@ class PipelineManagerTab(QWidget):
             nb_plugs = 0
 
             for plug_name, plug in node.plugs.items():
-                
+
                 if ((plug.links_from) and
                     (not plug.output) and
                     (not plug.optional)):
                     nb_plugs += 1
-                    
+
                     # If the link comes from the pipeline "global" inputs, it is
                     # added to compute the ratio
                     if list(plug.links_from)[0][0] == "":
@@ -655,13 +654,13 @@ class PipelineManagerTab(QWidget):
 
             if nb_plugs == 0:
                 ratio = 0
-                
+
             else:
                 ratio = nb_plugs_from_in / nb_plugs
 
             nodes_to_check.append(node_name)
             nodes_inputs_ratio[node_name] = [nb_plugs_from_in, nb_plugs]
-            nodes_inputs_ratio_list.append(ratio)        
+            nodes_inputs_ratio_list.append(ratio)
 
         # Sorting the nodes_to_check list as the order (the nodes having
         # the highest ratio being at the end of the list)
@@ -678,7 +677,7 @@ class PipelineManagerTab(QWidget):
                 # This node can be initialized so it is placed at the
                 # end of the nodes_to_check list
                 nodes_to_check.append(key_name[0])
-                
+
                 # It can also be removed from the dictionary
                 del nodes_inputs_ratio[key_name[0]]
 
@@ -731,7 +730,7 @@ class PipelineManagerTab(QWidget):
 
                 pipeline.update_nodes_and_plugs_activation()
                 continue
-            
+
             # Adding the brick to the bricks history
             self.brick_id = str(uuid.uuid4())
             self.brick_list.append(self.brick_id)
@@ -790,6 +789,12 @@ class PipelineManagerTab(QWidget):
             # plugs from that the output scans will inherit the tags
             initResult_dict = {}
 
+            print('\n merdouille before initResult_dic')
+            is_plugged = {key: (bool(plug.links_to)
+                                or bool(plug.links_from))
+                                        for key, plug in node.plugs.items()}
+            initResult_dict = process.list_outputs(is_plugged=is_plugged)
+
             try:
                 # The state, linked or not, of the plugs is passed to the
                 # list_outputs method, only for nodes not coming from nipype
@@ -798,10 +803,10 @@ class PipelineManagerTab(QWidget):
                 is_plugged = {key: (bool(plug.links_to)
                                     or bool(plug.links_from))
                                             for key, plug in node.plugs.items()}
-                initResult_dict = process.list_outputs(is_plugged=is_plugged)
+
 
                 # For debugging. To be commented if not in debugging.
-                #print('initResult_dict after mia brick initialisaton: ',  initResult_dict) 
+                #print('initResult_dict after mia brick initialisaton: ',  initResult_dict)
 
                 try:
 
@@ -825,7 +830,7 @@ class PipelineManagerTab(QWidget):
                           'failed during the initialisation step, due to:\n'
                           '"{1}"...'.format(node_name, e))
                     check_init[node_name] = False
-                    
+
             except TraitError as e:
                 print('\nTrait error for node "{0}":\n'
                       '"{1}" ...'.format(node_name, e))
@@ -841,27 +846,27 @@ class PipelineManagerTab(QWidget):
                     initResult_dict['outputs'] = (process._nipype_interface
                                                   ._list_outputs())
                     tmp_dict = {}
-                    
+
                     for key, value in initResult_dict['outputs'].items():
                         tmp_dict['_' + key] = initResult_dict['outputs'][key]
-                    
+
                     initResult_dict['outputs'] = tmp_dict
 
                     # For debugging. To be commented if not in debugging.
-                    #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict) 
+                    #print('initResult_dict after nipype brick initialisaton: ',  initResult_dict)
 
                 except TypeError:
                     print('\nInitialisation failed to determine the outputs '
                           'for the process "{0}":\nDid you correctly defined '
                           'the inputs ...?'.format(node_name))
                     check_init[node_name] = False
-      
+
                 except Exception as e:
                     print('Initialisation failed to determine the outputs '
                           'for the process "{0}", due to:\n'
                           '"{1}"...'.format(node_name, e))
                     check_init[node_name] = False
-                    
+
             # Management of the requirement object in initResult_dict
             if '_nipype_interface' in dir(process):
 
@@ -874,7 +879,7 @@ class PipelineManagerTab(QWidget):
                     initResult_dict['requirement'] = []
 
             if initResult_dict['requirement'] is not None:
-                
+
                 for n, i in enumerate(initResult_dict['requirement']):
 
                     if re.search('MATLAB', i,  re.IGNORECASE):
@@ -882,7 +887,7 @@ class PipelineManagerTab(QWidget):
 
                     if re.search('SPM', i,  re.IGNORECASE):
                         initResult_dict['requirement'][n] = 'SPM'
-                    
+
             # Management of the outputs and the inheritance_dict objects
             # in the initResult_dict
             if 'outputs' not in initResult_dict:
@@ -921,7 +926,7 @@ class PipelineManagerTab(QWidget):
 
                 if inputs[key] in [Undefined, [Undefined]]:
                     inputs[key] = "<undefined>"
-                        
+
             # Automatically fills few plugs. Only for the nipype process
             if 'NipypeProcess' in str(process.__class__):
                 print('\nUpdating the launching parameters for the nipype '
@@ -931,29 +936,29 @@ class PipelineManagerTab(QWidget):
                                  'matlab_cmd', 'output_directory']
 
                 for key in inputs:
-                    
+
                     # use_mcr parameter
                     if (key == keys2consider[0]) and (
                             config.get_use_spm_standalone()):
                         inputs[key] = True
-                        
+
                     elif (key == keys2consider[0]) and (
                             not config.get_use_spm_standalone()):
                         inputs[key] = False
-                        
+
                     # paths parameter
                     if (key == keys2consider[1]) and (
                             config.get_use_spm_standalone()):
                         inputs[key] = config.get_spm_standalone_path().split()
-                        
+
                     elif (key == keys2consider[1]) and (config.get_use_spm()):
                         inputs[key] = config.get_spm_path().split()
-                        
+
                     # matlab_cmd parameter
                     if (key == keys2consider[2]) and (
                             config.get_use_spm_standalone()):
                         inputs[key] = config.get_matlab_command()
-                        
+
                     elif (key == keys2consider[2]) and (
                             not config.get_use_spm_standalone()):
                         inputs[key] = config.get_matlab_path()
@@ -985,14 +990,14 @@ class PipelineManagerTab(QWidget):
                                 print('Trait error for the "{0}" plug ({1}):\n'
                                       '{2} ...'.format(key, inputs[key], e))
 
-            outputs = process.get_outputs() 
+            outputs = process.get_outputs()
 
             for key in outputs:
                 value = outputs[key]
-                
+
                 if value in [Undefined, [Undefined]]:
                     outputs[key] = "<undefined>"
-                    
+
             self.project.saveModifications()
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_INPUTS, inputs)
@@ -1007,17 +1012,17 @@ class PipelineManagerTab(QWidget):
 
                 for plug_name, plug_value in initResult_dict['outputs'].items():
                     add_plug_value_flag = False
-                    
+
                     if plug_name not in node.plugs.keys():
                         continue
-                    
+
                     if plug_value not in ["<undefined>", Undefined, [Undefined]]:
                         nodes_prev_init.append(node_name)
                         nodes_prev_init = list(set(nodes_prev_init))
-            
+
                         if pipeline_name != "":
                             full_name = pipeline_name + "." + node_name
-                            
+
                         else:
                             full_name = node_name
 
@@ -1027,7 +1032,7 @@ class PipelineManagerTab(QWidget):
                                 add_plug_value_flag = True
 
                         else:
-                            add_plug_value_flag = True        
+                            add_plug_value_flag = True
 
                         if add_plug_value_flag:
                             self.add_plug_value_to_database(plug_value,
@@ -1053,15 +1058,15 @@ class PipelineManagerTab(QWidget):
 
                     try:
                         node.set_plug_value(plug_name, plug_value)
-                        
+
                     except TraitError:
-                        
+
                         if type(plug_value) is list and len(
                                 plug_value) == 1:
-                            
+
                             try:
                                 node.set_plug_value(plug_name, plug_value[0])
-                                
+
                             except TraitError as e:
                                 print('Trait error for the "{0}" plug of the '
                                       '"{1}" node:\n'
@@ -1071,13 +1076,13 @@ class PipelineManagerTab(QWidget):
 
             # Adding I/O to database history again to update outputs
             inputs = process.get_inputs()
-            
+
             for key in inputs:
                 value = inputs[key]
-                
+
                 if value in [Undefined, [Undefined]]:
                     inputs[key] = "<undefined>"
-    
+
             outputs = process.get_outputs()
 
             for key in outputs:
@@ -1093,7 +1098,7 @@ class PipelineManagerTab(QWidget):
             # Setting brick init state if init finished correctly
             self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
                                            BRICK_INIT, "Done")
-     
+
             self.project.saveModifications()
 
         # Test, if it works, comment.
@@ -1120,7 +1125,7 @@ class PipelineManagerTab(QWidget):
 
             if node_controller_node_name in ['inputs', 'outputs']:
                 node_controller_node_name = ''
-  
+
             self.nodeController.display_parameters(
                 self.nodeController.node_name,
                 pipeline.nodes[node_controller_node_name].process,
@@ -1145,7 +1150,7 @@ class PipelineManagerTab(QWidget):
                 else:
                     message_conf = ("The current MIA configuration uses "
                                     "Matlab but not SPM.\n")
-                        
+
             elif ((config.get_use_matlab()) and
                   (config.get_use_matlab_standalone())):
 
@@ -1162,9 +1167,9 @@ class PipelineManagerTab(QWidget):
                                 "Matlab (including the Compiler Runtime "
                                 "version) or SPM (including the standalone "
                                 "version).\n")
-            
+
             message_base1 = ''
-        
+
             if nodes_requir_miss: # So, initResult_dict['requirement'] is None
 
                 if len(nodes_requir_miss) == 1:
@@ -1184,17 +1189,17 @@ class PipelineManagerTab(QWidget):
 
                 message_end = ('\nPlease, update your configuration in the MIA '
                                'preferences, if necessary ...')
-            
+
             mess_base2 = ''
-        
-            if nodes_requir_fail: 
+
+            if nodes_requir_fail:
                 message_end = ('\nPlease, update your configuration in the MIA '
                                'preferences to meet the requirements of '
                                'the pipeline ...')
 
                 if not nodes_requir_miss:
                     mess_base2 =  mess_base2 + '-'*90 + '\nThe '
-                
+
                 else:
                     mess_base2 =  mess_base2 + '\nIn addition, the '
 
@@ -1204,7 +1209,7 @@ class PipelineManagerTab(QWidget):
                                             'configuration (problematic third-'
                                             'party software(s) is(are) '
                                             'specified):\n')
-                
+
                 for nodeName in nodes_requir_fail:
                     mess_base2 = mess_base2 + ('- {0}: {1}\n'
                                                .format(nodeName,
@@ -1217,7 +1222,7 @@ class PipelineManagerTab(QWidget):
             self.msg.setWindowTitle("MIA configuration warning!")
             self.msg.setText(message_conf + message_base1 +
                              mess_base2 + message_end)
-            
+
             yes_button = self.msg.addButton("Open MIA preferences",
                                             QMessageBox.YesRole)
 
@@ -1225,11 +1230,11 @@ class PipelineManagerTab(QWidget):
                 ok_button = self.msg.addButton(QMessageBox.Ok)
 
             self.msg.exec()
-            
+
             if self.msg.clickedButton() == yes_button:
                 self.main_window.software_preferences_pop_up()
                 self.msg.close()
-                
+
             else:
                 self.msg.close()
 
@@ -1303,7 +1308,7 @@ class PipelineManagerTab(QWidget):
         #      info1: process is the brick (node, process, etc.)
         #             <User_processes.preprocess.spm.spatial_preprocessing
         #             .Smooth object at ...> object
-        
+
         # ** User_processes/preprocess/spm/spatial_preprocessing.py
         #    class Smooth(Process_Mia)
         #    list_outputs method:
@@ -1585,18 +1590,18 @@ class PipelineManagerTab(QWidget):
                     name, iterated_tag, tag_values))
 
         else:
-            
+
             try:
                 self.progress = RunProgress(self.pipelineEditorTabs)
                 self.progress.show()
                 self.progress.exec()
-                
+
             except Exception as e:
                 print('\n When the pipeline was launched, the following '
                       'exception was raised: {0} ...'.format(e, ))
                 self.main_window.statusBar().showMessage(
                     'Pipeline "{0}" has not been correctly run.'.format(name))
-                
+
             else:
                 self.main_window.statusBar().showMessage(
                     'Pipeline "{0}" has been correctly run.'.format(name))
@@ -1964,7 +1969,7 @@ class RunProgress(QProgressDialog):
 
         super(RunProgress, self).__init__("Please wait while the pipeline is "
                                           "running...", None, 0, 0)
-        
+
         if settings:
             self.setWindowTitle(
                 "Pipeline is running ({0}/{1})".format(
@@ -1974,7 +1979,7 @@ class RunProgress(QProgressDialog):
                                                     settings['tag']))
         else:
             self.setWindowTitle("Pipeline running")
-            
+
         self.setWindowFlags(
             Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self.setModal(True)
@@ -1984,11 +1989,11 @@ class RunProgress(QProgressDialog):
         self.setMinimumDuration(0)
         self.setValue(0)
         self.setMinimumWidth(350) # For mac OS
-        
+
         self.worker = RunWorker(self.diagramView)
         self.worker.finished.connect(self.close)
         self.worker.start()
-        
+
         #engine \
         #    = self.diagramView.get_current_pipeline().get_study_config().engine
         #with engine.study_config.run_lock:
@@ -2012,7 +2017,7 @@ class RunWorker(QThread):
 
         _check_nipype_processes(self.diagramView.get_current_pipeline())
 
-        pipeline = get_process_instance(  
+        pipeline = get_process_instance(
              self.diagramView.get_current_pipeline())
 
         # Reading config
@@ -2068,7 +2073,7 @@ class RunWorker(QThread):
             #     info1: study_config = StudyConfig(...) defined before
             #     info2: from capsul.api import (..., StudyConfig, ...) defined
             #            before
-            
+
             #** capsul/study_config/study_config.py
             #   class StudyConfig(Controller)
             #    run method:
@@ -2092,7 +2097,7 @@ class RunWorker(QThread):
             #                            verbose=verbose, **kwargs)
             #     info1: from capsul.study_config.run import run_process defined
             #            in the capsul/study_config/study_config.py module
-            
+
             #** capsul/study_config/run.py; run_process function:
             #     use: returncode = process_instance._run_process()
             #     info1: process_instance is the brick (node, process, etc.)
@@ -2102,7 +2107,7 @@ class RunWorker(QThread):
             #            method but they inherit the Process_Mia class (module
             #            mia_processes/process_mia.py) that has the
             #            _run_process method
-            
+
             #** mia_processes/process_mia.py
             #   class Process_Mia(ProcessMIA)
             #   _run_process method
@@ -2110,7 +2115,7 @@ class RunWorker(QThread):
             #     info1: self is the brick (node, process, etc.) object
             #            <User_processes.preprocess.spm.spatial_preprocessing
             #            .Smooth object at ...>
-            
+
             #** User_processes/preprocess/spm/spatial_preprocessing.py
             #   class Smooth(Process_Mia)
             #   run_process_mia method:
@@ -2133,7 +2138,7 @@ class RunWorker(QThread):
             #** pipeline object introspection: see initialize method in the
             #                                  PipelineManagerTab class, this
             #                                  module
-           
+
         except (OSError, ValueError, Exception) as e:
             print('\n{0} has not been launched:\n{1}\n'.format(pipeline.name,
                                                                e))
@@ -2151,7 +2156,7 @@ class RunWorker(QThread):
 
             #self.diagramView.main_window.statusBar().showMessage(
             #        'Pipeline "{0}" has not been correctly run.'.format(pipeline.name))
-            
+
             #self.msg = QMessageBox()
             #self.msg.setIcon(QMessageBox.Critical)
             #self.msg.setText("SPM standalone is not set")

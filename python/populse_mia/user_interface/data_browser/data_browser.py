@@ -1401,6 +1401,12 @@ class TableDataBrowser(QTableWidget):
             req = '%s IN [%s]' \
                 % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
                                            for x in self.scans_to_visualize]))
+            # req = '%s IN [%s]' \
+            #     % (primary_key, ', '.join(['"%s"' % x.replace('\\', os.sep).replace('"', '\"')
+            #                                for x in self.scans_to_visualize]))
+            # req = '%s IN [%s]' \
+            #     % (primary_key, ', '.join(['"%s"' % x.replace('replace('"', '\"')
+            #                                for x in self.scans_to_visualize]))
             scans = dbs.filter_documents(COLLECTION_CURRENT, req)
         else:
             scans = []
@@ -2155,7 +2161,6 @@ class TableDataBrowser(QTableWidget):
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
         scans = [self.item(row, 0).text() if self.item(row, 0) else None for row in range(self.rowCount())]
-        print(scans)
 
         dbs = self.project.session
         collection_row = dbs.get_collection(COLLECTION_CURRENT)
@@ -2163,13 +2168,19 @@ class TableDataBrowser(QTableWidget):
         collection_init = dbs.get_collection(COLLECTION_INITIAL)
         primary_key_init = collection_row.primary_key
         if scans:
+            # req = '%s IN [%s]' \
+            #     % (primary_key, ', '.join(['"%s"' % x.replace('"', '\"')
+            #                                for x in scans]))
             req = '%s IN [%s]' \
-                % (primary_key, ', '.join(['"%s"' % x.replace('"', '\"')
-                                           for x in scans]))
+                % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
+                                           for x in self.scans_to_visualize]))
             documents = dbs.filter_documents(COLLECTION_CURRENT, req)
+            # req = '%s IN [%s]' \
+            #     % (primary_key_init, ', '.join(['"%s"' % x.replace('"', '\"')
+            #                                     for x in scans]))
             req = '%s IN [%s]' \
-                % (primary_key_init, ', '.join(['"%s"' % x.replace('"', '\"')
-                                                for x in scans]))
+                % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
+                                           for x in self.scans_to_visualize]))
             documents_init = dbs.filter_documents(COLLECTION_INITIAL, req)
 
         else:
@@ -2283,7 +2294,6 @@ class TableDataBrowser(QTableWidget):
 
         self.itemChanged.disconnect()
 
-        print('scans_to_visualize:', self.scans_to_visualize)
         self.setRowCount(len(self.scans_to_visualize))
 
         # Sort visual management

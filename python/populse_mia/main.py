@@ -206,7 +206,7 @@ subpackages/modules, to construct the mia's pipeline library.
                 pkg = sys.modules[module_name]
 
                 for k, v in sorted(list(pkg.__dict__.items())):
-                    
+
                     if class_name and k != class_name:
                         continue
 
@@ -217,10 +217,10 @@ subpackages/modules, to construct the mia's pipeline library.
                             get_process_instance(
                                 '%s.%s' % (module_name, v.__name__))
                             # updating the tree's dictionary
-                            path_list = module_name.split('.') 
+                            path_list = module_name.split('.')
                             path_list.append(k)
                             pkg_iter = self.packages
-                            
+
                             for element in path_list:
 
                                 if element in pkg_iter.keys():
@@ -248,7 +248,7 @@ subpackages/modules, to construct the mia's pipeline library.
                                       str(module_name + '.' + modname)))
                         self.add_package(str(module_name + '.' + modname),
                                          class_name)
-                        
+
             except ImportError as e:
                 print('\nWhen attempting to add a package and its modules to '
                       'the package tree, the following exception was caught:')
@@ -890,7 +890,7 @@ def verify_processes():
                 ('nipype' not in proc_content['Packages'])):
             old_nipypeVer = None
             pack2install.append('nipype.interfaces')
-            
+
             if ((isinstance(proc_content, dict)) and
                     ('Versions' in proc_content) and
                     ('nipype' in proc_content['Versions'])):
@@ -912,7 +912,7 @@ def verify_processes():
                 print("\nThe process_config.yml file seems to be corrupted! "
                       "Let's try to fix it by installing the nipype processes "
                       "library again in mia ...")
-                
+
             elif ((isinstance(proc_content, dict)) and
                     ('Versions' in proc_content) and
                     ('nipype' in proc_content['Versions']) and
@@ -928,7 +928,7 @@ def verify_processes():
             ('mia_processes' not in proc_content['Packages'])):
             old_miaProcVer = None
             pack2install.append('mia_processes')
-            
+
             if ((isinstance(proc_content, dict)) and
                 ('Versions' in proc_content) and
                 ('mia_processes' in proc_content['Versions'])):
@@ -950,7 +950,7 @@ def verify_processes():
                 print("\nThe process_config.yml file seems to be corrupted! "
                       "Let's try to fix it by installing the mia_processes "
                       "processes library again in mia ...")
-                
+
             elif ((isinstance(proc_content, dict)) and
                   ('Versions' in proc_content) and
                   ('mia_processes' in proc_content['Versions']) and
@@ -961,10 +961,10 @@ def verify_processes():
     final_pckgs = dict()          # final_pckgs: the final dic of dic with the
     final_pckgs["Packages"] = {}  # informations about the installed packages,
     final_pckgs["Versions"] = {}  # their versions, and the path to access them
-    
+
     for pckg in pack2install:
         package = PackagesInstall()
-        
+
         if 'nipype' in pckg:  # Save the packages version
             final_pckgs["Versions"]["nipype"] = nipypeVer
 
@@ -1047,4 +1047,3 @@ def verify_processes():
 if __name__ == '__main__':
     # this will only be executed when this module is run directly
     main()
-
