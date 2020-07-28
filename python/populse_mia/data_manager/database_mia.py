@@ -2,10 +2,10 @@
 """Module that contains class to override the default behaviour of
 populse_db and some of its methods
 
-Contains:
-    Class:
-    -DatabaseMIA
-    -DatabaseSessionMIA
+:Contains:
+   Class:
+      - DatabaseMIA
+      - DatabaseSessionMIA
 
 """
 
@@ -277,18 +277,19 @@ class DatabaseSessionMIA(DatabaseSession):
         :param collection: field collection (str)
         :param name: field name (str)
         :param field_type: field type (string, int, float, boolean, date,
-        datetime, time, list_string, list_int, list_float, list_boolean,
-        list_date, list_datetime, or list_time)
+                           datetime, time, list_string, list_int, list_float,
+                           list_boolean, list_date, list_datetime, or list_time)
         :param description: field description (str or None)
         :param visibility: Bool to know if the field is visible in the
-        databrowser
+                           databrowser
         :param origin: To know the origin of a field,
-        in [TAG_ORIGIN_BUILTIN, TAG_ORIGIN_USER]
+                       in [TAG_ORIGIN_BUILTIN, TAG_ORIGIN_USER]
         :param unit: Origin of the field, in [TAG_UNIT_MS, TAG_UNIT_MM,
-        TAG_UNIT_DEGREE, TAG_UNIT_HZPIXEL, TAG_UNIT_MHZ]
+                     TAG_UNIT_DEGREE, TAG_UNIT_HZPIXEL, TAG_UNIT_MHZ]
         :param default_value: Default_value of the field, can be str or None
         :param flush: bool to know if the table classes must be updated (put
-        False if in the middle of filling fields) => True by default
+                      False if in the middle of filling fields) => True by
+                      default
         """
 
         # Checks
