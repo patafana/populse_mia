@@ -757,12 +757,14 @@ class PipelineManagerTab(QWidget):
             # Test for matlab launch
             if config.get_use_spm_standalone():
                 node.process.use_mcr = True
-                node.process.paths = config.get_spm_standalone_path().split()
+                # node.process.paths = config.get_spm_standalone_path().split() #merdouille
+                node.process.paths = list(config.get_spm_standalone_path())
                 node.process.matlab_cmd = config.get_matlab_command()
 
             elif config.get_use_spm():
                 node.process.use_mcr = False
-                node.process.paths = config.get_spm_path().split()
+                # node.process.paths = config.get_spm_path().split()
+                node.process.paths = config.get_spm_path() #merdouille
                 node.process.matlab_cmd = config.get_matlab_command()
 
             # Test for matlab launch
@@ -789,11 +791,7 @@ class PipelineManagerTab(QWidget):
             # plugs from that the output scans will inherit the tags
             initResult_dict = {}
 
-            print('\n merdouille before initResult_dic')
-            is_plugged = {key: (bool(plug.links_to)
-                                or bool(plug.links_from))
-                                        for key, plug in node.plugs.items()}
-            initResult_dict = process.list_outputs(is_plugged=is_plugged)
+
 
             try:
                 # The state, linked or not, of the plugs is passed to the
@@ -803,7 +801,7 @@ class PipelineManagerTab(QWidget):
                 is_plugged = {key: (bool(plug.links_to)
                                     or bool(plug.links_from))
                                             for key, plug in node.plugs.items()}
-
+                initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
                 # For debugging. To be commented if not in debugging.
                 #print('initResult_dict after mia brick initialisaton: ',  initResult_dict)

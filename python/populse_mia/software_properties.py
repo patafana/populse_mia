@@ -227,9 +227,8 @@ class Config:
         if self.config.get("use_spm_standalone"):
             archi = platform.architecture()
             if 'Windows' in archi[1]:
-                print('\n os.sep :', os.sep)
-                return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
-                        'spm_win' + archi[0][:2] + '.exe')
+                return ('{0}'.format(self.config["spm_standalone"]) + '/' +
+                        'spm12_win' + archi[0][:2] + '.exe')
             else:
                 return ('{0}'.format(self.config["spm_standalone"]) + os.sep +
                         'run_spm12.sh {0}'.format(self.config[
@@ -394,6 +393,8 @@ class Config:
         :return: string of path
 
         """
+        print('\n merdouille self.config :', self.config)
+        print('\n merdouille self.config.get :', self.config.get)
         return self.config.get("spm", "")
 
     def get_spm_standalone_path(self):

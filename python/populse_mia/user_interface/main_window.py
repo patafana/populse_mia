@@ -738,7 +738,7 @@ class MainWindow(QMainWindow):
             file_name = self.exPopup.relative_path
 
             if os.path.exists(file_name):
-                shutil.rmtree(file_name)
+                shutil.rmtree(file_name, ignore_errors=True)
 
             database_path = os.path.join(
                 os.path.abspath(self.exPopup.relative_path), 'database')
