@@ -94,7 +94,7 @@ class ImportWorker(QThread):
     """Manage threads.
 
     :param project: A Project object
-    ;param progress: An ImportProgress object
+    :param progress: An ImportProgress object
 
     .. Methods:
         - run : Override the QThread run method.
