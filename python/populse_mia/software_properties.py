@@ -392,8 +392,6 @@ class Config:
         :return: string of path
 
         """
-        print('\n merdouille self.config :', self.config)
-        print('\n merdouille self.config.get :', self.config.get)
         return self.config.get("spm", "")
 
     def get_spm_standalone_path(self):

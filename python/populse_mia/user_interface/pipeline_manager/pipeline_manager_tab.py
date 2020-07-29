@@ -757,14 +757,12 @@ class PipelineManagerTab(QWidget):
             # Test for matlab launch
             if config.get_use_spm_standalone():
                 node.process.use_mcr = True
-                # node.process.paths = config.get_spm_standalone_path().split() #merdouille
-                node.process.paths = list(config.get_spm_standalone_path())
+                node.process.paths = config.get_spm_standalone_path().split()
                 node.process.matlab_cmd = config.get_matlab_command()
 
             elif config.get_use_spm():
                 node.process.use_mcr = False
-                # node.process.paths = config.get_spm_path().split()
-                node.process.paths = config.get_spm_path() #merdouille
+                node.process.paths = config.get_spm_path().split()
                 node.process.matlab_cmd = config.get_matlab_command()
 
             # Test for matlab launch
