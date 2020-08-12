@@ -2168,16 +2168,10 @@ class TableDataBrowser(QTableWidget):
         collection_init = dbs.get_collection(COLLECTION_INITIAL)
         primary_key_init = collection_row.primary_key
         if scans:
-            # req = '%s IN [%s]' \
-            #     % (primary_key, ', '.join(['"%s"' % x.replace('"', '\"')
-            #                                for x in scans]))
             req = '%s IN [%s]' \
                 % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
                                            for x in self.scans_to_visualize]))
             documents = dbs.filter_documents(COLLECTION_CURRENT, req)
-            # req = '%s IN [%s]' \
-            #     % (primary_key_init, ', '.join(['"%s"' % x.replace('"', '\"')
-            #                                     for x in scans]))
             req = '%s IN [%s]' \
                 % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
                                            for x in self.scans_to_visualize]))
