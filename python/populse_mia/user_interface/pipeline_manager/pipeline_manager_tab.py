@@ -378,22 +378,28 @@ class PipelineManagerTab(QWidget):
             # Adding inherited tags
             if self.inheritance_dict:
                 database_parent_file = None
+
                 if not isinstance(self.inheritance_dict[old_value], dict):
                     parent_file = self.inheritance_dict[old_value]
                     own_tags = None
+
                 else:
                     parent_file = self.inheritance_dict[old_value]['parent']
                     own_tags = self.inheritance_dict[old_value]['own_tags']
+
                 for scan in self.project.session.get_documents_names(
                         COLLECTION_CURRENT):
+
                     if scan in str(parent_file):
                         database_parent_file = scan
+
                 banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
                                 TAG_CHECKSUM, TAG_FILENAME]
+
                 for tag in self.project.session.get_fields_names(
                         COLLECTION_CURRENT):
-                    if tag not in banished_tags and database_parent_file is \
-                            not None:
+
+                    if tag not in banished_tags and database_parent_file:
                         parent_current_value = self.project.session.get_value(
                             COLLECTION_CURRENT, database_parent_file, tag)
                         self.project.session.set_value(
@@ -404,31 +410,46 @@ class PipelineManagerTab(QWidget):
                         self.project.session.set_value(
                             COLLECTION_INITIAL, p_value, tag,
                             parent_initial_value)
-                if own_tags:
-                    for tag_to_add in own_tags:
-                        self.project.session.add_field(COLLECTION_CURRENT,
-                                            tag_to_add['name'],
-                                            tag_to_add['field_type'],
-                                            tag_to_add['description'],
-                                            tag_to_add['visibility'],
-                                            tag_to_add['origin'],
-                                            tag_to_add['unit'],
-                                            tag_to_add['default_value'])
-                        self.project.session.set_value(COLLECTION_CURRENT,
-                                            p_value, tag_to_add['name'],
-                                            tag_to_add['value'])
-                        self.project.session.add_field(COLLECTION_INITIAL,
-                                            tag_to_add['name'],
-                                            tag_to_add['field_type'],
-                                            tag_to_add['description'],
-                                            tag_to_add['visibility'],
-                                            tag_to_add['origin'],
-                                            tag_to_add['unit'],
-                                            tag_to_add['default_value'])
-                        self.project.session.set_value(COLLECTION_INITIAL,
-                                            p_value, tag_to_add['name'],
-                                            tag_to_add['value'])
 
+                if own_tags:
+
+                    for tag_to_add in own_tags:
+
+                        if (tag_to_add['name'] not in
+                              (self.project.session.
+                                 get_fields_names)(COLLECTION_CURRENT)):
+                            (self.project.session.
+                                         add_field)(COLLECTION_CURRENT,
+                                                    tag_to_add['name'],
+                                                    tag_to_add['field_type'],
+                                                    tag_to_add['description'],
+                                                    tag_to_add['visibility'],
+                                                    tag_to_add['origin'],
+                                                    tag_to_add['unit'],
+                                                    tag_to_add['default_value'])
+
+                        self.project.session.set_value(COLLECTION_CURRENT,
+                                                       p_value,
+                                                       tag_to_add['name'],
+                                                       tag_to_add['value'])
+
+                        if (tag_to_add['name'] not in
+                              (self.project.session.
+                                 get_fields_names)(COLLECTION_INITIAL)):
+                            (self.project.session.
+                                         add_field)(COLLECTION_INITIAL,
+                                                    tag_to_add['name'],
+                                                    tag_to_add['field_type'],
+                                                    tag_to_add['description'],
+                                                    tag_to_add['visibility'],
+                                                    tag_to_add['origin'],
+                                                    tag_to_add['unit'],
+                                                    tag_to_add['default_value'])
+
+                        self.project.session.set_value(COLLECTION_INITIAL,
+                                                       p_value,
+                                                       tag_to_add['name'],
+                                                       tag_to_add['value'])
 
             self.project.saveModifications()
 
