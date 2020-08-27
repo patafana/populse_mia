@@ -479,6 +479,9 @@ class MainWindow(QMainWindow):
         files and loads them into the database.
 
         """
+
+        print('\n check import ici')
+
         # Opens the conversion software to convert the MRI files in Nifti/Json
         config = Config()
         home = expanduser("~")
@@ -492,7 +495,7 @@ class MainWindow(QMainWindow):
                                      'CreationDate-SeqNumber-Protocol-'
                                      'SequenceName-AcquisitionTime',
                                      'CloseAfterExport'])
-        
+
         # 'NoLogExport'if we don't want log export
 
         if code_exit == 0:
@@ -515,7 +518,7 @@ class MainWindow(QMainWindow):
 
         elif code_exit == 100: # User only close mri_conv and do nothing
             pass
-        
+
         else:
             print(
                 "\nmri_conv, did not work properly. Current absolute path to "
@@ -597,6 +600,7 @@ class MainWindow(QMainWindow):
                 entire_path = os.path.abspath(file_name)
                 path, name = os.path.split(entire_path)
                 relative_path = os.path.relpath(file_name)
+
                 self.switch_project(relative_path, name)
                 # We switch the project
 
@@ -745,7 +749,7 @@ class MainWindow(QMainWindow):
             file_name = self.exPopup.relative_path
 
             if os.path.exists(file_name):
-                shutil.rmtree(file_name)
+                shutil.rmtree(file_name, ignore_errors=True)
 
             database_path = os.path.join(
                 os.path.abspath(self.exPopup.relative_path), 'database')
@@ -938,7 +942,7 @@ class MainWindow(QMainWindow):
 
                     # We check if the name of the project directory is the
                     # same in its properties
-                    
+
                     with open(os.path.join(file_path, "properties",
                                            "properties.yml"), 'r+') as stream:
 
@@ -949,9 +953,9 @@ class MainWindow(QMainWindow):
 
                         else:
                             properties = yaml.load(stream)
-                            
+
                         path, name = os.path.split(file_path)
-                        
+
                         if properties["name"] != name:
                             properties["name"] = name
                             yaml.dump(properties, stream,
@@ -1154,6 +1158,7 @@ class MainWindow(QMainWindow):
         """
 
         self.data_browser.update_database(self.project)
+
         # Database update data_browser
         self.pipeline_manager.update_project(self.project)
 
@@ -1187,5 +1192,3 @@ class MainWindow(QMainWindow):
                     self.saved_projects_actions[i].setData(
                         self.saved_projects_list[i])
                     self.saved_projects_actions[i].setVisible(True)
-
-

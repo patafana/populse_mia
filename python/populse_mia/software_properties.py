@@ -21,6 +21,7 @@ pop-up in the config.yml file.
 ##########################################################################
 
 import os
+import platform
 import yaml
 import re
 import glob
@@ -35,12 +36,12 @@ def verCmp(first_ver, sec_ver, comp):
     The verCmp() function returns a boolean value to indicate whether its
     first argument (first_ver) is equal to, less or equal to, or greater or
     equal to its second argument (sec_ver), as follows:
-    - if third argument (comp) is 'eq': when the first argument is equal to the
-      second argument, return True (False if not).
-    - if third argument (comp) is 'sup': when the first argument is greater
-      than the second argument, return True (False if not).
-    - if third argument (comp) is 'inf': when the first argument is less than
-      the second argument, return True (False if not).
+      - if third argument (comp) is 'eq': when the first argument is equal to the
+        second argument, return True (False if not).
+      - if third argument (comp) is 'sup': when the first argument is greater
+        than the second argument, return True (False if not).
+      - if third argument (comp) is 'inf': when the first argument is less than
+        the second argument, return True (False if not).
 
     :param first_ver: the version of a package (a string; ex. '0.13.0')
     :param sec_ver: the version of a package (a string; ex. '0.13.0')
@@ -49,8 +50,8 @@ def verCmp(first_ver, sec_ver, comp):
     :returns: False or True
 
     :Contains:
-        :Private function:
-            - normalise
+      Private function:
+        - normalise
 
      """
 
@@ -172,13 +173,12 @@ class Config:
     def __init__(self, config_path=None, load=True):
         """Initialization of the Config class
 
-        Parameters
-        ----------
-        config_path: str (optional)
-            if provided, the configuration file will be loaded/saved from
-            the given directory. Otherwise the regular eutristics will be used
-            to determine the config path. This option allows to use an
-            alternative config directory (for tests for instance).
+        :Parameters:
+            - :config_path: str (optional). If provided, the configuration file
+               will be loaded/saved from the given directory. Otherwise the
+               regular eutristics will be used to determine the config path.
+               This option allows to use an alternative config directory (for
+               tests for instance).
         """
         self.dev_mode = False
         if config_path is not None:
@@ -335,12 +335,17 @@ class Config:
         """Get Matlab command.
 
         :return: Returns path to matlab executable or nothing if matlab
-        path not specified
+                 path not specified
 
         """
         if self.config.get("use_spm_standalone"):
-            spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
-                                                'run_spm*.sh'))
+            archi = platform.architecture()
+            if 'Windows' in archi[1]:
+                spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
+                                                    'spm*_win' + archi[0][:2] + '.exe'))
+            else:
+                spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
+                                                    'run_spm*.sh'))
             if spm_script:
                 spm_script = spm_script[0]
                 return '{0} {1} script'.format(
@@ -406,7 +411,7 @@ class Config:
                     if verCmp(yaml.__version__, '5.1', 'sup'):
                         mia_home_config = yaml.load(stream,
                                                     Loader=yaml.FullLoader)
-                    else:    
+                    else:
                         mia_home_config = yaml.load(stream)
 
                     if ("dev_mode" in mia_home_config.keys() and
@@ -418,10 +423,10 @@ class Config:
 
                         while "properties" not in os.listdir(config_path):
                             config_path = os.path.dirname(config_path)
-                            
+
                         self.mia_path = config_path
                         return config_path
-                    
+
                     # Only for user mode
                     self.dev_mode = False
 
@@ -977,7 +982,3 @@ class Config:
     #         self.config["paths"]["data"] = path
     #         # Then save the modification
     #         self.saveConfig()
-
-
-
-

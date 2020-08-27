@@ -412,17 +412,28 @@ class PipelineManagerTab(QWidget):
         # Adding inherited tags
         if self.inheritance_dict and old_value in self.inheritance_dict:
             database_parent_file = None
-            parent_file = self.inheritance_dict[old_value]
+
+            if not isinstance(self.inheritance_dict[old_value], dict):
+                parent_file = self.inheritance_dict[old_value]
+                own_tags = None
+
+            else:
+                parent_file = self.inheritance_dict[old_value]['parent']
+                own_tags = self.inheritance_dict[old_value]['own_tags']
+
             for scan in self.project.session.get_documents_names(
                     COLLECTION_CURRENT):
+
                 if scan in str(parent_file):
                     database_parent_file = scan
+
             banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
-                              TAG_CHECKSUM, TAG_FILENAME]
+                             TAG_CHECKSUM, TAG_FILENAME]
+
             for tag in self.project.session.get_fields_names(
                     COLLECTION_CURRENT):
-                if tag not in banished_tags and database_parent_file is \
-                        not None:
+
+                if tag not in banished_tags and database_parent_file:
                     parent_current_value = self.project.session.get_value(
                         COLLECTION_CURRENT, database_parent_file, tag)
                     self.project.session.set_value(
@@ -433,6 +444,46 @@ class PipelineManagerTab(QWidget):
                     self.project.session.set_value(
                         COLLECTION_INITIAL, p_value, tag,
                         parent_initial_value)
+
+            if own_tags:
+
+                for tag_to_add in own_tags:
+
+                    if (tag_to_add['name'] not in
+                          (self.project.session.
+                             get_fields_names)(COLLECTION_CURRENT)):
+                        (self.project.session.
+                                     add_field)(COLLECTION_CURRENT,
+                                                tag_to_add['name'],
+                                                tag_to_add['field_type'],
+                                                tag_to_add['description'],
+                                                tag_to_add['visibility'],
+                                                tag_to_add['origin'],
+                                                tag_to_add['unit'],
+                                                tag_to_add['default_value'])
+
+                    self.project.session.set_value(COLLECTION_CURRENT,
+                                                   p_value,
+                                                   tag_to_add['name'],
+                                                   tag_to_add['value'])
+
+                    if (tag_to_add['name'] not in
+                          (self.project.session.
+                             get_fields_names)(COLLECTION_INITIAL)):
+                        (self.project.session.
+                                     add_field)(COLLECTION_INITIAL,
+                                                tag_to_add['name'],
+                                                tag_to_add['field_type'],
+                                                tag_to_add['description'],
+                                                tag_to_add['visibility'],
+                                                tag_to_add['origin'],
+                                                tag_to_add['unit'],
+                                                tag_to_add['default_value'])
+
+                    self.project.session.set_value(COLLECTION_INITIAL,
+                                                   p_value,
+                                                   tag_to_add['name'],
+                                                   tag_to_add['value'])
 
         self.project.saveModifications()
 
@@ -645,6 +696,7 @@ class PipelineManagerTab(QWidget):
                 # normally same as outputs, but it may contain an additional
                 # "notInDb" key.
                 outputs.update(process.outputs)
+
         else:
             outputs = {
                 param: node.get_plug_value(param)
@@ -938,7 +990,7 @@ class PipelineManagerTab(QWidget):
         #      info1: process is the brick (node, process, etc.)
         #             <User_processes.preprocess.spm.spatial_preprocessing
         #             .Smooth object at ...> object
-        
+
         # ** User_processes/preprocess/spm/spatial_preprocessing.py
         #    class Smooth(Process_Mia)
         #    list_outputs method:
@@ -1982,7 +2034,7 @@ class RunWorker(QThread):
             #     info1: study_config = StudyConfig(...) defined before
             #     info2: from capsul.api import (..., StudyConfig, ...) defined
             #            before
-            
+
             #** capsul/study_config/study_config.py
             #   class StudyConfig(Controller)
             #    run method:
@@ -2006,7 +2058,7 @@ class RunWorker(QThread):
             #                            verbose=verbose, **kwargs)
             #     info1: from capsul.study_config.run import run_process defined
             #            in the capsul/study_config/study_config.py module
-            
+
             #** capsul/study_config/run.py; run_process function:
             #     use: returncode = process_instance._run_process()
             #     info1: process_instance is the brick (node, process, etc.)
@@ -2016,7 +2068,7 @@ class RunWorker(QThread):
             #            method but they inherit the Process_Mia class (module
             #            mia_processes/process_mia.py) that has the
             #            _run_process method
-            
+
             #** mia_processes/process_mia.py
             #   class Process_Mia(ProcessMIA)
             #   _run_process method
@@ -2024,7 +2076,7 @@ class RunWorker(QThread):
             #     info1: self is the brick (node, process, etc.) object
             #            <User_processes.preprocess.spm.spatial_preprocessing
             #            .Smooth object at ...>
-            
+
             #** User_processes/preprocess/spm/spatial_preprocessing.py
             #   class Smooth(Process_Mia)
             #   run_process_mia method:
