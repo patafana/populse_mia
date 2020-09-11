@@ -1318,23 +1318,28 @@ class PipelineManagerTab(QWidget):
         pipeline."""
 
         if self.init_clicked:
+
             for brick in self.brick_list:
                 self.main_window.data_browser.table_data.delete_from_brick(
                     brick)
+
         self.ignore_node = False
         self.key = {}
         self.ignore = {}
 
         try:
             self.test_init = self.init_pipeline()
+
         except Exception as e:
             print("\nError during initialisation: ", e)
             self.test_init = False
+
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful or the iterate pipeline checkbox is checked
         if self.test_init or self.iterationTable.check_box_iterate.isChecked():
             self.run_pipeline_action.setDisabled(False)
+
         else:
             self.run_pipeline_action.setDisabled(True)
 
