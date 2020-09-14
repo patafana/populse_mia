@@ -52,59 +52,29 @@ VERSION = __version__
 CLASSIFIERS = CLASSIFIERS
 PLATFORMS = 'OS Independent'
 
-if (3, 6) > sys.version_info >= (3, 5):
-    REQUIRES = [
-        'capsul',
-        'cryptography',
-        'jinja2 == 2.8.1',
-        'lark-parser >= 0.7.0',
-        'matplotlib < 3.1',
-        'mia-processes >= 1.3.0',
-        'nibabel',
-        'nipype',
-        'pillow',
-        'populse-db',
-        'pyqt5 == 5.14.0',
-        'python-dateutil',
-        'pyyaml',
-        'scikit-image == 0.15.0',
-        'scipy == 1.4.1',   # scipy > 1.4.1 needs python >= 3.6
-        'SIP == 5.0.1',
-        'sqlalchemy',
-        'snakeviz',
-        'soma_workflow',
-        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
-                            # (> 2.2.1)
+REQUIRES = [
+    'capsul',
+    'cryptography',
+    'jinja2 == 2.8.1',
+    'lark-parser >= 0.7.0',
+    'matplotlib',
+    'mia-processes >= 1.3.0',
+    'nibabel',
+    'nipype',
+    'pillow',
+    'populse-db',
+    'pyqt5 == 5.14.0',
+    'python-dateutil',
+    'pyyaml',
+    'scikit-image',
+    'scipy',
+    'SIP == 5.0.1',  
+    'sqlalchemy',
+    'snakeviz',
+    'soma_workflow',
+    'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
+                        # (> 2.2.1)
 ]
-
-elif sys.version_info >= (3, 6):
-    REQUIRES = [
-        'capsul',
-        'cryptography',
-        'jinja2 == 2.8.1',
-        'lark-parser >= 0.7.0',
-        'matplotlib',
-        'mia-processes >= 1.3.0',
-        'nibabel',
-        'nipype',
-        'pillow',
-        'populse-db',
-        'pyqt5 == 5.14.0',
-        'python-dateutil',
-        'pyyaml',
-        'scikit-image',
-        'scipy',
-        'SIP == 5.0.1',  
-        'sqlalchemy',
-        'snakeviz',
-        'soma_workflow',
-        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
-                            # (> 2.2.1)
-]
-
-else:
-    # python < 3.5 is not compatible anyway
-    REQUIRES = []
 
 EXTRA_REQUIRES = {
     'doc': [
