@@ -3770,6 +3770,7 @@ class PopUpShowBrick(QDialog):
         layout = QVBoxLayout()
 
         self.table = QTableWidget()
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
         # Filling the table
         inputs = getattr(brick_row, BRICK_INPUTS)
@@ -3832,34 +3833,23 @@ class PopUpShowBrick(QDialog):
             item.setText(key)
             self.table.setHorizontalHeaderItem(column, item)
             if isinstance(value, list):
-                sub_widget = QWidget()
-                sub_layout = QVBoxLayout()
-                for sub_value in value:
-                    value_scan = self.io_value_is_scan(sub_value)
-                    if value_scan is not None:
-                        button = QPushButton(value_scan)
-                        button.clicked.connect(self.file_clicked)
-                        sub_layout.addWidget(button)
-                    else:
-                        label = QLabel(str(sub_value))
-                        sub_layout.addWidget(label)
-                sub_widget.setLayout(sub_layout)
-                self.table.setCellWidget(0, column, sub_widget)
+                value = str(value).strip('[]')
+
+            value_scan = self.io_value_is_scan(value)
+            if value_scan is not None:
+                widget = QWidget()
+                output_layout = QVBoxLayout()
+                button = QPushButton(value_scan)
+                button.clicked.connect(self.file_clicked)
+                output_layout.addWidget(button)
+                widget.setLayout(output_layout)
+                self.table.setCellWidget(0, column, widget)
             else:
-                value_scan = self.io_value_is_scan(value)
-                if value_scan is not None:
-                    widget = QWidget()
-                    output_layout = QVBoxLayout()
-                    button = QPushButton(value_scan)
-                    button.clicked.connect(self.file_clicked)
-                    output_layout.addWidget(button)
-                    widget.setLayout(output_layout)
-                    self.table.setCellWidget(0, column, widget)
-                else:
-                    item = QTableWidgetItem()
-                    item.setText(str(value))
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.table.setItem(0, column, item)
+                item = QTableWidgetItem()
+                item.setText(str(value))
+                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(0, column, item)
             column += 1
 
         # Outputs
