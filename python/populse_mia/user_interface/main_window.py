@@ -57,7 +57,6 @@ from populse_mia.user_interface.pop_ups import (PopUpDeleteProject,
 from populse_mia.user_interface.data_viewer.data_viewer_tab import (
     DataViewerTab)
 
-
 class MainWindow(QMainWindow):
 
     """Initialize software appearance and define interactions with the user.
@@ -730,20 +729,20 @@ class MainWindow(QMainWindow):
 
         self.exPopup.exec()
         if self.exPopup.validate:
-            old_folder = self.project.folder
-            file_name = self.exPopup.relative_path
+            old_folder_rel = self.project.folder
+            old_folder = os.path.abspath(old_folder_rel)
+            
+            as_folder_rel = self.exPopup.relative_path
+            as_folder = os.path.abspath(as_folder_rel)
+            
+            if as_folder_rel == old_folder_rel :
+                self.project.saveModifications()
+                return True
 
-            if os.path.exists(file_name):
-                shutil.rmtree(file_name)
-
-            database_path = os.path.join(
-                os.path.abspath(self.exPopup.relative_path), 'database')
-            properties_path = os.path.join(
-                os.path.abspath(self.exPopup.relative_path), 'properties')
-            filters_path = os.path.join(
-                os.path.abspath(self.exPopup.relative_path), 'filters')
-            data_path = os.path.join(
-                os.path.abspath(self.exPopup.relative_path), 'data')
+            database_path = os.path.join(as_folder, 'database')
+            properties_path = os.path.join(as_folder, 'properties')
+            filters_path = os.path.join(as_folder, 'filters')
+            data_path = os.path.join(as_folder, 'data')
 
             raw_data_path = os.path.join(data_path, 'raw_data')
             derived_data_path = os.path.join(data_path, 'derived_data')
@@ -752,12 +751,17 @@ class MainWindow(QMainWindow):
             # List of projects updated
             if not self.test:
                 self.saved_projects_list = self.saved_projects.addSavedProject(
-                    file_name)
+                    as_folder_rel)
             self.update_recent_projects_actions()
 
-            if not os.path.exists(self.exPopup.relative_path):
-                os.makedirs(self.exPopup.relative_path)
+            if os.path.exists(as_folder_rel):
+                #Prevent by a carefull message
+                #see PopUpSaveProjectAs/return_value
+                #in admin mode only
+                shutil.rmtree(as_folder_rel)
 
+            if not os.path.exists(as_folder_rel):
+                os.makedirs(as_folder_rel)
                 os.mkdir(data_path)
                 os.mkdir(raw_data_path)
                 os.mkdir(derived_data_path)
@@ -765,63 +769,56 @@ class MainWindow(QMainWindow):
                 os.mkdir(filters_path)
 
             # Data files copied
-            if os.path.exists(os.path.join(old_folder, 'data')):
-                for filename in glob.glob(
-                        os.path.join(os.path.abspath(old_folder), 'data',
-                                     'raw_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.abspath(
-                        data_path), 'raw_data'))
-                for filename in glob.glob(os.path.join(os.path.abspath(
-                        old_folder), 'data', 'derived_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.abspath(
-                        data_path), 'derived_data'))
-                for filename in glob.glob(os.path.join(os.path.abspath(
-                        old_folder), 'data', 'downloaded_data', '*')):
-                    shutil.copy(filename, os.path.join(os.path.abspath(
-                        data_path), 'downloaded_data'))
+            if os.path.exists(os.path.join(old_folder_rel, 'data')):
+                for filename in glob.glob(os.path.join(old_folder, 
+                                          'data', 'raw_data', '*')):
+                    shutil.copy(filename, os.path.join(data_path, 'raw_data'))
+                for filename in glob.glob(os.path.join(old_folder, 
+                                                'data', 'derived_data', '*')):
+                    shutil.copy(filename, os.path.join(data_path, 
+                                                       'derived_data'))
+                for filename in glob.glob(os.path.join(old_folder, 
+                                             'data', 'downloaded_data', '*')):
+                    shutil.copy(filename, os.path.join(data_path, 
+                                                       'downloaded_data'))
 
-            if os.path.exists(os.path.join(old_folder, 'filters')):
-                for filename in glob.glob(os.path.join(
-                        os.path.abspath(old_folder), 'filters', '*')):
-                    shutil.copy(filename, os.path.join(
-                        os.path.abspath(filters_path)))
+            if os.path.exists(os.path.join(old_folder_rel, 'filters')):
+                for filename in glob.glob(os.path.join(old_folder, 
+                                                       'filters', '*')):
+                    shutil.copy(filename, os.path.join(filters_path))
 
             # First we register the Database before commiting the last
             # pending modifications
-            shutil.copy(os.path.join(os.path.abspath(old_folder),
-                                     'database', 'mia.db'),
-                        os.path.join(os.path.abspath(old_folder),
-                                     'database', 'mia_before_commit.db'))
+            shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
+                        os.path.join(old_folder, 'database', 
+                                                 'mia_before_commit.db'))
 
             # We commit the last pending modifications
             self.project.saveModifications()
 
             os.mkdir(properties_path)
-            shutil.copy(os.path.join(os.path.abspath(old_folder),
-                                     'properties', 'properties.yml'),
-                        os.path.abspath(properties_path))
+            shutil.copy(os.path.join(old_folder, 'properties', 
+                                                  'properties.yml'),
+                        properties_path)
 
             # We copy the Database with all the modifications commited in
             # the new project
-            os.mkdir(os.path.abspath(database_path))
-            shutil.copy(os.path.join(os.path.abspath(old_folder),
-                                     'database', 'mia.db'),
-                        os.path.abspath(database_path))
+            os.mkdir(database_path)
+            shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
+                        database_path)
 
             # We remove the Database with all the modifications saved in
             # the old project
-            os.remove(os.path.join(
-                os.path.abspath(old_folder), 'database', 'mia.db'))
+            os.remove(os.path.join(old_folder, 'database', 'mia.db'))
 
             # We reput the Database without the last modifications
             # in the old project
-            shutil.copy(os.path.join(os.path.abspath(old_folder), 'database',
-                                     'mia_before_commit.db'),
-                        os.path.join(os.path.abspath(old_folder), 'database',
-                                     'mia.db'))
+            shutil.copy(os.path.join(old_folder, 'database',
+                                                 'mia_before_commit.db'),
+                        os.path.join(old_folder, 'database', 'mia.db'))
 
-            os.remove(os.path.join(os.path.abspath(old_folder), 'database',
-                                   'mia_before_commit.db'))
+            os.remove(os.path.join(old_folder, 'database',
+                                               'mia_before_commit.db'))
 
             self.remove_raw_files_useless()
             # We remove the useless files from the old project
@@ -830,18 +827,18 @@ class MainWindow(QMainWindow):
             # currently opened projects
             config = Config()
             opened_projects = config.get_opened_projects()
-            if self.project.folder in opened_projects:
-                opened_projects.remove(self.project.folder)
+            if old_folder_rel in opened_projects:
+                opened_projects.remove(old_folder_rel)
             config.set_opened_projects(opened_projects)
             config.saveConfig()
 
             # project updated everywhere
-            self.project = Project(self.exPopup.relative_path, False)
-            self.project.setName(os.path.basename(self.exPopup.relative_path))
+            self.project = Project(as_folder_rel, False)
+            self.project.setName(os.path.basename(as_folder_rel))
             self.project.setDate(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
             self.project.saveModifications()
 
-            self.update_project(file_name, call_update_table=False)
+            self.update_project(as_folder_rel, call_update_table=False)
             # project updated everywhere
 
             # If some files have been set in the pipeline editors,
@@ -1111,8 +1108,7 @@ class MainWindow(QMainWindow):
                 self.tabs.currentIndex()).replace("&",
                                                   "", 1) == 'Data Browser':
             # In Data Browser
-            self.project.undo(
-                self.data_browser.table_data)
+            self.project.undo(self.data_browser.table_data)
             # Action reverted in the Database
         elif self.tabs.tabText(
                 self.tabs.currentIndex()).replace("&",
