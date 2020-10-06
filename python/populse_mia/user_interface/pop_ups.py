@@ -3247,7 +3247,7 @@ class PopUpSaveProjectAs(QDialog):
                         return
                     else:
                         msgtext = "Do you really want to overwrite the " + \
-                                  file_name + " project ?"
+                                  file_name + " project ?\nThis action delete all contents inside this folder"
                         msg = QMessageBox()
                         msg.setIcon(QMessageBox.Warning)
                         title = "populse_mia - Warning: Overwriting project"
