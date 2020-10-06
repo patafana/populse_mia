@@ -53,6 +53,8 @@ if not os.path.dirname(os.path.dirname(
     print('  . Using populse_mia package from {} ...'.format(mia_dev_dir))
     sys.path.insert(i, mia_dev_dir)
     del mia_dev_dir
+    from populse_mia import info
+    print(f"    populse_mia version : {info.__version__}")
 
     # Adding capsul
     if os.path.isdir(os.path.join(root_dev_dir, 'capsul')):
