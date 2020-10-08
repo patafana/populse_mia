@@ -800,8 +800,8 @@ class PipelineManagerTab(QWidget):
             process_name = str(process).split('.')[0][1:]
 
             if process_name != "capsul":
-                print('\nUpdating the launching parameters for the {0} '
-                      'process node: {1} ...\n'.format(process_name,
+                print('\n\nUpdating the launching parameters for the {0} '
+                      'process node: {1} ...'.format(process_name,
                                                        node_name))
 
             # TODO 'except' instead of 'if' to test matlab launch ?
@@ -858,7 +858,7 @@ class PipelineManagerTab(QWidget):
                 try:
 
                     if not initResult_dict['outputs']:
-                        print("\nInitialisation failed to determine the "
+                        print("Initialisation failed to determine the "
                                "outputs for the process {0}, did you correctly "
                                "define the inputs ...?".format(node_name))
                         check_init[node_name] = False
@@ -976,7 +976,7 @@ class PipelineManagerTab(QWidget):
 
             # Automatically fills few plugs. Only for the nipype process
             if 'NipypeProcess' in str(process.__class__):
-                print('\nUpdating the launching parameters for the nipype '
+                print('\n\nUpdating the launching parameters for the nipype '
                       'process node: {0} ...'.format(node_name))
                 # plugs to be filled automatically
                 keys2consider = ['use_mcr', 'paths',
