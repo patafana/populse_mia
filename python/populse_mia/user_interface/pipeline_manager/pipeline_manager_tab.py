@@ -60,6 +60,7 @@ import inspect
 import os
 import re
 import sys
+import traceback
 import uuid
 import copy
 from collections import OrderedDict
@@ -1331,7 +1332,9 @@ class PipelineManagerTab(QWidget):
             self.test_init = self.init_pipeline()
 
         except Exception as e:
-            print("\nError during initialisation: ", e)
+            print("\nError during initialisation ...!\nTraceback:")
+            print(''.join(traceback.format_tb(e.__traceback__)), end='')
+            print('{0}: {1}\n'.format(e.__class__.__name__, e))
             self.test_init = False
 
         # If the initialization fail, the run pipeline action is disabled
