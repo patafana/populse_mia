@@ -187,8 +187,8 @@ class FilterWidget(QWidget):
 
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumWidth(0.6 * width)
-        self.setMinimumHeight(0.8 * height)
+        self.setMinimumWidth(round(0.6 * width))
+        self.setMinimumHeight(round(0.8 * height))
 
     def ok_clicked(self):
         """Set the filter to the process and closes the widget."""
@@ -926,8 +926,8 @@ class PlugFilter(QWidget):
 
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumWidth(0.6 * width)
-        self.setMinimumHeight(0.8 * height)
+        self.setMinimumWidth(round(0.6 * width))
+        self.setMinimumHeight(round(0.8 * height))
 
     def ok_clicked(self):
         """Set the new value to the node plug and closes the widget."""
