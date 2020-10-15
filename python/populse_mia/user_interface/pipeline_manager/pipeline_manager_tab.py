@@ -1332,10 +1332,19 @@ class PipelineManagerTab(QWidget):
             self.test_init = self.init_pipeline()
 
         except Exception as e:
-            print("\nError during initialisation ...!\nTraceback:")
+            name = os.path.basename(
+            self.pipelineEditorTabs.get_current_filename())
+
+            if name == '': name = 'NoName'
+            
+            print('\nError during initialisation of the "{0}" pipeline '
+                  '...!\nTraceback:'.format(name))
             print(''.join(traceback.format_tb(e.__traceback__)), end='')
             print('{0}: {1}\n'.format(e.__class__.__name__, e))
             self.test_init = False
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" was not initialised successfully.'.format(
+                    name))
 
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
