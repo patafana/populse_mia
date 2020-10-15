@@ -1209,8 +1209,8 @@ class PopUpDataBrowserCurrentSelection(QDialog):
         self.setLayout(vbox_layout)
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumWidth(0.5 * width)
-        self.setMinimumHeight(0.8 * height)
+        self.setMinimumWidth(round(0.5 * width))
+        self.setMinimumHeight(round(0.8 * height))
 
     def ok_clicked(self):
         """Updates the "scan_list" attribute of several widgets."""
@@ -3899,8 +3899,8 @@ class PopUpShowBrick(QDialog):
 
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumHeight(0.5 * height)
-        self.setMinimumWidth(0.8 * width)
+        self.setMinimumHeight(round(0.5 * height))
+        self.setMinimumWidth(round(0.8 * width))
 
     def io_value_is_scan(self, value):
         """Checks if the I/O value is a scan.
