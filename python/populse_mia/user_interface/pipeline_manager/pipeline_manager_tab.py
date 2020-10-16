@@ -55,6 +55,7 @@ from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
                              QPushButton)
 
 # Other import
+import copy
 import datetime
 import inspect
 import os
@@ -62,18 +63,17 @@ import re
 import sys
 import traceback
 import uuid
-import copy
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
-from traits.trait_errors import TraitError
 from traits.api import TraitListObject, Undefined
-
+from traits.trait_errors import TraitError
 
 if sys.version_info[0] >= 3:
     unicode = str
 
     def values(d):
         return list(d.values())
+
 else:
     def values(d):
         return d.values()
@@ -613,6 +613,7 @@ class PipelineManagerTab(QWidget):
         check_init = {}
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
+        if name == '': name = 'NoName'
         self.main_window.statusBar().showMessage(
             'Pipeline "{0}" is getting initialized. '
             'Please wait.'.format(name))
@@ -1334,9 +1335,7 @@ class PipelineManagerTab(QWidget):
         except Exception as e:
             name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
-
             if name == '': name = 'NoName'
-            
             print('\nError during initialisation of the "{0}" pipeline '
                   '...!\nTraceback:'.format(name))
             print(''.join(traceback.format_tb(e.__traceback__)), end='')

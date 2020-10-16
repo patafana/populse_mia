@@ -68,7 +68,7 @@ import traceback
 from datetime import datetime
 from functools import partial
 from zipfile import ZipFile, is_zipfile
-from copy import deepcopy
+from copy import copy, deepcopy
 import yaml
 
 
@@ -297,7 +297,7 @@ class InstallProcesses(QDialog):
         """
         
         super(InstallProcesses, self).__init__(parent=main_window)
-
+        self.main_window = main_window
         self.setWindowTitle('Install processes')
 
         v_layout = QVBoxLayout()
@@ -534,7 +534,6 @@ class InstallProcesses(QDialog):
                 process_dic = {}
 
             # Copying the original process tree
-            from copy import copy
             process_dic_orig = copy(process_dic)
 
             try:
@@ -681,11 +680,19 @@ class InstallProcesses(QDialog):
                 shutil.rmtree(temp_dir)
 
         except Exception as e:
-            # Don't know which kind of exception can be raised yet
+            print('\nError during installation of the "{0}" library '
+                  '...!\nTraceback:'.format(package_name))
+            print(''.join(traceback.format_tb(e.__traceback__)), end='')
+            print('{0}: {1}\n'.format(e.__class__.__name__, e))
+            (self.main_window.
+                  statusBar().showMessage)('Installation of the "{0}" library '
+                                           'aborted!'.format(package_name))
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
-                '{0}: {1}\nInstallation aborted ... !'.format(e.__class__, e))
+                'Installation of the "{0}" library aborted ... !\nPlease see '
+                'the standard output screen for more '
+                'details.'.format(package_name))
             msg.setWindowTitle("Warning")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.buttonClicked.connect(msg.close)
@@ -729,10 +736,14 @@ class InstallProcesses(QDialog):
                 shutil.rmtree(temp_dir)
 
         else:
+            (self.main_window.
+                  statusBar().showMessage)('The "{0}" library has been '
+                                           'correctly installed.'.format(
+                                                                  package_name))
             msg = QMessageBox()
             msg.setWindowTitle("Installation completed")
-            msg.setText("The package {0} has been correctly installed.".format(
-                package_name))
+            msg.setText('The "{0}" package has been correctly '
+                        'installed.'.format(package_name))
             msg.setStandardButtons(QMessageBox.Ok)
             msg.buttonClicked.connect(msg.close)
             msg.exec()
@@ -1939,8 +1950,8 @@ class PackageLibraryDialog(QDialog):
         reply = None
         for i in pkg_to_delete:
             if reply is None:
-                msgtext = "Do you really want to delete the package " + \
-                          i + " ?"
+                msgtext = ('Do you really want to delete '
+                           'the "{0}" package?'.format(i))
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Warning)
                 title = "populse_mia - Warning: Delete package"
