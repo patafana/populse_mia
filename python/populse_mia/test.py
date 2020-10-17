@@ -2109,15 +2109,13 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pkg.remove_package("mia_processes")
 
-        if os.name != 'nt':
-            pkg.remove_package("brick_test")
+        pkg.remove_package("brick_test")
 
         pkg.save_config()
         process = os.path.join(config.get_mia_path(), 'processes',
                                'brick_test')
 
-        if os.name != 'nt':
-            shutil.rmtree(process)
+        shutil.rmtree(process)
 
         with open(os.path.join(config.get_mia_path(),
                                'properties',

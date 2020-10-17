@@ -416,7 +416,7 @@ class InstallProcesses(QDialog):
                     if inspect.isclass(v):
 
                         try:
-                            print('\n Installing %s.%s ...' % (
+                            print('\nInstalling %s.%s ...' % (
                             module_name, v.__name__))
                             get_process_instance(
                                 '%s.%s' % (module_name, v.__name__))
@@ -440,10 +440,11 @@ class InstallProcesses(QDialog):
                                         pkg_iter = pkg_iter[element]
 
                         except Exception:
-                            # print(traceback.format_exc())
-                            pass
-                            # TODO: WHICH TYPE OF EXCEPTION?
-
+                            print('\nError during installation of the "{0}" '
+                                  'module ...!\nTraceback:'.format(module_name))
+                            print(''.join(traceback.format_tb(e.__traceback__)),
+                                  end='')
+                            print('{0}: {1}\n'.format(e.__class__.__name__, e))
 
                 return proc_dic
 
@@ -563,12 +564,22 @@ class InstallProcesses(QDialog):
                     os.path.join(config.get_mia_path(), 'processes', dire))]
 
             if is_zipfile(filename):
+
                 # Extraction of the zipped content
                 with ZipFile(filename, 'r') as zip_ref:
-                    packages_name = [member.split(os.sep)[0] for member in
-                                     zip_ref.namelist()
-                                     if (len(member.split(os.sep)) == 2 and not
-                        member.split(os.sep)[-1])]
+
+                    if all([True if '/' in el else
+                            False for el in zip_ref.namelist()]):
+                        packages_name = [member.split('/')[0] for member in
+                                         zip_ref.namelist()
+                                         if (len(member.split('/')) == 2 and not
+                                             member.split('/')[-1])]
+
+                    else:
+                        packages_name = [member.split('\\')[0] for member in
+                                         zip_ref.namelist()
+                                         if (len(member.split('\\')) == 2 and not
+                                             member.split('\\')[-1])]
 
             elif os.path.isdir(
                     filename):
