@@ -568,21 +568,12 @@ class InstallProcesses(QDialog):
                 # Extraction of the zipped content
                 with ZipFile(filename, 'r') as zip_ref:
 
-                    if all([True if '/' in el else
-                            False for el in zip_ref.namelist()]):
-                        packages_name = [member.split('/')[0] for member in
-                                         zip_ref.namelist()
+                    packages_name = [member.split('/')[0] for member in
+                                                              zip_ref.namelist()
                                          if (len(member.split('/')) == 2 and not
                                              member.split('/')[-1])]
 
-                    else:
-                        packages_name = [member.split('\\')[0] for member in
-                                         zip_ref.namelist()
-                                         if (len(member.split('\\')) == 2 and not
-                                             member.split('\\')[-1])]
-
-            elif os.path.isdir(
-                    filename):
+            elif os.path.isdir(filename):
                 # !!! careful: if filename is not a zip file,
                 # filename must be a directory
                 # that contains only the package(s) to install!!!
