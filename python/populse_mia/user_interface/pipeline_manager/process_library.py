@@ -439,7 +439,8 @@ class InstallProcesses(QDialog):
                                         pkg_iter[element] = {}
                                         pkg_iter = pkg_iter[element]
 
-                        except Exception as e:
+                        #except Exception as e:
+                        except Exception:
                             print('\nError during installation of the "{0}" '
                                   'module ...!\nTraceback:'.format(module_name))
                             print(''.join(traceback.format_tb(e.__traceback__)),
