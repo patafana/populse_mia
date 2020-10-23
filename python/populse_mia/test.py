@@ -2093,8 +2093,6 @@ class TestMIAPipelineManager(unittest.TestCase):
                        'mia', 'brick_test.zip')
         pkg.path_edit.text = lambda: brick
         pkg.install()
-
-        # The installation of packages might not work on windows
         pkg = PackageLibraryDialog(self.main_window)
         pkg.line_edit.text = lambda: "mia_processes"
         pkg.add_package_with_text()
@@ -2104,8 +2102,7 @@ class TestMIAPipelineManager(unittest.TestCase):
                                'process_config.yml'), 'r') as stream:
             pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
             self.assertIn("mia_processes", pro_dic["Packages"])
-            if os.name != 'nt':
-                self.assertIn("brick_test", pro_dic["Packages"])
+            self.assertIn("brick_test", pro_dic["Packages"])
 
         pkg.remove_package("mia_processes")
 

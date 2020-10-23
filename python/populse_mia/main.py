@@ -130,13 +130,20 @@ if not os.path.dirname(os.path.dirname(
         del mia_processes_dev_dir
 
     else:
-        import mia_processes
-        mia_processes_dir = os.path.dirname(
-                              os.path.dirname(mia_processes.__file__))
-        print('  . Using mia_processes package from {} '
-              '...'.format(mia_processes_dir))
-        del mia_processes_dir
-        del mia_processes
+
+        try:
+            import mia_processes
+
+        except Exception:
+            pass
+
+        else:
+            mia_processes_dir = os.path.dirname(
+                                        os.path.dirname(mia_processes.__file__))
+            print('  . Using mia_processes package from {} '
+                  '...'.format(mia_processes_dir))
+            del mia_processes_dir
+            del mia_processes
 
     del root_dev_dir
 

@@ -280,8 +280,8 @@ class InstallProcesses(QDialog):
         install
         - install: installs the selected file/folder on Populse_MIA
             **Contains: Private function:**
-                - add_package: Add a package and its modules to the package tree
-                - change_pattern_in_folder: Changing all 'old_pattern' pattern
+                - _add_package: Add a package and its modules to the package tree
+                - _change_pattern_in_folder: Changing all 'old_pattern' pattern
                   to 'new_pattern' in the 'path' folder
 
     """
@@ -363,13 +363,13 @@ class InstallProcesses(QDialog):
         """Install a package from a zip file or a folder.
 
         **Contains: Private function:**
-            - add_package: Add a package and its modules to the package tree
-            - change_pattern_in_folder: Changing all 'old_pattern' pattern to
+            - _add_package: Add a package and its modules to the package tree
+            - _change_pattern_in_folder: Changing all 'old_pattern' pattern to
               'new_pattern' in the 'path' folder
 
         """
 
-        def add_package(proc_dic, module_name):
+        def _add_package(proc_dic, module_name):
             """Add a package and its modules to the package tree.
 
             :param proc_dic: the process tree-dictionary
@@ -377,7 +377,7 @@ class InstallProcesses(QDialog):
             :return: proc_dic: the modified process tree-dictionary
 
             """
-            
+
             if module_name:
 
                 # Reloading the package
@@ -399,6 +399,7 @@ class InstallProcesses(QDialog):
                     msg.setStandardButtons(QMessageBox.Ok)
                     msg.buttonClicked.connect(msg.close)
                     msg.exec()
+                    self.result_add_package = False
                     raise ImportError(
                         'The {0} brick may not been installed'.format(
                             module_name))
@@ -408,8 +409,9 @@ class InstallProcesses(QDialog):
                 # Checking if there are subpackages
                 for importer, modname, ispkg in pkgutil.iter_modules(
                         pkg.__path__):
+
                     if ispkg:
-                        add_package(proc_dic, str(module_name + '.' + modname))
+                        _add_package(proc_dic, str(module_name + '.' + modname))
 
                 for k, v in sorted(list(pkg.__dict__.items())):
                     # Checking each class of in the package
@@ -445,10 +447,11 @@ class InstallProcesses(QDialog):
                             print(''.join(traceback.format_tb(e.__traceback__)),
                                   end='')
                             print('{0}: {1}\n'.format(e.__class__.__name__, e))
+                            self.result_add_package = False
 
                 return proc_dic
 
-        def change_pattern_in_folder(path, old_pattern, new_pattern):
+        def _change_pattern_in_folder(path, old_pattern, new_pattern):
             """Changing all "old_pattern" pattern to "new_pattern" in the
             'path' folder.
 
@@ -475,6 +478,7 @@ class InstallProcesses(QDialog):
                         with open(fpath, "w") as f:
                             f.write(s)
 
+        self.result_add_package = True
         filename = self.path_edit.text()
         config = Config()
 
@@ -647,14 +651,14 @@ class InstallProcesses(QDialog):
                     # Replacing the original package name pattern in
                     # all the extracted files by the package name
                     # with the date
-                    change_pattern_in_folder(
+                    _change_pattern_in_folder(
                         os.path.join(config.get_mia_path(), 'processes',
                                      package_name),
                         original_package_name, package_name)
 
                 package_names.append(package_name)
                 # package_names contains all the extracted packages
-                final_package_dic = add_package(packages, package_name)
+                final_package_dic = _add_package(packages, package_name)
 
             if not os.path.abspath(
                     os.path.join(config.get_mia_path(), 'processes')) in paths:
@@ -686,6 +690,7 @@ class InstallProcesses(QDialog):
                   '...!\nTraceback:'.format(package_name))
             print(''.join(traceback.format_tb(e.__traceback__)), end='')
             print('{0}: {1}\n'.format(e.__class__.__name__, e))
+            self.result_add_package = False
             (self.main_window.
                   statusBar().showMessage)('Installation of the "{0}" library '
                                            'aborted!'.format(package_name))
@@ -738,17 +743,32 @@ class InstallProcesses(QDialog):
                 shutil.rmtree(temp_dir)
 
         else:
-            (self.main_window.
+
+            if self.result_add_package:
+                (self.main_window.
                   statusBar().showMessage)('The "{0}" library has been '
                                            'correctly installed.'.format(
                                                                   package_name))
-            msg = QMessageBox()
-            msg.setWindowTitle("Installation completed")
-            msg.setText('The "{0}" package has been correctly '
-                        'installed.'.format(package_name))
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.buttonClicked.connect(msg.close)
-            msg.exec()
+                msg = QMessageBox()
+                msg.setWindowTitle("Installation completed")
+                msg.setText('The "{0}" package has been correctly '
+                            'installed.'.format(package_name))
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.buttonClicked.connect(msg.close)
+                msg.exec()
+
+            else:
+                (self.main_window.
+                  statusBar().showMessage)('The "{0}" library has not been '
+                                           'correctly installed.'.format(
+                                                                  package_name))
+                msg = QMessageBox()
+                msg.setWindowTitle("Installation completed with error(s)")
+                msg.setText('The "{0}" package has not been correctly '
+                            'installed.'.format(package_name))
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.buttonClicked.connect(msg.close)
+                msg.exec()
 
 
 class Node(object):
@@ -1246,7 +1266,6 @@ class PackageLibraryDialog(QDialog):
 
     signal_save = Signal()
 
-    #def __init__(self, parent=None):
     def __init__(self, mia_main_window=None, parent=None):
         """ Initialization of the PackageLibraryDialog widget """
         super(PackageLibraryDialog, self).__init__(parent)
@@ -1480,11 +1499,12 @@ class PackageLibraryDialog(QDialog):
                             get_process_instance(
                                 '%s.%s' % (module_name, v.__name__))
 
-                        except Exception:
-                            # print(traceback.format_exc())
-                            pass
-                            # TODO: WHICH TYPE OF EXCEPTION?
-                            # pass
+                        except Exception as e:
+                            print('\nError during installation of the "{0}" '
+                                  'module ...!\nTraceback:'.format(module_name))
+                            print(''.join(traceback.format_tb(e.__traceback__)),
+                                  end='')
+                            print('{0}: {1}\n'.format(e.__class__.__name__, e))
 
                         else:
                             # Updating the tree's dictionnary
