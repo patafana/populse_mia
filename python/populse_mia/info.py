@@ -25,7 +25,7 @@ def get_populse_mia_gitversion():
     try:
         import populse_mia
         dir_mia = os.path.realpath(
-            os.path.join(os.path.dirname(populse_mia.__file__), os.path.pardir))
+            os.path.join(os.path.dirname(populse_mia.__file__), os.path.pardir, os.path.pardir))
 
     except:
         dir_mia = os.getcwd()
@@ -39,14 +39,14 @@ def get_populse_mia_gitversion():
 
     try:
         gitversion, _ = subprocess.Popen(
-            "git describe", shell=True, cwd=dir_mia, stdout=subprocess.PIPE
+            "git show -s --format=%h", shell=True, cwd=dir_mia, stdout=subprocess.PIPE
         ).communicate()
 
     except Exception:
         pass
 
     else:
-        ver = gitversion.decode().strip().split("-")[-1][1:]
+        ver = gitversion.decode().strip().split("-")[-1]
 
     return ver
 
