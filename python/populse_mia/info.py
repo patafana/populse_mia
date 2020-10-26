@@ -1,17 +1,60 @@
 # -*- coding: utf-8 -*- # Character encoding, recommended
 """Define software version, description and requirements"""
 
+import os
+import subprocess
 import sys
 
 # Current version
 version_major = 1
-version_minor = 3
+version_minor = 4
 version_micro = 0
-version_extra = ""
+version_extra = "dev" # leave empty for release
 
 # Expected by setup.py: string of form "X.Y.Z"
-__version__ = "{0}.{1}.{2}".format(version_major, version_minor, version_micro)
+if version_extra:
+    __version__ = "{0}.{1}.{2}-{3}".format(version_major, version_minor, version_micro, version_extra)
+    
+else:
+    __version__ = "{0}.{1}.{2}".format(version_major, version_minor, version_micro)
+    
+def get_populse_mia_gitversion():
+    """Mia version as reported by the last commit in git
+    Returns the version or None if nothing was found
+    """
+    try:
+        import populse_mia
+        dir_mia = os.path.realpath(
+            os.path.join(os.path.dirname(populse_mia.__file__), os.path.pardir))
 
+    except:
+        dir_mia = os.getcwd()
+
+    dir_miagit = os.path.join(dir_mia, ".git")
+
+    if not os.path.exists(dir_miagit):
+        return None
+
+    ver = None
+
+    try:
+        gitversion, _ = subprocess.Popen(
+            "git describe", shell=True, cwd=dir_mia, stdout=subprocess.PIPE
+        ).communicate()
+
+    except Exception:
+        pass
+
+    else:
+        ver = gitversion.decode().strip().split("-")[-1][1:]
+
+    return ver
+
+if __version__.endswith("-dev"):
+    gitversion = get_populse_mia_gitversion()
+
+    if gitversion:
+        __version__ = "{0}+{1}".format(__version__, gitversion)
 
 # Expected by setup.py: the status of the project
 CLASSIFIERS = ['Development Status :: 5 - Production/Stable',
