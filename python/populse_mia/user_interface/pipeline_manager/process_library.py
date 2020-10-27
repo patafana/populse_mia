@@ -691,9 +691,15 @@ class InstallProcesses(QDialog):
             print(''.join(traceback.format_tb(e.__traceback__)), end='')
             print('{0}: {1}\n'.format(e.__class__.__name__, e))
             self.result_add_package = False
-            (self.main_window.
-                  statusBar().showMessage)('Installation of the "{0}" library '
-                                           'aborted!'.format(package_name))
+            messg = ('Installation of the "{0}" library '
+                     'aborted!').format(package_name)
+
+            try:
+                self.main_window.statusBar().showMessage(messg)
+
+            except AttributeError:
+                    self.main_window.status_label.setText(messg)
+
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
@@ -745,10 +751,15 @@ class InstallProcesses(QDialog):
         else:
 
             if self.result_add_package:
-                (self.main_window.
-                  statusBar().showMessage)('The "{0}" library has been '
-                                           'correctly installed.'.format(
-                                                                  package_name))
+                messg = ('The "{0}" library has been '
+                         'correctly installed.').format(package_name)
+
+                try:
+                    self.main_window.statusBar().showMessage(messg)
+
+                except AttributeError:
+                    self.main_window.status_label.setText(messg)
+    
                 msg = QMessageBox()
                 msg.setWindowTitle("Installation completed")
                 msg.setText('The "{0}" package has been correctly '
@@ -758,10 +769,15 @@ class InstallProcesses(QDialog):
                 msg.exec()
 
             else:
-                (self.main_window.
-                  statusBar().showMessage)('The "{0}" library has not been '
-                                           'correctly installed.'.format(
-                                                                  package_name))
+                messg = ('The "{0}" library has not been '
+                         'correctly installed.').format(package_name)
+
+                try:
+                    self.main_window.statusBar().showMessage(messg)
+
+                except AttributeError:
+                    self.main_window.status_label.setText(messg)
+                    
                 msg = QMessageBox()
                 msg.setWindowTitle("Installation completed with error(s)")
                 msg.setText('The "{0}" package has not been correctly '
