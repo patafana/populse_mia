@@ -60,25 +60,26 @@ from PyQt5.QtWidgets import (QMenu, QVBoxLayout, QWidget, QSplitter,
 from PyQt5.QtGui import QCursor, QIcon, QMovie
 
 # Other import
+import copy
 import datetime
 import inspect
 import os
 import re
 import sys
+import traceback
 import uuid
-import copy
 import threading
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
-from traits.trait_errors import TraitError
 from traits.api import TraitListObject, Undefined
-
+from traits.trait_errors import TraitError
 
 if sys.version_info[0] >= 3:
     unicode = str
 
     def values(d):
         return list(d.values())
+
 else:
     def values(d):
         return d.values()
@@ -954,23 +955,35 @@ class PipelineManagerTab(QWidget):
         QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
 
         if self.init_clicked:
+
             for brick in self.brick_list:
                 self.main_window.data_browser.table_data.delete_from_brick(
                     brick)
+
         self.ignore_node = False
         self.key = {}
         self.ignore = {}
 
         try:
             self.test_init = self.init_pipeline()
+
         except Exception as e:
-            print("\nError during initialisation: ", e)
+            name = os.path.basename(
+            self.pipelineEditorTabs.get_current_filename())
+            if name == '': name = 'NoName'
+            print('\nError during initialisation of the "{0}" pipeline '
+                  '...!\nTraceback:'.format(name))
+            print(''.join(traceback.format_tb(e.__traceback__)), end='')
+            print('{0}: {1}\n'.format(e.__class__.__name__, e))
             self.test_init = False
-            import traceback
-            traceback.print_exc()
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" was not initialised successfully.'.format(
+                    name))
+
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful
+
         self.run_pipeline_action.setDisabled(True)
 
         # When clicking on the Pipeline > Initialize

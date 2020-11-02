@@ -23,6 +23,7 @@ Contains:
 
 import ast
 import os
+import traceback
 
 # PyQt5 imports
 from PyQt5 import QtWidgets, QtCore
@@ -213,8 +214,7 @@ class DataBrowser(QWidget):
 
         if self.frame_advanced_search.isHidden():
             # If the advanced search is hidden, we reset it and display it
-            self.advanced_search.scans_list = \
-                self.table_data.scans_to_visualize
+            self.advanced_search.scans_list = self.table_data.scans_to_visualize
             self.frame_advanced_search.setHidden(False)
             self.advanced_search.show_search()
         else:
@@ -224,10 +224,10 @@ class DataBrowser(QWidget):
             self.frame_advanced_search.setHidden(True)
             self.advanced_search.rows = []
             # All the scans are reput in the data_browser
-            self.table_data.scans_to_visualize = \
-                self.advanced_search.scans_list
-            self.table_data.scans_to_search = \
-                self.project.session.get_documents_names(COLLECTION_CURRENT)
+            self.table_data.scans_to_visualize = self.advanced_search.scans_list
+            self.table_data.scans_to_search = (self.project.session.
+                                               get_documents_names(
+                                                            COLLECTION_CURRENT))
             self.project.currentFilter.nots = []
             self.project.currentFilter.values = []
             self.project.currentFilter.fields = []
@@ -309,8 +309,8 @@ class DataBrowser(QWidget):
     def connect_mini_viewer(self):
         """Display the selected documents in the viewer."""
 
-        if self.splitter_vertical.sizes()[1] == \
-                self.splitter_vertical.minimumHeight():
+        if self.splitter_vertical.sizes()[1] == (self.splitter_vertical.
+                                                               minimumHeight()):
             self.viewer.setHidden(True)
         else:
             self.viewer.setHidden(False)
@@ -474,8 +474,8 @@ class DataBrowser(QWidget):
 
     def move_splitter(self):
         """Check if the viewer's splitter is at its lowest position."""
-        if self.splitter_vertical.sizes()[1] != \
-                self.splitter_vertical.minimumHeight():
+        if self.splitter_vertical.sizes()[1] != (self.splitter_vertical.
+                                                               minimumHeight()):
             self.connect_mini_viewer()
 
     def open_filter(self):
@@ -501,8 +501,7 @@ class DataBrowser(QWidget):
 
         if len(filter_to_apply.nots) > 0:
             self.frame_advanced_search.setHidden(False)
-            self.advanced_search.scans_list = \
-                self.table_data.scans_to_visualize
+            self.advanced_search.scans_list = self.table_data.scans_to_visualize
             self.advanced_search.show_search()
             self.advanced_search.apply_filter(filter_to_apply)
 
@@ -1003,10 +1002,10 @@ class TableDataBrowser(QTableWidget):
                                 layout = QVBoxLayout()
                                 for brick_number in range(0, len(cur_value)):
                                     brick_uuid = cur_value[brick_number]
-                                    brick_name = \
-                                        self.project.session.get_value(
-                                            COLLECTION_BRICK, brick_uuid,
-                                            BRICK_NAME)
+                                    brick_name = self.project.session.get_value(
+                                                               COLLECTION_BRICK,
+                                                               brick_uuid,
+                                                               BRICK_NAME)
                                     brick_name_button = QPushButton(brick_name)
                                     brick_name_button.moveToThread(
                                         QApplication.instance().thread())
@@ -1086,13 +1085,14 @@ class TableDataBrowser(QTableWidget):
                 cells_types.append(tag_type)
 
         # Error if list with other types
-        if FIELD_TYPE_LIST_DATE in cells_types or FIELD_TYPE_LIST_DATETIME \
-                in cells_types or FIELD_TYPE_LIST_TIME in cells_types or \
-                FIELD_TYPE_LIST_INTEGER in cells_types or \
-                FIELD_TYPE_LIST_STRING in cells_types or \
-                FIELD_TYPE_LIST_FLOAT in cells_types or \
-                FIELD_TYPE_LIST_BOOLEAN in cells_types and len(cells_types) \
-                > 1:
+        if (((FIELD_TYPE_LIST_DATE in cells_types) or
+               (FIELD_TYPE_LIST_DATETIME in cells_types) or
+               (FIELD_TYPE_LIST_TIME in cells_types) or
+               (FIELD_TYPE_LIST_INTEGER in cells_types) or
+               (FIELD_TYPE_LIST_STRING in cells_types) or
+               (FIELD_TYPE_LIST_FLOAT in cells_types) or
+               (FIELD_TYPE_LIST_BOOLEAN in cells_types)) and
+               (len(cells_types) > 1)):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             msg.setText("Incompatible types")
@@ -1329,14 +1329,15 @@ class TableDataBrowser(QTableWidget):
                             inputs_list.append(item)
             for key in doc["Output(s)"]:
                 if isinstance(doc["Output(s)"][key], str):
-                    if doc["Output(s)"][key] != "" and doc["Output(s)"][key]\
-                            not in inputs_list:
+                    if ((doc["Output(s)"][key] != "") and
+                          (doc["Output(s)"][key] not in inputs_list)):
                         doc_delete = os.path.relpath(doc["Output(s)"][key],
                                                      self.project.folder)
                         doc_list = self.project.session.get_documents_names(
-                            COLLECTION_CURRENT)
+                                                             COLLECTION_CURRENT)
                         scan_object = self.project.session.get_document(
-                            COLLECTION_CURRENT, doc_delete)
+                                                             COLLECTION_CURRENT,
+                                                             doc_delete)
                         if scan_object is not None:
                             scan_name = getattr(scan_object, TAG_FILENAME)
                             row = self.get_scan_row(scan_name)
@@ -1397,15 +1398,11 @@ class TableDataBrowser(QTableWidget):
         collection_row = dbs.get_collection(COLLECTION_CURRENT)
         primary_key = collection_row.primary_key
         if self.scans_to_visualize:
-            req = '%s IN [%s]' \
-                % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
-                                           for x in self.scans_to_visualize]))
-            # req = '%s IN [%s]' \
-            #     % (primary_key, ', '.join(['"%s"' % x.replace('\\', os.sep).replace('"', '\"')
-            #                                for x in self.scans_to_visualize]))
-            # req = '%s IN [%s]' \
-            #     % (primary_key, ', '.join(['"%s"' % x.replace('replace('"', '\"')
-            #                                for x in self.scans_to_visualize]))
+            req = '%s IN [%s]' % (primary_key,
+                                  ', '.join(['"%s"' % x.
+                                             replace('\\', '\\\\').
+                                             replace('"', '\"')
+                                             for x in self.scans_to_visualize]))
             scans = dbs.filter_documents(COLLECTION_CURRENT, req)
         else:
             scans = []
@@ -1829,37 +1826,49 @@ class TableDataBrowser(QTableWidget):
         scan_list = self.data_browser.main_window.pipeline_manager.scan_list
         repeat_pop_up = False
         cancel = False
+
         for point in points:
             row = point.row()
             scan_path = self.item(row, 0).text()
-
             scan_object = self.project.session.get_document(
-                COLLECTION_CURRENT, scan_path)
+                                                  COLLECTION_CURRENT, scan_path)
 
             if scan_object is not None:
-                if scan_path in scan_list and self.data_browser.data_sent is\
-                        True:
+    
+                if ((scan_path in scan_list) and
+                      (self.data_browser.data_sent is True)):
+
                     if not repeat_pop_up:
                         self.pop = PopUpRemoveScan(scan_path, len(points))
                         self.pop.exec()
                         cancel = self.pop.stop
                         repeat_pop_up = self.pop.repeat
+
                     if cancel:
                         continue
+
                 scans_removed.append(scan_object)
 
                 # Adding removed values to history
                 for tag in self.project.session.get_fields_names(
                         COLLECTION_CURRENT):
+
                     if tag != TAG_FILENAME:
                         current_value = self.project.session.get_value(
-                            COLLECTION_CURRENT, scan_path, tag)
+                                                             COLLECTION_CURRENT,
+                                                             scan_path,
+                                                             tag)
                         initial_value = self.project.session.get_value(
-                            COLLECTION_INITIAL, scan_path, tag)
-                        if current_value is not None \
-                                or initial_value is not None:
-                            values_removed.append(
-                                [scan_path, tag, current_value, initial_value])
+                                                             COLLECTION_INITIAL,
+                                                             scan_path,
+                                                             tag)
+
+                        if ((current_value is not None) or
+                              (initial_value is not None)):
+                            values_removed.append([scan_path,
+                                                   tag,
+                                                   current_value,
+                                                   initial_value])
 
                 self.scans_to_visualize.remove(scan_path)
                 self.project.session.remove_document(
@@ -1876,7 +1885,6 @@ class TableDataBrowser(QTableWidget):
         history_maker.append(values_removed)
         self.project.undos.append(history_maker)
         self.project.redos.clear()
-
         self.resizeColumnsToContents()
 
     def reset_cell(self):
@@ -2159,7 +2167,8 @@ class TableDataBrowser(QTableWidget):
 
         tags = [self.horizontalHeaderItem(column).text()
                 for column in range(len(self.horizontalHeader()))]
-        scans = [self.item(row, 0).text() if self.item(row, 0) else None for row in range(self.rowCount())]
+        scans = [self.item(row, 0).text() if self.item(row, 0) else None
+                 for row in range(self.rowCount())]
 
         dbs = self.project.session
         collection_row = dbs.get_collection(COLLECTION_CURRENT)
@@ -2167,13 +2176,12 @@ class TableDataBrowser(QTableWidget):
         collection_init = dbs.get_collection(COLLECTION_INITIAL)
         primary_key_init = collection_row.primary_key
         if scans:
-            req = '%s IN [%s]' \
-                % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
-                                           for x in self.scans_to_visualize]))
+            req = '%s IN [%s]' % (primary_key,
+                                  ', '.join(['"%s"' % x.
+                                             replace('\\', '\\\\').
+                                             replace('"', '\"')
+                                             for x in self.scans_to_visualize]))
             documents = dbs.filter_documents(COLLECTION_CURRENT, req)
-            req = '%s IN [%s]' \
-                % (primary_key, ', '.join(['"%s"' % x.replace('\\', '\\\\').replace('"', '\"')
-                                           for x in self.scans_to_visualize]))
             documents_init = dbs.filter_documents(COLLECTION_INITIAL, req)
 
         else:
@@ -2191,14 +2199,27 @@ class TableDataBrowser(QTableWidget):
         # count visible rows odd/even
         row_even = []
         even = True
-        for row in range(self.rowCount()):
+        for ro in range(self.rowCount()):
             row_even.append(even)
-            if not self.isRowHidden(row):
+            if not self.isRowHidden(ro):
                 even = not even
 
         for scan_row, scan_i in enumerate(zip(documents, documents_init)):
             scan, scan_init = scan_i
-            row = table_scans[scan[tags[0]]]
+
+            try:
+                row = table_scans[scan[tags[0]]]
+
+            except KeyError:
+                break
+
+            except Exception as e:
+                print('\nAn unexpected exception was raised when updating the '
+                      'DataBrowser. DataBrowser could be in a degraded display '
+                      'state...!\nTraceback:')
+                print(''.join(traceback.format_tb(e.__traceback__)), end='')
+                print('{0}: {1}\n'.format(e.__class__.__name__, e))
+                break
 
             if not self.isRowHidden(row):
                 even = row_even[row]
@@ -2241,7 +2262,6 @@ class TableDataBrowser(QTableWidget):
                                 color.setRgb(245, 215, 215)  # Pink
                             else:
                                 color.setRgb(245, 175, 175)  # Red
-
 
                         item.setData(Qt.BackgroundRole, QtCore.QVariant(color))
 
@@ -2393,7 +2413,7 @@ class TableDataBrowser(QTableWidget):
         self.pop_up.tab_widget.setCurrentIndex(0)
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.pop_up.resize(0.5 * width, 0.8 * height)
+        self.pop_up.resize(round(0.5 * width), round(0.8 * height))
         self.pop_up.show()
 
 

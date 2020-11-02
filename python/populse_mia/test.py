@@ -351,9 +351,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(brick_table.item(0, 3).text(), "Done")
         self.assertEqual(brick_table.item(0, 4).text(), "2018-08-08 18:22:32.371745")
         self.assertEqual(brick_table.item(0, 5).text(), "0")
-        self.assertEqual(brick_table.cellWidget(0, 6).children()[1].text(), "6")
-        self.assertEqual(brick_table.cellWidget(0, 6).children()[2].text(), "6")
-        self.assertEqual(brick_table.cellWidget(0, 6).children()[3].text(), "6")
+        self.assertEqual(brick_table.item(0, 6).text(), "6, 6, 6")
         self.assertEqual(brick_table.item(0, 7).text(), "False")
         self.assertEqual(brick_table.cellWidget(0, 8).children()[1].text(), "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
         self.assertEqual(brick_table.item(0, 9).text(), "s")
@@ -2119,8 +2117,6 @@ class TestMIAPipelineManager(unittest.TestCase):
                        'mia', 'brick_test.zip')
         pkg.path_edit.text = lambda: brick
         pkg.install()
-
-        # The installation of packages might not work on windows
         pkg = PackageLibraryDialog(self.main_window)
         pkg.line_edit.text = lambda: "mia_processes"
         pkg.add_package_with_text()
@@ -2133,20 +2129,17 @@ class TestMIAPipelineManager(unittest.TestCase):
             else:
                 pro_dic = yaml.load(stream)
             self.assertIn("mia_processes", pro_dic["Packages"])
-            if os.name != 'nt':
-                self.assertIn("brick_test", pro_dic["Packages"])
+            self.assertIn("brick_test", pro_dic["Packages"])
 
         pkg.remove_package("mia_processes")
 
-        if os.name != 'nt':
-            pkg.remove_package("brick_test")
+        pkg.remove_package("brick_test")
 
         pkg.save_config()
         process = os.path.join(config.get_mia_path(), 'processes',
                                'brick_test')
 
-        if os.name != 'nt':
-            shutil.rmtree(process)
+        shutil.rmtree(process)
 
         with open(os.path.join(config.get_mia_path(),
                                'properties',

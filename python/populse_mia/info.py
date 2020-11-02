@@ -1,17 +1,60 @@
 # -*- coding: utf-8 -*- # Character encoding, recommended
 """Define software version, description and requirements"""
 
+import os
+import subprocess
 import sys
 
 # Current version
 version_major = 1
-version_minor = 3
+version_minor = 4
 version_micro = 0
-version_extra = ""
+version_extra = "dev" # leave empty for release
 
 # Expected by setup.py: string of form "X.Y.Z"
-__version__ = "{0}.{1}.{2}".format(version_major, version_minor, version_micro)
+if version_extra:
+    __version__ = "{0}.{1}.{2}-{3}".format(version_major, version_minor, version_micro, version_extra)
+    
+else:
+    __version__ = "{0}.{1}.{2}".format(version_major, version_minor, version_micro)
+    
+def get_populse_mia_gitversion():
+    """Mia version as reported by the last commit in git
+    Returns the version or None if nothing was found
+    """
+    try:
+        import populse_mia
+        dir_mia = os.path.realpath(
+            os.path.join(os.path.dirname(populse_mia.__file__), os.path.pardir, os.path.pardir))
 
+    except:
+        dir_mia = os.getcwd()
+
+    dir_miagit = os.path.join(dir_mia, ".git")
+
+    if not os.path.exists(dir_miagit):
+        return None
+
+    ver = None
+
+    try:
+        gitversion, _ = subprocess.Popen(
+            "git show -s --format=%h", shell=True, cwd=dir_mia, stdout=subprocess.PIPE
+        ).communicate()
+
+    except Exception:
+        pass
+
+    else:
+        ver = gitversion.decode().strip().split("-")[-1]
+
+    return ver
+
+if __version__.endswith("-dev"):
+    gitversion = get_populse_mia_gitversion()
+
+    if gitversion:
+        __version__ = "{0}+{1}".format(__version__, gitversion)
 
 # Expected by setup.py: the status of the project
 CLASSIFIERS = ['Development Status :: 5 - Production/Stable',
@@ -52,61 +95,31 @@ VERSION = __version__
 CLASSIFIERS = CLASSIFIERS
 PLATFORMS = 'OS Independent'
 
-if (3, 6) > sys.version_info >= (3, 5):
-    REQUIRES = [
-        'capsul',
-        'cryptography',
-        'jinja2 == 2.8.1',
-        'lark-parser >= 0.7.0',
-        'matplotlib < 3.1',
-        'mia-processes >= 1.3.0',
-        'nibabel',
-        'nipype',
-        'pillow',
-        'populse-db',
-        'pyqt5 == 5.14.0',
-        'python-dateutil',
-        'pyyaml',
-        'scikit-image == 0.15.0',
-        'scipy == 1.4.1',   # scipy > 1.4.1 needs python >= 3.6
-        'SIP == 5.0.1',
-        'sqlalchemy',
-        'snakeviz',
-        'soma_workflow',
         'six >= 1.13',
-        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
-                            # (> 2.2.1)
-]
-
-elif sys.version_info >= (3, 6):
-    REQUIRES = [
-        'capsul',
-        'cryptography',
-        'jinja2 == 2.8.1',
-        'lark-parser >= 0.7.0',
-        'matplotlib',
-        'mia-processes >= 1.3.0',
-        'nibabel',
-        'nipype',
-        'pillow',
-        'populse-db',
-        'pyqt5 == 5.14.0',
-        'python-dateutil',
-        'pyyaml',
-        'scikit-image',
-        'scipy',
-        'SIP == 5.0.1',  
-        'sqlalchemy',
-        'snakeviz',
-        'soma_workflow',
+REQUIRES = [
+    'capsul',
+    'cryptography',
+    'jinja2 == 2.8.1',
+    'lark-parser >= 0.7.0',
+    'matplotlib',
+    'mia-processes >= 1.3.0',
+    'nibabel',
+    'nipype',
+    'pillow',
+    'populse-db',
+    'pyqt5 == 5.14.0',
+    'python-dateutil',
+    'pyyaml',
+    'scikit-image',
+    'scipy',
+    'SIP == 5.0.1',  
+    'sqlalchemy',
+    'snakeviz',
+    'soma_workflow',
         'six >= 1.13',
-        'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
-                            # (> 2.2.1)
+    'traits == 5.2.0',  # Remove '==5.2.0' when capsul get a new release
+                        # (> 2.2.1)
 ]
-
-else:
-    # python < 3.5 is not compatible anyway
-    REQUIRES = []
 
 EXTRA_REQUIRES = {
     'doc': [

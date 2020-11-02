@@ -1209,8 +1209,8 @@ class PopUpDataBrowserCurrentSelection(QDialog):
         self.setLayout(vbox_layout)
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumWidth(0.5 * width)
-        self.setMinimumHeight(0.8 * height)
+        self.setMinimumWidth(round(0.5 * width))
+        self.setMinimumHeight(round(0.8 * height))
 
     def ok_clicked(self):
         """Updates the "scan_list" attribute of several widgets."""
@@ -3336,8 +3336,9 @@ class PopUpSaveProjectAs(QDialog):
                         utils.message_already_exists()
                         return
                     else:
-                        msgtext = "Do you really want to overwrite the " + \
-                                  file_name + " project ?"
+                        msgtext = ("Do you really want to overwrite the " 
+                                   + file_name + " project ?\nThis action "
+                                   "delete all contents inside this folder!")
                         msg = QMessageBox()
                         msg.setIcon(QMessageBox.Warning)
                         title = "populse_mia - Warning: Overwriting project"
@@ -3860,6 +3861,7 @@ class PopUpShowBrick(QDialog):
         layout = QVBoxLayout()
 
         self.table = QTableWidget()
+        self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 
         # Filling the table
         inputs = getattr(brick_row, BRICK_INPUTS)
@@ -3922,34 +3924,23 @@ class PopUpShowBrick(QDialog):
             item.setText(key)
             self.table.setHorizontalHeaderItem(column, item)
             if isinstance(value, list):
-                sub_widget = QWidget()
-                sub_layout = QVBoxLayout()
-                for sub_value in value:
-                    value_scan = self.io_value_is_scan(sub_value)
-                    if value_scan is not None:
-                        button = QPushButton(value_scan)
-                        button.clicked.connect(self.file_clicked)
-                        sub_layout.addWidget(button)
-                    else:
-                        label = QLabel(str(sub_value))
-                        sub_layout.addWidget(label)
-                sub_widget.setLayout(sub_layout)
-                self.table.setCellWidget(0, column, sub_widget)
+                value = str(value).strip('[]')
+
+            value_scan = self.io_value_is_scan(value)
+            if value_scan is not None:
+                widget = QWidget()
+                output_layout = QVBoxLayout()
+                button = QPushButton(value_scan)
+                button.clicked.connect(self.file_clicked)
+                output_layout.addWidget(button)
+                widget.setLayout(output_layout)
+                self.table.setCellWidget(0, column, widget)
             else:
-                value_scan = self.io_value_is_scan(value)
-                if value_scan is not None:
-                    widget = QWidget()
-                    output_layout = QVBoxLayout()
-                    button = QPushButton(value_scan)
-                    button.clicked.connect(self.file_clicked)
-                    output_layout.addWidget(button)
-                    widget.setLayout(output_layout)
-                    self.table.setCellWidget(0, column, widget)
-                else:
-                    item = QTableWidgetItem()
-                    item.setText(str(value))
-                    item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
-                    self.table.setItem(0, column, item)
+                item = QTableWidgetItem()
+                item.setText(str(value))
+                item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
+                item.setTextAlignment(QtCore.Qt.AlignCenter)
+                self.table.setItem(0, column, item)
             column += 1
 
         # Outputs
@@ -3998,8 +3989,8 @@ class PopUpShowBrick(QDialog):
 
         screen_resolution = QApplication.instance().desktop().screenGeometry()
         width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumHeight(0.5 * height)
-        self.setMinimumWidth(0.8 * width)
+        self.setMinimumHeight(round(0.5 * height))
+        self.setMinimumWidth(round(0.8 * width))
 
     def io_value_is_scan(self, value):
         """Checks if the I/O value is a scan.
