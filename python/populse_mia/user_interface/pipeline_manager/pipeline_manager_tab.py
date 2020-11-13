@@ -679,10 +679,17 @@ class PipelineManagerTab(QWidget):
             completion.complete_parameters()
 
             # re-force manually set params
+            # FIXME TODO we need a locking system for param values
+            # for now it's just a trick: if the old value was different from
+            # the trait default value, then we consider the parameter as
+            # "locked" - but this prevents from running a second time with a
+            # different set of values.
             for param, value in init_params.items():
                 if value not in (None, Undefined, '', []) \
-                        and value != getattr(pipeline, param):
-                    print('set back param:', param, ':', getattr(pipeline, param), '->', value)
+                        and value != getattr(pipeline, param) \
+                        and value != pipeline.trait(param).default:
+                    print('set back param:', param, ':',
+                          getattr(pipeline, param), '->', value)
                     setattr(pipeline, param, value)
 
     def _register_node_io_in_database(self, node, proc_outputs,
