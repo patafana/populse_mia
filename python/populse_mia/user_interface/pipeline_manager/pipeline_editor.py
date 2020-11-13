@@ -1573,7 +1573,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
     def load_pipeline_parameters(self):
         """Load parameters to the pipeline of the current editor"""
 
-        self.get_current_editor().load_pipeline_parameters()
+        self.get_current_editor().load_pipeline_parameters(os.path.expanduser("~"))
 
     def new_tab(self):
         """Create a new tab and a new editor and makes the new tab current."""
