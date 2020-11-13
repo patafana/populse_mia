@@ -654,6 +654,7 @@ def main():
             msg.exec()
             del app
 
+    """
     if DEV_MODE and pypath:
         config = Config()
         config.get_capsul_engine()
@@ -668,6 +669,7 @@ def main():
         config.update_capsul_config()
         config.saveConfig()
 
+    """
     verify_processes()
     check_python_version()
     launch_mia()
