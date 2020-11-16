@@ -653,44 +653,8 @@ class PipelineManagerTab(QWidget):
             pipeline = self.pipelineEditorTabs.get_current_pipeline()
         completion = ProcessCompletionEngine.get_completion_engine(pipeline)
         if completion:
-            # record initial param values to get manually set ones
-            init_params = pipeline.get_inputs()
-            init_params.update(pipeline.get_outputs())
-
-            nodes = list(pipeline.nodes.items())
-            while nodes:
-                name, node = nodes.pop(0)
-                if name == '': continue
-                if isinstance(node, PipelineNode):
-                    nodes += list(node.process.nodes.items())
-
             attributes = completion.get_attribute_values()
-            # try to find out attribute values from files in parameters
-            # this is a temporary trick which should be replaced with a proper
-            # attributes selection from the database (directly)
-            #for name, trait in pipeline.user_traits().items():
-
-            #print('attributes:', attributes.export_to_dict())
-            #print('SC:', engine.study_config.export_to_dict())
-
-            # TODO....
-
-
             completion.complete_parameters()
-
-            # re-force manually set params
-            # FIXME TODO we need a locking system for param values
-            # for now it's just a trick: if the old value was different from
-            # the trait default value, then we consider the parameter as
-            # "locked" - but this prevents from running a second time with a
-            # different set of values.
-            for param, value in init_params.items():
-                if value not in (None, Undefined, '', []) \
-                        and value != getattr(pipeline, param) \
-                        and value != pipeline.trait(param).default:
-                    print('set back param:', param, ':',
-                          getattr(pipeline, param), '->', value)
-                    setattr(pipeline, param, value)
 
     def _register_node_io_in_database(self, node, proc_outputs,
                                       pipeline_name=''):

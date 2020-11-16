@@ -264,8 +264,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         outputs = initResult_dict.get('outputs', {})
         for parameter, value in outputs.items():
-            if parameter == 'notInDb':
-                continue  # special non-param
+            if parameter == 'notInDb' \
+                    or self.process.is_parameter_protected(parameter):
+                continue  # special non-param or set manually
             try:
                 setattr(process, parameter, value)
             except Exception as e:
@@ -276,7 +277,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     import traceback
                     traceback.print_exc()
 
-       # Test for matlab launch
+        # Test for matlab launch
         if process.trait('use_mcr'):
 
             from populse_mia.software_properties import Config
