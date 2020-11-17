@@ -202,7 +202,7 @@ class Config:
     def get_capsul_config(self):
         """Get CAPSUL config dictionary
         """
-        capsul_config = self.config.get("capsul_config", {})
+        capsul_config = self.config.setdefault("capsul_config", {})
         capsul_config.setdefault(
             "engine_modules",
             ['nipype', 'fsl', 'freesurfer', 'matlab', 'spm', 'fom', 'python'])
@@ -296,7 +296,14 @@ class Config:
         engine_config = capsul_config.get('engine')
         if engine_config:
             for environment, config in engine_config.items():
-                engine.settings.import_configs(environment, config)
+                c = dict(config)
+                c['capsul_engine'] = {
+                    'uses': {engine.settings.module_name(m): 'ALL'
+                               for m in config.keys()}}
+                for mod, val in config.items():
+                    if 'config_id' not in val:
+                        val['config_id'] = mod.split('.')[-1]
+                engine.settings.import_configs(environment, c)
 
         return engine
 

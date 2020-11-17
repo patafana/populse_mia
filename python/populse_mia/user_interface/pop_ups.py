@@ -2368,7 +2368,14 @@ class PopUpPreferences(QDialog):
         engine.study_config.import_from_dict(sc_dict)
         envs = capsul_config.get('engine', {})
         for env, conf in envs.items():
-            engine.settings.import_configs(env, conf)
+            c = dict(conf)
+            c['capsul_engine'] = {
+                'uses': {engine.settings.module_name(m): 'ALL'
+                            for m in conf.keys()}}
+            for mod, val in conf.items():
+                if 'config_id' not in val:
+                    val['config_id'] = mod.split('.')[-1]
+            engine.settings.import_configs(env, c)
 
         dialog = SettingsEditor(engine)
         #dialog = Qt.QDialog()
