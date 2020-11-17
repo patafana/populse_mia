@@ -700,7 +700,7 @@ class Config:
             self.set_use_matlab(True)
         elif use_matlab is False:
             self.set_use_matlab(False)
-            self.set_matlab_path("")
+            # self.set_matlab_path("")
 
         if capsul_config.get('use_spm', False):
             spm_dir = capsul_config.get('spm_directory')
@@ -712,6 +712,7 @@ class Config:
                     self.set_matlab_standalone_path(mcr)
                     self.set_use_spm_standalone(True)
                     self.set_use_matlab_standalone(True)
+                    self.set_use_matlab(False)
             else:
                 self.set_use_spm_standalone(False)
                 if self.get_use_matlab():
