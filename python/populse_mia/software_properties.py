@@ -96,9 +96,16 @@ class Config:
     Object that handles the configuration of the software
 
     .. Methods:
-        - get_admin_hash: returns the value of the hash of the admin password
-        - get_user_mode: returns the value of "user mode" checkbox
-          in the preferences
+        - get_admin_hash: get the value of the hash of the admin password
+        - getBackgroundColor: get background color
+        - get_capsul_config: get CAPSUL config dictionary
+        - get_capsul_engine: get a global CapsulEngine object used for all
+          operations in MIA application
+        - getChainCursors: returns if the "chain cursors" checkbox of the
+          mini viewer is activated
+        - get_config_path: returns the configuration file directory
+        - get_mainwindow_maximized: get the maximized (fullscreen) flag
+        - get_mainwindow_size: get the main window size
         - get_matlab_command: returns Matlab command
         - get_matlab_path: returns the path of Matlab's executable
         - get_matlab_standalone_path: returns the path of Matlab Compiler
@@ -106,66 +113,75 @@ class Config:
         - get_max_projects: returns the maximum number of projects displayed in
           the "Saved projects" menu
         - get_mia_path: returns the software's install path
-        - get_config_path: returns the configuration file directory
+        - get_mri_conv_path: sets the MRIManager.jar path
+        - getNbAllSlicesMax: returns the maximum number of slices to display in
+          the mini viewer
+        - get_opened_projects: returns the opened projects
+        - getPathToProjectsFolder: returns the project's path
         - get_projects_save_path: returns the folder where the projects are
           saved
+        - getShowAllSlices: returns if the "show all slices" checkbox of the
+          mini viewer is activated
+        - getSourceImageDir: get the source directory for project images
         - get_spm_path: returns the path of SPM12 (license version)
         - get_spm_standalone_path: returns the path of SPM12 (standalone
           version)
+        - getTextColor: return the text color
+        - getThumbnailTag: returns the tag that is displayed in the mini viewer
         - get_use_matlab: returns the value of "use matlab" checkbox in the
           preferences
         - get_use_matlab_standalone: returns the value of "use matlab
           standalone" checkbox in the preferences
-        - get_mri_conv_path: sets the MRIManager.jar path
+        - get_user_level: get the user level in the Capsul config
+        - get_user_mode: returns the value of "user mode" checkbox
+          in the preferences
         - get_use_spm: returns the value of "use spm" checkbox in the
           preferences
         - get_use_spm_standalone: returns the value of "use spm standalone"
           checkbox in the preferences
-        - getBackgroundColor: returns the background color
-        - getChainCursors: returns if the "chain cursors" checkbox of the
-          mini viewer is activated
-        - getNbAllSlicesMax: returns the maximum number of slices to display in
-          the mini viewer
-        - get_opened_projects: returns the opened projects
-        - getPathData: returns the data's path
+        - getPathData: returns the data's path (currently commented)
         - getPathToProjectsDBFile: returns the already-saved projects's path
-        - getPathToProjectsFolder: returns the project's path
-        - getShowAllSlices: returns if the "show all slices" checkbox of the
-          mini viewer is activated
-        - getTextColor: return the text color
-        - getThumbnailTag: returns the tag that is displayed in the mini viewer
+          (currently commented)
         - isAutoSave: checks if auto-save mode is activated
         - loadConfig: reads the config in the config.yml file
         - saveConfig: saves the config to the config.yml file
+        - set_admin_hash: set the password hash
         - setAutoSave: sets the auto-save mode
         - setBackgroundColor: sets the background color
-        - set_user_mode: sets the value of "user mode" checkbox in
-          the preferences
-        - set_matlab_path: sets the path of Matlab's executable
-        - set_matlab_standalone_path: sets the path of Matlab Compiler Runtime
-        - set_max_projects: sets the maximum number of projects displayed in
+        - set_capsul_config: set CAPSUL configuration dict into MIA config
+        - setChainCursors: set the "chain cursors" checkbox of the mini viewer
+        - set_mainwindow_maximized: set the maximized (fullscreen) flag
+        - set_mainwindow_size: set main window size
+        - set_matlab_path: set the path of Matlab's executable
+        - set_matlab_standalone_path: set the path of Matlab Compiler Runtime
+        - set_max_projects: set the maximum number of projects displayed in
           the "Saved projects" menu
-        - set_mia_path: sets the software's install path
-        - set_mri_conv_path: sets the MRIManager.jar path
-        - set_projects_save_path: sets the folder where the projects are saved
-        - set_spm_path: sets the path of SPM12 (license version)
-        - set_spm_standalone_path: sets the path of SPM12 (standalone version)
-        - set_use_matlab: sets the value of "use matlab" checkbox in the
-          preferences
-        - set_use_matlab_standalone: sets the value of "use matlab standalone"
-          checkbox in the preferences
-        - set_use_spm: sets the value of "use spm" checkbox in the preferences
-        - set_use_spm_standalone: sets the value of "use spm standalone"
-          checkbox in the preferences
-        - setChainCursors: sets the "chain cursors" checkbox of the mini viewer
-        - setNbAllSlicesMax: sets the maximum number of slices to display in
+        - set_mri_conv_path: set the MRIManager.jar path
+        - setNbAllSlicesMax: set the maximum number of slices to display in
           the mini viewer
-        - set_opened_projects: sets the opened projects
-        - setPathToData: sets the data's path
-        - setShowAllSlices: sets the "show all slices" checkbox of the mini
+        - set_opened_projects: set the opened projects
+        - set_projects_save_path: set the folder where the projects are saved
+        - setShowAllSlices: set the "show all slices" checkbox of the mini
           viewer
-        - setTextColor: sets the text color
-        - setThumbnailTag: sets the tag that is displayed in the mini viewer
+        - setSourceImageDir: set the source directory for project images
+        - set_spm_path: set the path of SPM12 (license version)
+        - set_spm_standalone_path: set the path of SPM12 (standalone version)
+        - setTextColor: set the text color
+        - setThumbnailTag: set the tag that is displayed in the mini viewer
+        - set_use_matlab: set the value of "use matlab" checkbox in the
+          preferences
+        - set_use_matlab_standalone: set the value of "use matlab standalone"
+          checkbox in the preferences
+        - set_user_mode: set the value of "user mode" checkbox in
+          the preferences
+        - set_use_spm: set the value of "use spm" checkbox in the preferences
+        - set_use_spm_standalone: set the value of "use spm standalone"
+          checkbox in the preferences
+        - set_mia_path: set the software's install path (currently commented)
+        - setPathToData: set the data's path (currently commented)
+        - update_capsul_config: update a global CapsulEngine object used for
+          all operations in MIA application
+
 
     """
     capsul_engine = None
