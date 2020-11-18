@@ -269,6 +269,16 @@ class Config:
         else:
             sconf.update(dict(use_spm=False))
 
+        if self.capsul_engine:
+            econf = capsul_config.setdefault('engine', {})
+            for environment in \
+                    self.capsul_engine.settings.get_all_environments():
+                eeconf = econf.setdefault(environment, {})
+                # would need a better merging system
+                eeconf.update(
+                    self.capsul_engine.settings.select_configurations(
+                        environment))
+
         return capsul_config
 
     @staticmethod
@@ -313,13 +323,15 @@ class Config:
         if engine_config:
             for environment, config in engine_config.items():
                 c = dict(config)
-                c['capsul_engine'] = {
-                    'uses': {engine.settings.module_name(m): 'ALL'
-                               for m in config.keys()}}
+                if 'capsul_engine' not in c \
+                        or 'uses' not in c['capsul_engine']:
+                    c['capsul_engine'] = {
+                        'uses': {engine.settings.module_name(m): 'ALL'
+                                  for m in config.keys()}}
                 for mod, val in config.items():
                     if 'config_id' not in val:
                         val['config_id'] = mod.split('.')[-1]
-                engine.settings.import_configs(environment, c)
+                engine.import_configs(environment, c)
 
         return engine
 

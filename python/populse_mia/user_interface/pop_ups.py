@@ -2359,8 +2359,9 @@ class PopUpPreferences(QDialog):
 
         config = Config()
         capsul_config = config.get_capsul_config()
-        modules = capsul_config['engine_modules']
-        sc_dict = capsul_config['study_config']
+        modules = capsul_config.get('engine_modules', [])
+        sc_dict = capsul_config.get('study_config', {})
+        # build a temporary new engine (because it may not be validated)
         engine = capsul_engine()
         for module in modules + ['fom', 'axon', 'python', 'fsl', 'freesurfer',
                                  'nipype']:
@@ -2369,9 +2370,11 @@ class PopUpPreferences(QDialog):
         envs = capsul_config.get('engine', {})
         for env, conf in envs.items():
             c = dict(conf)
-            c['capsul_engine'] = {
-                'uses': {engine.settings.module_name(m): 'ALL'
-                            for m in conf.keys()}}
+            if 'capsul_engine' not in c \
+                    or 'uses' not in c['capsul_engine']:
+                c['capsul_engine'] = {
+                    'uses': {engine.settings.module_name(m): 'ALL'
+                                for m in conf.keys()}}
             for mod, val in conf.items():
                 if 'config_id' not in val:
                     val['config_id'] = mod.split('.')[-1]
