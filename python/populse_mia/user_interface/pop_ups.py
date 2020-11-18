@@ -2531,10 +2531,11 @@ class PopUpPreferences(QDialog):
         main_window.setWindowTitle(main_window.windowName +
                                    main_window.projectName)
 
-        # SPM & Matlab
+        # SPM & Matlab (license) config test
 
         matlab_input = self.matlab_choice.text()
         spm_input = self.spm_choice.text()
+        
         if (matlab_input != "" and
             spm_input != "") or self.use_spm_checkbox.isChecked():
             if not os.path.isfile(matlab_input):
@@ -2579,7 +2580,8 @@ class PopUpPreferences(QDialog):
             else:
                 self.wrong_path(spm_input, "SPM")
                 return
-        # Matlab
+            
+        # Matlab alone config test
         if matlab_input != "" or self.use_matlab_checkbox.isChecked():
             if matlab_input == config.get_matlab_path():
                 if self.use_matlab_checkbox.isChecked():
@@ -2609,48 +2611,65 @@ class PopUpPreferences(QDialog):
             else:
                 self.wrong_path(matlab_input, "Matlab")
                 return
-
+            
+        # SPM (standalone) & Matlab (MCR)  config test
         spm_input = self.spm_standalone_choice.text()
         matlab_input = self.matlab_standalone_choice.text()
         archi = platform.architecture()
-        if (matlab_input != "" and
-            spm_input != "") or self.use_spm_standalone_checkbox.isChecked():
-            if not os.path.isdir(matlab_input) and \
-                                            not 'Windows' in archi[1]:
+
+        if ((matlab_input != "" and spm_input != "") or
+                self.use_spm_standalone_checkbox.isChecked()):
+
+            if ((not os.path.isdir(matlab_input)) and 
+                    (not 'Windows' in archi[1])):
                 self.wrong_path(matlab_input, "Matlab standalone")
                 return
-            if matlab_input == config.get_matlab_standalone_path() and \
-                    spm_input == config.get_spm_standalone_path():
+
+            if ((matlab_input == config.get_matlab_standalone_path()) and
+                    (spm_input == config.get_spm_standalone_path())):
+
                 if self.use_spm_standalone_checkbox.isChecked():
                     config.set_use_spm_standalone(True)
+
                     if 'Windows' in archi[1]:
                         config.set_use_matlab(True)
                         config.set_use_matlab_standalone(False)
+
                     else:
                         config.set_use_matlab(True)
                         config.set_use_matlab_standalone(True)
+
             elif os.path.isdir(spm_input):
+
                 if 'Windows' in archi[1]:
-                    mcr = glob.glob(os.path.join(spm_input, 'spm12_win*.exe'))
+                    mcr = glob.glob(os.path.join(spm_input, 'spm*_win*.exe'))
                     pos = -1
                     nb_bit_sys = archi[0]
+
                     for i in range(len(mcr)):
                         spm_path, spm_file_name = os.path.split(mcr[i])
+
                         if nb_bit_sys[:2] in spm_file_name:
                             pos = i
+
                     if pos == -1:
                         self.wrong_path(spm_input, "SPM standalone")
                         return
-                elif os.path.isdir(matlab_input): # to check if no issues with Linux
+
+                elif os.path.isdir(matlab_input):
                     mcr = glob.glob(os.path.join(spm_input, 'run_spm*.sh'))
+
                 if mcr:
+
                     try:
+
                         if 'Windows' in archi[1]:
                             p = subprocess.Popen([mcr[pos],
                                                 '--version'],
                                                 stdin=subprocess.PIPE,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.PIPE)
+
                         else:
                             p = subprocess.Popen([mcr[0],
                                                   matlab_input,
@@ -2658,49 +2677,84 @@ class PopUpPreferences(QDialog):
                                                  stdin=subprocess.PIPE,
                                                  stdout=subprocess.PIPE,
                                                  stderr=subprocess.PIPE)
+
                         output, err = p.communicate()
+
                         if ((err == b'' and output != b'')
                                 or output.startswith(b'SPM8 ')):
                             # spm8 standalone doesn't accept --version argument
                             # but prints a message that we can interpret as
                             # saying that SPM8 is working anyway.
+
+                            if self.use_spm_standalone_checkbox.isChecked():
+                                config.set_use_spm_standalone(True)
+                                config.set_use_matlab_standalone(True)
+
+                            config.set_spm_standalone_path(spm_input)
+                            config.set_matlab_standalone_path(matlab_input)
+
+                        elif ((err != b'') and
+                              (b'version' in output.split()[2:]) and
+                              (b'(standalone)' in output.split()[2:])):
+
                             if self.use_spm_standalone_checkbox.isChecked():
                                 config.set_use_spm_standalone(True)
                                 config.set_use_matlab_standalone(True)
                             config.set_spm_standalone_path(spm_input)
                             config.set_matlab_standalone_path(matlab_input)
+
+                            if isinstance(err, bytes):
+                                err = err.decode('utf-8')
+
+                            print("\nWarning: The configuration for Matlab MCR "
+                                  "and SPM standalone as defined in Mia's "
+                                  "preferences seems to be valid but the "
+                                  "following issue has been detected:\n{}\n"
+                                  "Please fix this problem to avoid a "
+                                  "malfunction ...".format(err))
+                            
                         elif err != b'':
+
                             if "shared libraries" in str(err):
                                 self.wrong_path(matlab_input,
                                                 "Matlab standalone")
                                 return
+
                             else:
                                 self.wrong_path(spm_input, "SPM standalone")
                                 return
+
                         else:
                             self.wrong_path(spm_input, "SPM standalone")
                             return
+
                     except Exception as e:
                         self.wrong_path(spm_input, "SPM standalone")
                         return
+
                 else:
                     self.wrong_path(spm_input, "SPM standalone")
                     return
             else:
                 self.wrong_path(spm_input, "SPM standalone")
                 return
+
+        # Matlab (MCR)  alone config test
         if matlab_input != "" or self.use_matlab_standalone_checkbox.isChecked():
+
             if 'Windows' in archi[1]:
                 print('WARNING : Matlab Standalone Path enter, this',
                         'is unnecessary to use SPM12.')
                 config.set_use_matlab(True)
                 config.set_use_matlab_standalone(False)
                 config.set_matlab_standalone_path(matlab_input)
+
             elif os.path.isdir(matlab_input):
                 if self.use_matlab_standalone_checkbox.isChecked():
                     config.set_use_matlab(True)
                     config.set_use_matlab_standalone(True)
                 config.set_matlab_standalone_path(matlab_input)
+
             else:
                 self.wrong_path(matlab_input, "Matlab standalone")
                 return
