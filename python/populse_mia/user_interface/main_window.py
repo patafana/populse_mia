@@ -479,9 +479,6 @@ class MainWindow(QMainWindow):
         files and loads them into the database.
 
         """
-
-        print('\n check import ici')
-
         # Opens the conversion software to convert the MRI files in Nifti/Json
         config = Config()
         home = expanduser("~")
