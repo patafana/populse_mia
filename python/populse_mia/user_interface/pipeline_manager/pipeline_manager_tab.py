@@ -1360,6 +1360,34 @@ class PipelineManagerTab(QWidget):
         del self.progress
 
     def postprocess_pipeline_execution(self, pipeline=None):
+        """Operations to be performed after a run has been completed.
+        It can be called either within the run procedure (the user clicks on
+        the "run" button and waits for the results), or after a disconnetion /
+        reconnection of the client app: the user clicks on "run" with
+        distributed/remote execution activated, then closes the client MIA.
+        Processing takes place (possibly remotely) within a soma-workflow
+        server. Then the user runs MIA again, and we have to collect the
+        outputs of runs which happenned (finished) while we were disconnected.
+
+        Such post-processing includes database indexing of output data, and
+        should take into account not only the current pipeline, bu all past
+        runs which have not been postprocessed yet.
+
+        When called with a pipeline argument, it only deals with this one.
+
+        The method can be called from within a worker run thread, thus has to
+        be thread-safe.
+
+        Question: do we have to postprocess failed runs (pipelines which
+        started and failed) ? Probably yes because they may have produced some
+        results during the first steps, and failed later.
+
+        Question: how to decide which pipelines / runs have to be posptocessed
+        now ? A pipeline may be started, then stopped or could have failed,
+        then be postprocessed. But the user can still restart them in
+        soma-workflow (or maybe mia one day), thus they should be postprocessed
+        again then.
+        """
         if not pipeline:
             pipeline = get_process_instance(
                 self.pipelineEditorTabs.get_current_pipeline())
