@@ -48,6 +48,10 @@ if not os.path.dirname(os.path.dirname(
                      os.path.dirname(
                        os.path.dirname(
                          os.path.dirname(os.path.realpath(__file__)))))
+
+
+    print('\nprout root_dev_dir: ', root_dev_dir)
+    
     branch = ''
     populse_bdir = ''
     capsul_bdir = ''
@@ -660,11 +664,29 @@ def main():
         c = config.get_capsul_config()
         pc = c.setdefault('engine', {}).setdefault(
             'global', {}).setdefault('capsul.engine.module.python', {})
+
         if not pc.get('executable'):
             pc['executable'] = sys.executable
+
         if not pc.get('path'):
             pc['path'] = pypath
-        print('changed python conf:', pc)
+
+        else:
+            matches=[os.path.join('populse_mia', 'python'),
+                     'capsul',
+                     os.path.join('populse_db', 'python'),
+                     os.path.join('mia_processes', 'python'),
+                     os.path.join('soma-base', 'python'),
+                     os.path.join('soma-workflow', 'python')]
+
+            for i in pc['path']:
+                
+               if not any(x in i for x in matches):
+                    pypath.append(i)
+
+            pc['path'] = pypath
+            
+        print('\nChanged python conf:', pc)
 
         config.update_capsul_config()
         config.saveConfig()
