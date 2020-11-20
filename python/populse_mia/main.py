@@ -664,9 +664,7 @@ def main():
         c = config.get_capsul_config()
         pc = c.setdefault('engine', {}).setdefault(
             'global', {}).setdefault('capsul.engine.module.python', {})
-
-        if not pc.get('executable'):
-            pc['executable'] = sys.executable
+        pc['executable'] = sys.executable
 
         if not pc.get('path'):
             pc['path'] = pypath
