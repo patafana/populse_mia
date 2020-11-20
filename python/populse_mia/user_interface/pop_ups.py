@@ -2401,12 +2401,15 @@ class PopUpPreferences(QDialog):
             settings = {}
             for env in envs:
                 settings[env] = engine.settings.select_configurations(env)
+
             capsul_config['engine'] = settings
             capsul_config['engine_modules'] = list(engine._loaded_modules)
 
             #sc_dict = engine.study_config.export_to_dict(
                 #dict_class=dict, exclude_none=True, exclude_undefined=True)
             #capsul_config['study_config'] = sc_dict
+            if 'study_config' in capsul_config:
+                del capsul_config['study_config']
             config.set_capsul_config(capsul_config)
 
             # update matlab/SPM GUI which might have changed

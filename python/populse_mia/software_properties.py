@@ -215,7 +215,7 @@ class Config:
         except KeyError:
             return False
 
-    def get_capsul_config(self):
+    def get_capsul_config(self, sync_from_engine=True):
         """Get CAPSUL config dictionary
         """
         capsul_config = self.config.setdefault("capsul_config", {})
@@ -269,7 +269,7 @@ class Config:
         else:
             sconf.update(dict(use_spm=False))
 
-        if self.capsul_engine:
+        if sync_from_engine and self.capsul_engine:
             econf = capsul_config.setdefault('engine', {})
             for environment in \
                     self.capsul_engine.settings.get_all_environments():
@@ -309,7 +309,7 @@ class Config:
             # avoids unneeded updates before it is actually used.
             return
 
-        capsul_config = self.get_capsul_config()
+        capsul_config = self.get_capsul_config(sync_from_engine=False)
         engine = Config.capsul_engine
 
         for module in capsul_config.get('engine_modules', []) \
@@ -716,6 +716,7 @@ class Config:
         """Set CAPSUL configuration dict into MIA config
         """
         self.config['capsul_config'] = capsul_config_dict
+        self.update_capsul_config()  # store into capsul engine
 
         # update MIA values
         engine_config = capsul_config_dict.get('engine')
