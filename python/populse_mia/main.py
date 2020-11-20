@@ -48,10 +48,6 @@ if not os.path.dirname(os.path.dirname(
                      os.path.dirname(
                        os.path.dirname(
                          os.path.dirname(os.path.realpath(__file__)))))
-
-
-    print('\nprout root_dev_dir: ', root_dev_dir)
-    
     branch = ''
     populse_bdir = ''
     capsul_bdir = ''
