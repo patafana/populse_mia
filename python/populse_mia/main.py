@@ -654,6 +654,7 @@ def main():
             msg.exec()
             del app
 
+    global pypath
     if DEV_MODE and pypath:
         config = Config()
         config.get_capsul_engine()
@@ -662,8 +663,9 @@ def main():
             'global', {}).setdefault('capsul.engine.module.python', {})
         if not pc.get('executable'):
             pc['executable'] = sys.executable
-        if not pc.get('path'):
-            pc['path'] = pypath
+        if 'path' in pc:
+            pypath = pypath + [p for p in pc['path'] if p not in pypath]
+        pc['path'] = pypath
         print('changed python conf:', pc)
 
         config.update_capsul_config()
