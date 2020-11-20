@@ -278,8 +278,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     import traceback
                     traceback.print_exc()
 
-        MIAProcessCompletionEngine.complete_output_directory(
-            process, study_config)
+        MIAProcessCompletionEngine.complete_nipype_common(process)
 
         self.completion_progress = self.completion_progress_total
 
