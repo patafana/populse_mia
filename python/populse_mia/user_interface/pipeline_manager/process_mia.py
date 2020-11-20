@@ -24,6 +24,7 @@ import os
 # Capsul imports
 from capsul.api import Process
 from capsul.pipeline.pipeline_nodes import ProcessNode
+from capsul.process.process import NipypeProcess
 from soma.controller.trait_utils import relax_exists_constraint
 
 # Populse_MIA imports
@@ -277,6 +278,14 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     import traceback
                     traceback.print_exc()
 
+        MIAProcessCompletionEngine.complete_output_directory(
+            process, study_config)
+
+        self.completion_progress = self.completion_progress_total
+
+    @staticmethod
+    def complete_nipype_common(process):
+
         # Test for matlab launch
         if process.trait('use_mcr'):
 
@@ -297,6 +306,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         # add "project" attribute if the process is using it
         if hasattr(process, 'get_study_config'):
             study_config = process.get_study_config()
+
             project = getattr(study_config, 'project', None)
             if project:
                 if hasattr(process, 'use_project') and process.use_project:
@@ -305,10 +315,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 if process.trait('output_directory') \
                         and process.output_directory in (None, Undefined, ''):
                     out_dir = os.path.abspath(os.path.join(project.folder,
-                                                           'scripts'))
+                                                            'scripts'))
                     process.output_directory = out_dir
 
-        self.completion_progress = self.completion_progress_total
 
 
 class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
@@ -339,9 +348,15 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
         if isinstance(in_process, ProcessMIA):
             return MIAProcessCompletionEngine(process, name)
 
+        # nipype special case -- output_directory is set from MIA project
+        if isinstance(in_process, NipypeProcess):
+            MIAProcessCompletionEngine.complete_nipype_common(in_process)
+
         engine_factory = None
         if hasattr(process, 'get_study_config'):
             study_config = process.get_study_config()
+
+
             engine = study_config.engine
             if 'capsul.engine.module.attributes' in engine._loaded_modules:
                 try:
