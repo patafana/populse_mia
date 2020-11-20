@@ -663,8 +663,6 @@ def main():
             'global', {}).setdefault('capsul.engine.module.python', {})
         pc['executable'] = sys.executable
         if 'path' in pc:
-            # pypath = pypath + [p for p in pc['path'] if p not in pypath]
-            # this case should have already been taken into account in the above line
             matches=[os.path.join('populse_mia', 'python'),
                      'capsul',
                      os.path.join('populse_db', 'python'),
@@ -674,7 +672,7 @@ def main():
 
             for i in pc['path']:
 
-               if not any(x in i for x in matches):
+               if i not in pypath and not any(x in i for x in matches):
                     pypath.append(i)
         pc['path'] = pypath
         print('changed python conf:', pc)
