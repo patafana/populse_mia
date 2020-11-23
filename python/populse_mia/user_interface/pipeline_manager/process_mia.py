@@ -315,6 +315,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                         and process.output_directory in (None, Undefined, ''):
                     out_dir = os.path.abspath(os.path.join(project.folder,
                                                             'scripts'))
+                    # ensure this output_directory exists since it is not
+                    # actually an output but an input, and thus it is supposed
+                    # to exist in Capsul.
+                    if not os.path.exists(out_dir):
+                        os.makedirs(out_dir)
                     process.output_directory = out_dir
 
 
