@@ -488,8 +488,6 @@ class PipelineManagerTab(QWidget):
                                                    tag_to_add['name'],
                                                    tag_to_add['value'])
 
-        self.project.saveModifications()
-
     def add_process_to_preview(self, class_process, node_name=None):
         """Add a process to the pipeline.
 
@@ -658,8 +656,7 @@ class PipelineManagerTab(QWidget):
             attributes = completion.get_attribute_values()
             completion.complete_parameters()
 
-    def _register_node_io_in_database(self, node, proc_outputs,
-                                      pipeline_name=''):
+    def _register_node_io_in_database(self, node, pipeline_name=''):
         if isinstance(node, ProcessNode):
             process = node.process
             inputs = process.get_inputs()
@@ -695,8 +692,6 @@ class PipelineManagerTab(QWidget):
             if value in [Undefined, [Undefined]]:
                 outputs[key] = "<undefined>"
 
-        self.project.saveModifications()
-
         node_name = node.name
 
         # Updating the database with output values obtained from
@@ -731,12 +726,12 @@ class PipelineManagerTab(QWidget):
 
         # Adding I/O to database history
         self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                        BRICK_INPUTS, inputs)
+                                       BRICK_INPUTS, inputs)
         self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                        BRICK_OUTPUTS, outputs)
+                                       BRICK_OUTPUTS, outputs)
         # Setting brick init state if init finished correctly
         self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                        BRICK_INIT, "Done")
+                                       BRICK_INIT, "Done")
 
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
@@ -855,18 +850,16 @@ class PipelineManagerTab(QWidget):
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
                     datetime.datetime.now())
-                print('set BRICK_INIT:', self.brick_id)
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_EXEC, "Not Done")
 
                 self._register_node_io_in_database(node, pipeline_name)
-                self.project.saveModifications()
 
-                # This cannot be done in remote execution
-                if hasattr(process, 'manage_brick_before_run'):
-                    process.manage_brick_before_run()
+                ## This cannot be done in remote execution
+                #if hasattr(process, 'manage_brick_before_run'):
+                    #process.manage_brick_before_run()
 
         self.project.saveModifications()
 
@@ -1419,12 +1412,54 @@ class PipelineManagerTab(QWidget):
                     nodes_list += new_nodes
                     all_nodes += new_nodes
 
+        # Manage the bricks history after the run. Get them from the pipeline
+        # output values.
+        outputs = set()
+        proj_dir = os.path.join(os.path.abspath(os.path.normpath(
+            self.project.folder)), '')
+
+        def _update_set(outputs, output):
+            ''' update the outputs set with file/dir names in output, relative
+            to the project directory '''
+            todo = [output]
+            while todo:
+                output = todo.pop(0)
+                if isinstance(output, (list, set, tuple)):
+                    todo += output
+                elif isinstance(output, str):
+                    if os.path.abspath(os.path.normpath(output)).startswith(
+                            proj_dir):
+                        output = os.path.abspath(os.path.normpath(output))[
+                            len(proj_dir):]
+                    outputs.add(output)
+
         for node_name, node in all_nodes:
             if isinstance(node, ProcessNode):
                 process = node.process
                 # This cannot be done in remote execution
-                if hasattr(process, 'manage_brick_after_run'):
-                    process.manage_brick_after_run()
+                # will be obsolete, we will do the same for all processes
+                #if hasattr(process, 'manage_brick_after_run'):
+                    #process.manage_brick_after_run()
+
+                for param, output in process.get_outputs().items():
+                    _update_set(outputs, output)
+
+        bricks = set()
+        for scan in self.project.session.get_documents_names(
+                COLLECTION_CURRENT):
+            if scan in outputs:
+                bricks.update(self.project.session.get_value(
+                    COLLECTION_CURRENT, scan, TAG_BRICKS))
+
+        for brick in bricks:
+            if self.project.session.get_value(COLLECTION_BRICK, brick,
+                                              BRICK_EXEC) == "Not Done":
+                self.project.session.set_value(COLLECTION_BRICK, brick,
+                                              BRICK_EXEC, "Done")
+                self.project.session.set_value(COLLECTION_BRICK, brick,
+                                              BRICK_EXEC_TIME,
+                                              datetime.datetime.now())
+        self.project.saveModifications()
 
     def show_status(self):
         """
