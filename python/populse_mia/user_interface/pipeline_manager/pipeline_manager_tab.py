@@ -29,7 +29,9 @@ from populse_mia.data_manager.project import (COLLECTION_CURRENT,
                                               COLLECTION_BRICK, BRICK_NAME,
                                               BRICK_OUTPUTS, BRICK_INPUTS,
                                               TAG_BRICKS, BRICK_INIT,
-                                              BRICK_INIT_TIME, TAG_TYPE,
+                                              BRICK_INIT_TIME,
+                                              BRICK_EXEC, BRICK_EXEC_TIME,
+                                              TAG_TYPE,
                                               TAG_EXP_TYPE, TAG_FILENAME,
                                               TAG_CHECKSUM, TYPE_NII, TYPE_MAT,
                                               TYPE_TXT, TYPE_UNKNOWN)
@@ -853,8 +855,11 @@ class PipelineManagerTab(QWidget):
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
                     datetime.datetime.now())
+                print('set BRICK_INIT:', self.brick_id)
                 self.project.session.set_value(
                     COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
+                self.project.session.set_value(
+                    COLLECTION_BRICK, self.brick_id, BRICK_EXEC, "Not Done")
 
                 self._register_node_io_in_database(node, pipeline_name)
                 self.project.saveModifications()
@@ -1419,7 +1424,7 @@ class PipelineManagerTab(QWidget):
                 process = node.process
                 # This cannot be done in remote execution
                 if hasattr(process, 'manage_brick_after_run'):
-                    process.manage_brick_before_run()
+                    process.manage_brick_after_run()
 
     def show_status(self):
         """

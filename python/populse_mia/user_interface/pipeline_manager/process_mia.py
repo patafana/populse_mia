@@ -160,6 +160,9 @@ class ProcessMIA(Process):
         if brick_to_update is not None:
             self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
                                            BRICK_EXEC, "Done")
+            self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
+                                           BRICK_EXEC_TIME,
+                                           datetime.datetime.now())
             self.project.saveModifications()
 
     def manage_brick_output_before_run(self, output_value):
@@ -170,9 +173,6 @@ class ProcessMIA(Process):
         scan_bricks_history = self.get_scan_bricks(output_value)
         brick_to_update = self.get_brick_to_update(scan_bricks_history)
         if brick_to_update is not None:
-            self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
-                                           BRICK_EXEC_TIME,
-                                           datetime.datetime.now())
             self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
                                            BRICK_EXEC, "Not Done")
             self.project.saveModifications()
@@ -314,7 +314,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 if process.trait('output_directory') \
                         and process.output_directory in (None, Undefined, ''):
                     out_dir = os.path.abspath(os.path.join(project.folder,
-                                                            'scripts'))
+                                                           'derived_data'))
                     # ensure this output_directory exists since it is not
                     # actually an output but an input, and thus it is supposed
                     # to exist in Capsul.
