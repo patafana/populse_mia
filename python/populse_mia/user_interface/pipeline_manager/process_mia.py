@@ -321,7 +321,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     if not os.path.exists(out_dir):
                         os.makedirs(out_dir)
                     process.output_directory = out_dir
-
+                process.mfile = True
 
 
 class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
