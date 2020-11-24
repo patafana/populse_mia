@@ -314,6 +314,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 if process.trait('output_directory') \
                         and process.output_directory in (None, Undefined, ''):
                     out_dir = os.path.abspath(os.path.join(project.folder,
+                                                           'data',
                                                            'derived_data'))
                     # ensure this output_directory exists since it is not
                     # actually an output but an input, and thus it is supposed
