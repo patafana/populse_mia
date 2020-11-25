@@ -48,14 +48,6 @@ class ProcessMIA(Process):
         - get_scan_bricks: give the list of bricks given an output value
         - list_outputs: generates the outputs of the process (need to be
            overridden)
-        - manage_brick_after_run: update process history after the run
-           (Done status)
-        - manage_brick_before_run: update process history before running
-           the process
-        - manage_brick_output_after_run: manage the bricks history before
-           the run
-        - manage_brick_output_before_run: manage the bricks history before
-           the run
         - manage_matlab_launch_parameters: Set the Matlab's config parameters
            when a Nipype process is used
         - remove_brick_output: remove the bricks from the outputs
@@ -125,57 +117,6 @@ class ProcessMIA(Process):
     def list_outputs(self):
         """Override the outputs of the process."""
         self.relax_nipype_exists_constraints()
-
-    def manage_brick_after_run(self):
-        """Manages the brick history after the run (Done status)."""
-        outputs = self.get_outputs()
-        for output_name in outputs:
-            output_value = outputs[output_name]
-            if output_value not in ["<undefined>", Undefined]:
-                if type(output_value) in [list, TraitListObject]:
-                    for single_value in output_value:
-                        self.manage_brick_output_after_run(single_value)
-                else:
-                    self.manage_brick_output_after_run(output_value)
-
-    def manage_brick_before_run(self):
-        """Updates process history, before running the process."""
-        outputs = self.get_outputs()
-        for output_name in outputs:
-            output_value = outputs[output_name]
-            if output_value not in ["<undefined>", Undefined]:
-                if type(output_value) in [list, TraitListObject]:
-                    for single_value in output_value:
-                        self.manage_brick_output_before_run(single_value)
-                else:
-                    self.manage_brick_output_before_run(output_value)
-
-    def manage_brick_output_after_run(self, output_value):
-        """Manages the bricks history before the run.
-
-        :param output_value: output value
-        """
-        scan_bricks_history = self.get_scan_bricks(output_value)
-        brick_to_update = self.get_brick_to_update(scan_bricks_history)
-        if brick_to_update is not None:
-            self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
-                                           BRICK_EXEC, "Done")
-            self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
-                                           BRICK_EXEC_TIME,
-                                           datetime.datetime.now())
-            self.project.saveModifications()
-
-    def manage_brick_output_before_run(self, output_value):
-        """Manages the bricks history before the run.
-
-        :param output_value: output value
-        """
-        scan_bricks_history = self.get_scan_bricks(output_value)
-        brick_to_update = self.get_brick_to_update(scan_bricks_history)
-        if brick_to_update is not None:
-            self.project.session.set_value(COLLECTION_BRICK, brick_to_update,
-                                           BRICK_EXEC, "Not Done")
-            self.project.saveModifications()
 
     def manage_matlab_launch_parameters(self):
         """Set the Matlab's config parameters when a Nipype process is used.
