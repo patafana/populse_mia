@@ -338,10 +338,6 @@ class PipelineManagerTab(QWidget):
         if bricks is None:
             bricks = []
         bricks.append(brick_id)
-        self.project.session.set_value(
-            COLLECTION_CURRENT, p_value, TAG_BRICKS, bricks)
-        self.project.session.set_value(
-            COLLECTION_INITIAL, p_value, TAG_BRICKS, bricks)
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
         ptype = TYPE_UNKNOWN
@@ -352,10 +348,14 @@ class PipelineManagerTab(QWidget):
         elif file_extension == ".txt":
             ptype = TYPE_TXT
 
-        self.project.session.set_value(
-            COLLECTION_CURRENT, p_value, TAG_TYPE, ptype)
-        self.project.session.set_value(
-            COLLECTION_INITIAL, p_value, TAG_TYPE, ptype)
+        self.project.session.set_values(
+            COLLECTION_CURRENT, p_value,
+            {TAG_TYPE: ptype,
+             TAG_BRICKS: bricks})
+        self.project.session.set_values(
+            COLLECTION_INITIAL, p_value,
+            {TAG_TYPE: ptype,
+             TAG_BRICKS: bricks})
 
         inputs = self.inputs
         # Automatically fill inheritance dictionary if empty
@@ -434,23 +434,23 @@ class PipelineManagerTab(QWidget):
             banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
                              TAG_CHECKSUM, TAG_FILENAME]
 
+            ivalues = {}
+            cvalues = {}
+
             for tag in self.project.session.get_fields_names(
                     COLLECTION_CURRENT):
 
                 if tag not in banished_tags and database_parent_file:
                     parent_current_value = self.project.session.get_value(
                         COLLECTION_CURRENT, database_parent_file, tag)
-                    self.project.session.set_value(
-                        COLLECTION_CURRENT, p_value, tag,
-                        parent_current_value)
+                    cvalues[tag] = parent_current_value
                     parent_initial_value = self.project.session.get_value(
                         COLLECTION_INITIAL, database_parent_file, tag)
-                    self.project.session.set_value(
-                        COLLECTION_INITIAL, p_value, tag,
-                        parent_initial_value)
+                    ivalues[tag] = parent_initial_value
 
             if own_tags:
 
+                values = {}
                 for tag_to_add in own_tags:
 
                     if (tag_to_add['name'] not in
@@ -466,10 +466,6 @@ class PipelineManagerTab(QWidget):
                                                 tag_to_add['unit'],
                                                 tag_to_add['default_value'])
 
-                    self.project.session.set_value(COLLECTION_CURRENT,
-                                                   p_value,
-                                                   tag_to_add['name'],
-                                                   tag_to_add['value'])
 
                     if (tag_to_add['name'] not in
                           (self.project.session.
@@ -484,10 +480,15 @@ class PipelineManagerTab(QWidget):
                                                 tag_to_add['unit'],
                                                 tag_to_add['default_value'])
 
-                    self.project.session.set_value(COLLECTION_INITIAL,
-                                                   p_value,
-                                                   tag_to_add['name'],
-                                                   tag_to_add['value'])
+                    cvalues[tag_to_add['name']] = tag_to_add['value']
+                    ivalues[tag_to_add['name']] = tag_to_add['value']
+
+            if cvalues:
+                self.project.session.set_values(
+                    COLLECTION_CURRENT, p_value, cvalues)
+            if ivalues:
+                self.project.session.set_values(
+                    COLLECTION_INITIAL, p_value, ivalues)
 
     def add_process_to_preview(self, class_process, node_name=None):
         """Add a process to the pipeline.
@@ -726,13 +727,12 @@ class PipelineManagerTab(QWidget):
                                                     trait)
 
         # Adding I/O to database history
-        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                       BRICK_INPUTS, inputs)
-        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                       BRICK_OUTPUTS, outputs)
         # Setting brick init state if init finished correctly
-        self.project.session.set_value(COLLECTION_BRICK, self.brick_id,
-                                       BRICK_INIT, "Done")
+        self.project.session.set_values(
+            COLLECTION_BRICK, self.brick_id,
+            {BRICK_INPUTS: inputs,
+             BRICK_OUTPUTS: outputs,
+             BRICK_INIT: "Done"})
 
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
@@ -827,7 +827,9 @@ class PipelineManagerTab(QWidget):
 
             inheritance_dict = {}
 
-            all_nodes = list(nodes_list)
+            # all_nodes doesn't record pipeline nodes, only leaf processes
+            all_nodes = [node for node in nodes_list
+                         if not isinstance(node[1], PipelineNode)]
             while nodes_list:
                 node_name, node = nodes_list.pop(0)
                 if hasattr(node, 'process'):
@@ -843,7 +845,8 @@ class PipelineManagerTab(QWidget):
                                 and pipeline_tools.is_node_enabled(
                                     process, n[0], n[1])]
                         nodes_list += new_nodes
-                        all_nodes += new_nodes
+                    else:
+                        all_nodes.append((node_name, node))
 
             self.inheritance_dict = inheritance_dict
 
@@ -853,15 +856,12 @@ class PipelineManagerTab(QWidget):
                 self.brick_list.append(self.brick_id)
                 self.project.session.add_document(COLLECTION_BRICK,
                                                   self.brick_id)
-                self.project.session.set_value(
-                    COLLECTION_BRICK, self.brick_id, BRICK_NAME, node_name)
-                self.project.session.set_value(
-                    COLLECTION_BRICK, self.brick_id, BRICK_INIT_TIME,
-                    datetime.datetime.now())
-                self.project.session.set_value(
-                    COLLECTION_BRICK, self.brick_id, BRICK_INIT, "Not Done")
-                self.project.session.set_value(
-                    COLLECTION_BRICK, self.brick_id, BRICK_EXEC, "Not Done")
+                self.project.session.set_values(
+                    COLLECTION_BRICK, self.brick_id,
+                    {BRICK_NAME: node_name,
+                     BRICK_INIT_TIME: datetime.datetime.now(),
+                     BRICK_INIT: "Not Done",
+                     BRICK_EXEC: "Not Done"})
 
                 self._register_node_io_in_database(node, pipeline_name)
 
@@ -1458,11 +1458,10 @@ class PipelineManagerTab(QWidget):
         for brick in bricks:
             if self.project.session.get_value(COLLECTION_BRICK, brick,
                                               BRICK_EXEC) == "Not Done":
-                self.project.session.set_value(COLLECTION_BRICK, brick,
-                                              BRICK_EXEC, "Done")
-                self.project.session.set_value(COLLECTION_BRICK, brick,
-                                              BRICK_EXEC_TIME,
-                                              datetime.datetime.now())
+                self.project.session.set_values(
+                    COLLECTION_BRICK, brick,
+                    {BRICK_EXEC: "Done",
+                     BRICK_EXEC_TIME: datetime.datetime.now()})
         self.project.saveModifications()
 
     def show_status(self):
