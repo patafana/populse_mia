@@ -366,21 +366,22 @@ class PipelineManagerTab(QWidget):
               (node_name not in self.ignore) and
               (node_name + plug_name not in self.ignore)):
             values = {}
-            for key in inputs:
+            for key, i_value in inputs.items():
                 paths = []
-                if isinstance(inputs[key], list):
-                    for val in inputs[key]:
+                if isinstance(i_value, list):
+                    for val in i_value:
                         if isinstance(val, str):
                             paths.append(val)
-                elif isinstance(inputs[key], str):
-                    paths.append(inputs[key])
+                elif isinstance(i_value, str):
+                    paths.append(i_value)
                 for path in paths:
                     if os.path.exists(path):
                         name, extension = os.path.splitext(path)
                         if extension == ".nii":
                             values[key] = name + extension
             if len(values) >= 1:
-                self.inheritance_dict = {}
+                #if self.inheritance_dict is None:
+                    #self.inheritance_dict = {}
                 if len(values) == 1:
                     value = values[list(values.keys(
                     ))[0]]
@@ -824,11 +825,16 @@ class PipelineManagerTab(QWidget):
                               and pipeline_tools.is_node_enabled(
                                   pipeline, n[0], n[1])]
 
+            inheritance_dict = {}
+
             all_nodes = list(nodes_list)
             while nodes_list:
                 node_name, node = nodes_list.pop(0)
                 if hasattr(node, 'process'):
                     process = node.process
+                    if hasattr(process, 'inheritance_dict'):
+                        # collect inheritance_dict from all nodes
+                        inheritance_dict.update(process.inheritance_dict)
 
                     if isinstance(node, PipelineNode):
                         new_nodes = [
@@ -838,6 +844,8 @@ class PipelineManagerTab(QWidget):
                                     process, n[0], n[1])]
                         nodes_list += new_nodes
                         all_nodes += new_nodes
+
+            self.inheritance_dict = inheritance_dict
 
             for node_name, node in all_nodes:
                 # Adding the brick to the bricks history
@@ -856,10 +864,6 @@ class PipelineManagerTab(QWidget):
                     COLLECTION_BRICK, self.brick_id, BRICK_EXEC, "Not Done")
 
                 self._register_node_io_in_database(node, pipeline_name)
-
-                ## This cannot be done in remote execution
-                #if hasattr(process, 'manage_brick_before_run'):
-                    #process.manage_brick_before_run()
 
         self.project.saveModifications()
 
