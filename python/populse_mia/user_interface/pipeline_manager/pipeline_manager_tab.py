@@ -845,7 +845,7 @@ class PipelineManagerTab(QWidget):
                                 and pipeline_tools.is_node_enabled(
                                     process, n[0], n[1])]
                         nodes_list += new_nodes
-                    else:
+                    elif (node_name, node) not in all_nodes:
                         all_nodes.append((node_name, node))
 
             self.inheritance_dict = inheritance_dict
