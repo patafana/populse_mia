@@ -1451,12 +1451,11 @@ class PipelineManagerTab(QWidget):
         bricks = set()
         for scan in self.project.session.get_documents_names(
                 COLLECTION_CURRENT):
-            if (scan in outputs and
-                     self.project.session.get_value(COLLECTION_CURRENT,
-                                                    scan,
-                                                    TAG_BRICKS)):
-                bricks.update(self.project.session.get_value(
-                    COLLECTION_CURRENT, scan, TAG_BRICKS))
+            brickName = self.project.session.get_value(COLLECTION_CURRENT,
+                                                       scan,
+                                                       TAG_BRICKS):
+            if scan in outputs and brickName:
+                bricks.update(brickName)
 
         for brick in bricks:
             if self.project.session.get_value(COLLECTION_BRICK, brick,
