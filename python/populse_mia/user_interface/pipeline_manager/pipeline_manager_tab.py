@@ -760,7 +760,7 @@ class PipelineManagerTab(QWidget):
         #
         # I'm sorry I am writing another code for that.
 
-        print('init pipeline...')
+        print('- Init pipeline...')
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -786,7 +786,7 @@ class PipelineManagerTab(QWidget):
         # Capsul parameters completion
         print('Completion...')
         self.complete_pipeline_parameters(pipeline)
-        print('completion done.')
+        print('completion done.\n')
 
         # check missing inputs
         missing_inputs = pipeline.get_missing_mandatory_parameters()
@@ -836,7 +836,10 @@ class PipelineManagerTab(QWidget):
                     process = node.process
                     if hasattr(process, 'inheritance_dict'):
                         # collect inheritance_dict from all nodes
-                        inheritance_dict.update(process.inheritance_dict)
+                        # removing key == value
+                        inheritance_dict.update({k:v
+                                   for (k,v) in process.inheritance_dict.items()
+                                                 if k != v})
 
                     if isinstance(node, PipelineNode):
                         new_nodes = [
