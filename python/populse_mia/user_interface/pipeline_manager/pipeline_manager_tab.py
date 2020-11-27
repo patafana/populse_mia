@@ -365,53 +365,38 @@ class PipelineManagerTab(QWidget):
                 self.inheritance_dict) and
               (node_name not in self.ignore) and
               (node_name + plug_name not in self.ignore)):
-            values = {}
-            for key, i_value in inputs.items():
-                paths = []
-                if isinstance(i_value, list):
-                    for val in i_value:
-                        if isinstance(val, str):
-                            paths.append(val)
-                elif isinstance(i_value, str):
-                    paths.append(i_value)
-                for path in paths:
-                    if os.path.exists(path):
-                        name, extension = os.path.splitext(path)
-                        if extension == ".nii":
-                            values[key] = name + extension
-            if len(values) >= 1:
-                #if self.inheritance_dict is None:
-                    #self.inheritance_dict = {}
-                if len(values) == 1:
-                    value = values[list(values.keys(
-                    ))[0]]
+            process = node
+            if isinstance(process, ProcessNode):
+                process = process.process
+            auto_inheritance_dict = getattr(process, 'auto_inheritance_dict',
+                                            {})
+            values = auto_inheritance_dict.get(plug_name, {})
+            if len(values) >= 2:
+                if node_name in self.key:
+                    value = values[self.key[node_name]]
+                    self.inheritance_dict[old_value] = value
+                elif node_name + plug_name in self.key:
+                    value = values[self.key[node_name + plug_name]]
                     self.inheritance_dict[old_value] = value
                 else:
-                    if node_name in self.key:
-                        value = values[self.key[node_name]]
-                        self.inheritance_dict[old_value] = value
-                    elif node_name + plug_name in self.key:
-                        value = values[self.key[node_name + plug_name]]
-                        self.inheritance_dict[old_value] = value
-                    else:
-                        pop_up = PopUpInheritanceDict(
-                          values, full_name, plug_name,
-                          self.iterationTable.check_box_iterate.isChecked())
-                        pop_up.exec()
-                        self.ignore_node = pop_up.everything
-                        if pop_up.ignore:
-                            self.inheritance_dict = None
-                            if pop_up.all is True:
-                                self.ignore[node_name] = True
-                            else:
-                                self.ignore[node_name+plug_name] = True
+                    pop_up = PopUpInheritanceDict(
+                      values, full_name, plug_name,
+                      self.iterationTable.check_box_iterate.isChecked())
+                    pop_up.exec()
+                    self.ignore_node = pop_up.everything
+                    if pop_up.ignore:
+                        self.inheritance_dict = None
+                        if pop_up.all is True:
+                            self.ignore[node_name] = True
                         else:
-                            value = pop_up.value
-                            if pop_up.all is True:
-                                self.key[node_name] = pop_up.key
-                            else:
-                                self.key[node_name+plug_name] = pop_up.key
-                            self.inheritance_dict[old_value] = value
+                            self.ignore[node_name+plug_name] = True
+                    else:
+                        value = pop_up.value
+                        if pop_up.all is True:
+                            self.key[node_name] = pop_up.key
+                        else:
+                            self.key[node_name+plug_name] = pop_up.key
+                        self.inheritance_dict[old_value] = value
 
         # Adding inherited tags
         if self.inheritance_dict and old_value in self.inheritance_dict:
@@ -656,6 +641,8 @@ class PipelineManagerTab(QWidget):
         completion = ProcessCompletionEngine.get_completion_engine(pipeline)
         if completion:
             attributes = completion.get_attribute_values()
+            print('attributes for', pipeline.name)
+            print(attributes.export_to_dict())
             completion.complete_parameters()
 
     def _register_node_io_in_database(self, node, pipeline_name=''):
@@ -673,11 +660,11 @@ class PipelineManagerTab(QWidget):
         else:
             outputs = {
                 param: node.get_plug_value(param)
-                for param, trait in node.user_traits()
+                for param, trait in node.user_traits().items()
                 if trait.output}
             inputs = {
                 param: node.get_plug_value(param)
-                for param, trait in node.user_traits()
+                for param, trait in node.user_traits().items()
                 if not trait.output}
 
         # Adding I/O to database history
@@ -817,6 +804,8 @@ class PipelineManagerTab(QWidget):
             init_result = False
 
         if init_result:
+            import time
+            t0 = time.time()
             # add process characteristics in  the database
             # if init is otherwise OK
 
@@ -834,6 +823,11 @@ class PipelineManagerTab(QWidget):
                 node_name, node = nodes_list.pop(0)
                 if hasattr(node, 'process'):
                     process = node.process
+                    if hasattr(process, 'auto_inheritance_dict'):
+                        inheritance_dict.update(
+                          {k: v
+                           for k, v in process.auto_inheritance_dict.items()
+                           if k not in inheritance_dict})
                     if hasattr(process, 'inheritance_dict'):
                         # collect inheritance_dict from all nodes
                         inheritance_dict.update(process.inheritance_dict)
@@ -864,6 +858,7 @@ class PipelineManagerTab(QWidget):
                      BRICK_EXEC: "Not Done"})
 
                 self._register_node_io_in_database(node, pipeline_name)
+            print('init time:', time.time() - t0)
 
         self.project.saveModifications()
 
