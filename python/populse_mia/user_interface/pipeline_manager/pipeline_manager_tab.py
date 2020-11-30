@@ -45,11 +45,13 @@ from populse_mia.software_properties import Config
 
 # Capsul imports
 from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
-                        PipelineNode, ProcessNode, StudyConfig, Switch)
+                        PipelineNode, ProcessNode, StudyConfig, Switch,
+                        Process)
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                                          PipelineDevelopperView)
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
+from capsul.attributes.completion_engine import ProcessCompletionEngine
 import soma_workflow.constants as swconstants
 from soma.controller.trait_utils import is_file_trait
 
@@ -272,7 +274,8 @@ class PipelineManagerTab(QWidget):
         self.find_process(name_item)
 
     def add_plug_value_to_database(self, p_value, brick_id, node_name,
-                                   plug_name, full_name, node, trait):
+                                   plug_name, full_name, node, trait, inputs,
+                                   attributes):
         """Add the plug value to the database.
 
         Parameters
@@ -293,6 +296,11 @@ class PipelineManagerTab(QWidget):
         trait: Trait
             handler of the plug trait, or sub-trait if the plug is a list.
             It will be used to check the value type (file or not)
+        inputs: dict
+            input values for the process/node
+        attributes: dict
+            attributes set coming from Capsul completion engine to be set on
+            all outputs of the node
         """
 
         if isinstance(p_value, (list, TraitListObject)):
@@ -341,51 +349,151 @@ class PipelineManagerTab(QWidget):
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
         ptype = TYPE_UNKNOWN
-        if file_extension == ".nii":
+        if file_extension in (".nii", ".gz"):  # FIXME .gz is not enough
             ptype = TYPE_NII
         elif file_extension == ".mat":
             ptype = TYPE_MAT
         elif file_extension == ".txt":
             ptype = TYPE_TXT
 
-        self.project.session.set_values(
-            COLLECTION_CURRENT, p_value,
-            {TAG_TYPE: ptype,
-             TAG_BRICKS: bricks})
-        self.project.session.set_values(
-            COLLECTION_INITIAL, p_value,
-            {TAG_TYPE: ptype,
-             TAG_BRICKS: bricks})
+        # determine which value the output should inherit its database tags
+        # from.
+        # Each process may have an "inheritance_dict" (prepared using
+        # list_outputs() during completion, if it has this method).
+        # If not, or if the parameter value is not found there, we also have
+        # an "auto_inheritance_dict" which automatically maps outputs to
+        # inputs. If there is no ambiguity, we can process automatically.
 
-        inputs = self.inputs
-        # Automatically fill inheritance dictionary if empty
-        if self.ignore_node:
-            pass
-        elif ((self.inheritance_dict is None or old_value not in
-                self.inheritance_dict) and
-              (node_name not in self.ignore) and
-              (node_name + plug_name not in self.ignore)):
-            process = node
-            if isinstance(process, ProcessNode):
-                process = process.process
-            auto_inheritance_dict = getattr(process, 'auto_inheritance_dict',
-                                            {})
-            values = auto_inheritance_dict.get(plug_name, {})
-            if len(values) >= 2:
+        process = node
+        if isinstance(process, ProcessNode):
+            process = process.process
+        inheritance_dict = getattr(process, 'inheritance_dict', {})
+        auto_inheritance_dict = getattr(process, 'auto_inheritance_dict', {})
+
+        parent_files = inheritance_dict.get(old_value)
+        own_tags = None
+
+        # the dicts may have several shapes. Keys are output filenames
+        # Values may be
+        # - an input filenme: get the tags from it
+        # - in inheritance_dict only: a dict
+        #   {   'parent': input_filename,
+        #       'own_tags': dict of additional forceed tags}
+        # - in auto_inheritance_dict only: a dict
+        #   {   'param_name': input_filename, ... }
+        #   when there are ambiguities
+
+        if isinstance(parent_files, dict):
+            own_tags = parent_files['own_tags']
+            parent_files = {None: parent_files['parent']}
+        elif isinstance(parent_files, str):
+            parent_files = {None: parent_files}
+
+        if parent_files is None:
+            parent_files = auto_inheritance_dict.get(old_value, {})
+            if isinstance(parent_files, str):
+                parent_files = {None: parent_files}
+
+        db_dir = os.path.join(os.path.abspath(os.path.normpath(
+            self.project.folder)), '')
+
+        field_names = self.project.session.get_fields_names(
+            COLLECTION_CURRENT)
+
+        all_cvalues = {}
+        all_ivalues = {}
+
+        # get all tags values for inputs
+
+        for param, parent_file in parent_files.items():
+
+            database_parent_file = None
+
+            relfile = os.path.abspath(os.path.normpath(parent_file))[
+                len(db_dir):]
+
+            scan = self.project.session.get_document(
+                COLLECTION_CURRENT, relfile)
+
+            if scan:
+                database_parent_file = scan
+
+                banished_tags = set([TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
+                                TAG_CHECKSUM, TAG_FILENAME])
+
+                cvalues = {field: getattr(scan, field)
+                           for field in field_names
+                           if field not in banished_tags}
+                iscan = self.project.session.get_document(
+                    COLLECTION_INITIAL, relfile)
+                ivalues = {field: getattr(iscan, field) for field in cvalues}
+
+                all_cvalues[param] = cvalues
+                all_ivalues[param] = ivalues
+
+        # If there are several possible inputs: there is more work
+        if (not self.ignore_node and len(all_cvalues) >= 2 and
+                (node_name not in self.ignore) and
+                (node_name + plug_name not in self.ignore)):
+
+            # if all inputs have the same tags set: then pick either of them,
+            # they are all the same, there is no ambiguity
+            eq = True
+            first = None
+            for param, cvalues in all_cvalues.items():
+                if first is None:
+                    first = cvalues
+                else:
+                    eq = (cvalues == first)
+                    if not eq:
+                        break
+            if eq:
+                first = None
+                for param, ivalues in all_ivalues.items():
+                    if first is None:
+                        first = ivalues
+                    else:
+                        eq = (ivalues == first)
+                        if not eq:
+                            break
+            if eq:
+                # all values equal, no ambiguity
+                k, v = next(iter(all_cvalues.items()))
+                all_cvalues = {k: v}
+                k, v = next(iter(all_ivalues.items()))
+                all_ivalues = {k: v}
+
+            else:
+
+                # ambiguous inputs -> output
+                # ask the user, or use previously setup answers.
+
+                # FIXME:
+                # There is a GUI dialog here, involving user interaction.
+                # This should probably be avoided here in a processing loop.
+                # Some pipelines, especially with iterations, may ask many many
+                # questions to users. These should be worked on earlier.
+
                 if node_name in self.key:
-                    value = values[self.key[node_name]]
-                    self.inheritance_dict[old_value] = value
+                    param = self.key[node_name]
+                    value = parent_files[param]
+                    inheritance_dict[old_value] = value
+                    all_cvalues = {param: all_cvalues[param]}
+                    all_ivalues = {param: all_ivalues[param]}
                 elif node_name + plug_name in self.key:
-                    value = values[self.key[node_name + plug_name]]
-                    self.inheritance_dict[old_value] = value
+                    param = self.key[node_name + plug_name]
+                    value = parent_files[param]
+                    inheritance_dict[old_value] = value
+                    all_cvalues = {param: all_cvalues[param]}
+                    all_ivalues = {param: all_ivalues[param]}
                 else:
                     pop_up = PopUpInheritanceDict(
-                      values, full_name, plug_name,
+                      parent_files, full_name, plug_name,
                       self.iterationTable.check_box_iterate.isChecked())
                     pop_up.exec()
                     self.ignore_node = pop_up.everything
                     if pop_up.ignore:
-                        self.inheritance_dict = None
+                        inheritance_dict = None
                         if pop_up.all is True:
                             self.ignore[node_name] = True
                         else:
@@ -396,84 +504,66 @@ class PipelineManagerTab(QWidget):
                             self.key[node_name] = pop_up.key
                         else:
                             self.key[node_name+plug_name] = pop_up.key
-                        self.inheritance_dict[old_value] = value
+                        inheritance_dict[old_value] = value
+                        all_cvalues = {pop_up.key: all_cvalues[pop_up.key]}
+                        all_ivalues = {pop_up.key: all_ivalues[pop_up.key]}
+
+        cvalues = {TAG_TYPE: ptype,
+                   TAG_BRICKS: bricks}
+        ivalues = {TAG_TYPE: ptype,
+                   TAG_BRICKS: bricks}
+
+        # from here if we still have several tags sets, we do not assign them
+        # at all. Otherwise, set them.
 
         # Adding inherited tags
-        if self.inheritance_dict and old_value in self.inheritance_dict:
-            database_parent_file = None
+        if len(all_cvalues) == 1:
+            ivalues.update(next(iter(all_ivalues.values())))
+            cvalues.update(next(iter(all_cvalues.values())))
 
-            if not isinstance(self.inheritance_dict[old_value], dict):
-                parent_file = self.inheritance_dict[old_value]
-                own_tags = None
+        # use also completion attributes values
+        cvalues.update({k: v for k, v in attributes.items()
+                        if k in field_names})
+        ivalues.update({k: v for k, v in attributes.items()
+                        if k in field_names})
 
-            else:
-                parent_file = self.inheritance_dict[old_value]['parent']
-                own_tags = self.inheritance_dict[old_value]['own_tags']
+        if own_tags:
 
-            for scan in self.project.session.get_documents_names(
-                    COLLECTION_CURRENT):
+            # own_tags may insert new fields in the database
+            for tag_to_add in own_tags:
 
-                if scan in str(parent_file):
-                    database_parent_file = scan
-
-            banished_tags = [TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
-                             TAG_CHECKSUM, TAG_FILENAME]
-
-            ivalues = {}
-            cvalues = {}
-
-            for tag in self.project.session.get_fields_names(
-                    COLLECTION_CURRENT):
-
-                if tag not in banished_tags and database_parent_file:
-                    parent_current_value = self.project.session.get_value(
-                        COLLECTION_CURRENT, database_parent_file, tag)
-                    cvalues[tag] = parent_current_value
-                    parent_initial_value = self.project.session.get_value(
-                        COLLECTION_INITIAL, database_parent_file, tag)
-                    ivalues[tag] = parent_initial_value
-
-            if own_tags:
-
-                values = {}
-                for tag_to_add in own_tags:
-
-                    if (tag_to_add['name'] not in
-                          (self.project.session.
-                             get_fields_names)(COLLECTION_CURRENT)):
-                        (self.project.session.
-                                     add_field)(COLLECTION_CURRENT,
-                                                tag_to_add['name'],
-                                                tag_to_add['field_type'],
-                                                tag_to_add['description'],
-                                                tag_to_add['visibility'],
-                                                tag_to_add['origin'],
-                                                tag_to_add['unit'],
-                                                tag_to_add['default_value'])
+                if tag_to_add['name'] not in field_names:
+                    (self.project.session.
+                                  add_field)(COLLECTION_CURRENT,
+                                            tag_to_add['name'],
+                                            tag_to_add['field_type'],
+                                            tag_to_add['description'],
+                                            tag_to_add['visibility'],
+                                            tag_to_add['origin'],
+                                            tag_to_add['unit'],
+                                            tag_to_add['default_value'])
 
 
-                    if (tag_to_add['name'] not in
-                          (self.project.session.
-                             get_fields_names)(COLLECTION_INITIAL)):
-                        (self.project.session.
-                                     add_field)(COLLECTION_INITIAL,
-                                                tag_to_add['name'],
-                                                tag_to_add['field_type'],
-                                                tag_to_add['description'],
-                                                tag_to_add['visibility'],
-                                                tag_to_add['origin'],
-                                                tag_to_add['unit'],
-                                                tag_to_add['default_value'])
+                if (tag_to_add['name'] not in
+                      (self.project.session.
+                          get_fields_names)(COLLECTION_INITIAL)):
+                    (self.project.session.
+                                  add_field)(COLLECTION_INITIAL,
+                                            tag_to_add['name'],
+                                            tag_to_add['field_type'],
+                                            tag_to_add['description'],
+                                            tag_to_add['visibility'],
+                                            tag_to_add['origin'],
+                                            tag_to_add['unit'],
+                                            tag_to_add['default_value'])
 
-                    cvalues[tag_to_add['name']] = tag_to_add['value']
-                    ivalues[tag_to_add['name']] = tag_to_add['value']
+                cvalues[tag_to_add['name']] = tag_to_add['value']
+                ivalues[tag_to_add['name']] = tag_to_add['value']
 
-            if cvalues:
-                self.project.session.set_values(
-                    COLLECTION_CURRENT, p_value, cvalues)
-            if ivalues:
-                self.project.session.set_values(
-                    COLLECTION_INITIAL, p_value, ivalues)
+        self.project.session.set_values(
+            COLLECTION_CURRENT, p_value, cvalues)
+        self.project.session.set_values(
+            COLLECTION_INITIAL, p_value, ivalues)
 
     def add_process_to_preview(self, class_process, node_name=None):
         """Add a process to the pipeline.
@@ -632,7 +722,6 @@ class PipelineManagerTab(QWidget):
         This engine works using a set of attributes which can be retreived from
         the database.
         """
-        from capsul.attributes.completion_engine import ProcessCompletionEngine
 
         # get a working / configured CapsulEngine
         engine = self.get_capsul_engine()
@@ -641,13 +730,17 @@ class PipelineManagerTab(QWidget):
         completion = ProcessCompletionEngine.get_completion_engine(pipeline)
         if completion:
             attributes = completion.get_attribute_values()
-            print('attributes for', pipeline.name)
-            print(attributes.export_to_dict())
             completion.complete_parameters()
 
     def _register_node_io_in_database(self, node, pipeline_name=''):
+        if isinstance(node, (PipelineNode, Pipeline)):
+            # only leaf processes produce output data
+            return
+
+        process = node
         if isinstance(node, ProcessNode):
             process = node.process
+        if isinstance(process, Process):
             inputs = process.get_inputs()
             outputs = process.get_outputs()
             # ProcessMIA / Process_Mia specific
@@ -667,8 +760,13 @@ class PipelineManagerTab(QWidget):
                 for param, trait in node.user_traits().items()
                 if not trait.output}
 
+        # also get completion attributes
+        attributes = {}
+        completion = ProcessCompletionEngine.get_completion_engine(node)
+        if completion:
+            attributes = completion.get_attribute_values().export_to_dict()
+
         # Adding I/O to database history
-        self.inputs = inputs  # used during add_plug_value_to_database()
 
         for key in inputs:
 
@@ -691,7 +789,7 @@ class PipelineManagerTab(QWidget):
 
         for plug_name, plug_value in outputs.items():
 
-            if plug_name not in node.plugs.keys():
+            if plug_name not in process.traits():
                 continue
 
             if plug_value != "<undefined>":
@@ -704,14 +802,16 @@ class PipelineManagerTab(QWidget):
                     else:
                         full_name = node_name
 
-                    trait = node.get_trait(plug_name)
+                    trait = process.trait(plug_name)
                     self.add_plug_value_to_database(plug_value,
                                                     self.brick_id,
                                                     node_name,
                                                     plug_name,
                                                     full_name,
                                                     node,
-                                                    trait)
+                                                    trait,
+                                                    inputs,
+                                                    attributes)
 
         # Adding I/O to database history
         # Setting brick init state if init finished correctly
@@ -720,6 +820,51 @@ class PipelineManagerTab(QWidget):
             {BRICK_INPUTS: inputs,
              BRICK_OUTPUTS: outputs,
              BRICK_INIT: "Done"})
+
+    def register_completion_attributes(self, pipeline):
+        # get a working / configured CapsulEngine
+        engine = self.get_capsul_engine()
+        completion = ProcessCompletionEngine.get_completion_engine(
+            pipeline)
+        if not completion:
+            return
+
+        attributes = completion.get_attribute_values().export_to_dict()
+        if not attributes:
+            return
+
+        proj_dir = os.path.join(os.path.abspath(os.path.normpath(
+            self.project.folder)), '')
+        pl = len(proj_dir)
+
+        tag_list = set(self.project.session.get_fields_names(
+            COLLECTION_CURRENT))
+        attributes = {k: v for k, v in attributes.items()
+                      if k in tag_list}
+        if not attributes:
+            return
+
+        for param in pipeline.user_traits():
+            value = getattr(pipeline, param)
+            todo = []
+            values = []
+            todo = [value]
+            while todo:
+                item = todo.pop(0)
+                if isinstance(item, list):
+                    todo += item
+                elif isinstance(item, str):
+                    apath = os.path.abspath(os.path.normpath(item))
+                    if apath.startswith(proj_dir):
+                        values.append(apath[pl:])
+            for value in values:
+                try:
+                    self.project.session.set_values(
+                        COLLECTION_CURRENT, value, attributes)
+                    self.project.session.set_values(
+                        COLLECTION_INITIAL, value, attributes)
+                except ValueError:
+                    pass  # outputs not used / inactivated
 
     def init_pipeline(self, pipeline=None, pipeline_name=""):
         """
@@ -748,6 +893,9 @@ class PipelineManagerTab(QWidget):
         # I'm sorry I am writing another code for that.
 
         print('init pipeline...')
+        import time
+        t0 = time.time()
+
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
         self.main_window.statusBar().showMessage(
@@ -769,6 +917,7 @@ class PipelineManagerTab(QWidget):
         # complete config for completion
         study_config = pipeline.get_study_config()
         study_config.project = self.project
+        self.project.process_order = []
 
         # Capsul parameters completion
         print('Completion...')
@@ -804,61 +953,58 @@ class PipelineManagerTab(QWidget):
             init_result = False
 
         if init_result:
-            import time
-            t0 = time.time()
             # add process characteristics in  the database
             # if init is otherwise OK
 
-            nodes_list = [n for n in pipeline.nodes.items()
-                          if n[0] != ''
-                              and pipeline_tools.is_node_enabled(
-                                  pipeline, n[0], n[1])]
+            #nodes_list = [n for n in pipeline.nodes.items()
+                          #if n[0] != ''
+                              #and pipeline_tools.is_node_enabled(
+                                  #pipeline, n[0], n[1])]
+
+            from capsul.attributes.completion_engine \
+                import ProcessCompletionEngine
 
             inheritance_dict = {}
 
-            # all_nodes doesn't record pipeline nodes, only leaf processes
-            all_nodes = [node for node in nodes_list
-                         if not isinstance(node[1], PipelineNode)]
-            while nodes_list:
-                node_name, node = nodes_list.pop(0)
+            for node in self.project.process_order:
+                process = node
+                if isinstance(node, ProcessNode):
+                    process = node.process
+                node_name = getattr(process, 'context_name', node.name)
+
+                self.update_auto_inheritance(node)
+
+                inheritance_dict = {}  # FIXME temp ?
+
+                process = node
                 if hasattr(node, 'process'):
                     process = node.process
-                    if hasattr(process, 'auto_inheritance_dict'):
-                        inheritance_dict.update(
-                          {k: v
-                           for k, v in process.auto_inheritance_dict.items()
-                           if k not in inheritance_dict})
-                    if hasattr(process, 'inheritance_dict'):
-                        # collect inheritance_dict from all nodes
-                        inheritance_dict.update(process.inheritance_dict)
+                if hasattr(process, 'auto_inheritance_dict'):
+                    inheritance_dict.update(
+                      {k: v
+                        for k, v in process.auto_inheritance_dict.items()
+                        if k not in inheritance_dict})
+                if hasattr(process, 'inheritance_dict'):
+                    inheritance_dict.update(process.inheritance_dict)
 
-                    if isinstance(node, PipelineNode):
-                        new_nodes = [
-                            n for n in process.nodes.items()
-                            if n[0] != ''
-                                and pipeline_tools.is_node_enabled(
-                                    process, n[0], n[1])]
-                        nodes_list += new_nodes
-                    else:
-                        all_nodes.append((node_name, node))
-
-            self.inheritance_dict = inheritance_dict
-
-            for node_name, node in all_nodes:
                 # Adding the brick to the bricks history
-                self.brick_id = str(uuid.uuid4())
-                self.brick_list.append(self.brick_id)
-                self.project.session.add_document(COLLECTION_BRICK,
-                                                  self.brick_id)
-                self.project.session.set_values(
-                    COLLECTION_BRICK, self.brick_id,
-                    {BRICK_NAME: node_name,
-                     BRICK_INIT_TIME: datetime.datetime.now(),
-                     BRICK_INIT: "Not Done",
-                     BRICK_EXEC: "Not Done"})
+                if not isinstance(node, (PipelineNode, Pipeline)):
+                    self.brick_id = str(uuid.uuid4())
+                    self.brick_list.append(self.brick_id)
+                    self.project.session.add_document(COLLECTION_BRICK,
+                                                      self.brick_id)
+                    self.project.session.set_values(
+                        COLLECTION_BRICK, self.brick_id,
+                        {BRICK_NAME: node_name,
+                        BRICK_INIT_TIME: datetime.datetime.now(),
+                        BRICK_INIT: "Not Done",
+                        BRICK_EXEC: "Not Done"})
 
-                self._register_node_io_in_database(node, pipeline_name)
-            print('init time:', time.time() - t0)
+                    self._register_node_io_in_database(node, pipeline_name)
+
+        self.register_completion_attributes(pipeline)
+
+        print('init time:', time.time() - t0)
 
         self.project.saveModifications()
 
@@ -1009,6 +1155,127 @@ class PipelineManagerTab(QWidget):
         self.pipelineEditorTabs.update_current_node()
 
         QApplication.instance().restoreOverrideCursor()
+
+    def update_auto_inheritance(self, node):
+
+        # print('update_auto_inheritance:', node.name)
+
+        process = node
+        if isinstance(process, ProcessNode):
+            process = process.process
+
+        if not isinstance(process, Process) or isinstance(process, Pipeline):
+            # keep only leaf processes that actually produce outputs
+            return
+
+        if hasattr(process, 'auto_inheritance_dict'):
+            del process.auto_inheritance_dict
+
+        if not hasattr(process, 'get_study_config'):
+            return
+        study_config = process.get_study_config()
+
+        project = getattr(study_config, 'project', None)
+        if not project:
+            # no databasing, nothing to be done.
+            return
+
+        proj_dir = os.path.join(
+            os.path.abspath(os.path.normpath(project.folder)), '')
+        pl = len(proj_dir)
+
+        if isinstance(process, Process):
+            inputs = process.get_inputs()
+            outputs = process.get_outputs()
+            # ProcessMIA / Process_Mia specific
+            if hasattr(process, 'list_outputs') \
+                    and hasattr(process, 'outputs'):
+                # normally same as outputs, but it may contain an additional
+                # "notInDb" key.
+                outputs.update(process.outputs)
+
+        else:
+            outputs = {
+                param: node.get_plug_value(param)
+                for param, trait in process.user_traits().items()
+                if trait.output}
+            inputs = {
+                param: node.get_plug_value(param)
+                for param, trait in process.user_traits().items()
+                if not trait.output}
+
+        # if the process has a single input with a value in the database,
+        # then we can deduce its output database tags/attributes from it
+
+        values = {}
+        for key, value in inputs.items():
+
+            trait = process.trait(key)
+            if not is_file_trait(trait):
+                continue
+
+            paths = []
+            if isinstance(value, list):
+                for val in value:
+                    if isinstance(val, str):
+                        paths.append(val)
+            elif isinstance(value, str):
+                paths.append(value)
+            for path in paths:
+                path = os.path.abspath(os.path.normpath(path))
+                if path.startswith(proj_dir):
+                    rpath = path[pl:]
+                    if project.session.has_document(COLLECTION_CURRENT, rpath):
+                        # we'd better use rpath, but inheritance_dict
+                        # is using full paths.
+                        values[key] = path
+                        break
+                        # TODO what if several path values are valid ?
+
+        if len(values) == 0:
+            # zero inputs are registered in the database: we cannot
+            # infer outputs tags automatically. OK we leave.
+            return
+        elif len(values) == 1:
+            main_param = next(iter(values.keys()))
+            main_value = values[main_param]
+        else:
+            # several inputs are registered in the database: we cannot
+            # infer outputs tags automatically too, but we mark the ambiguity
+            # to ask the user later
+            main_value = values
+
+        notInDb = set(outputs.get('notInDb', []))
+
+        auto_inheritance_dict = {}
+
+        for plug_name, plug_value in outputs.items():
+
+            if plug_name in notInDb:
+                continue
+
+            trait = process.trait(plug_name)
+            if not trait or not is_file_trait(trait):
+                continue
+
+            plug_values = set()
+            todo = [plug_value]
+            while todo:
+                value = todo.pop(0)
+                if isinstance(value, list):
+                    todo += value
+                elif isinstance(value, str):
+                    path = os.path.abspath(os.path.normpath(value))
+                    if path.startswith(proj_dir):
+                        #rpath = path[pl:]
+                        plug_values.add(value)
+
+            for value in plug_values:
+                auto_inheritance_dict[value] = main_value
+
+        if auto_inheritance_dict:
+            process.auto_inheritance_dict = auto_inheritance_dict
+            # print('auto_inheritance_dict for', node.name, ':', auto_inheritance_dict)
 
     def layout_view(self):
         """Initialize layout for the pipeline manager tab"""

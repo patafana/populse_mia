@@ -197,7 +197,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
     def complete_parameters(self, process_inputs={}):
 
-        print('complete_parameters', self.process.name)
         self.completion_progress = self.fallback_engine.completion_progress
         self.completion_progress_total \
             = self.fallback_engine.completion_progress_total
@@ -212,6 +211,18 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         # nipype special case -- output_directory is set from MIA project
         if isinstance(in_process, NipypeProcess):
             self.complete_nipype_common(in_process)
+
+        project = self.get_project(in_process)
+        if project is not None:
+            # record completion order to perform 2nd pass tags recording and
+            # indexation
+            if not hasattr(project, 'process_order'):
+                project.process_order = []
+            node = self.process
+            if isinstance(node, Pipeline):
+                node = node.pipeline_node
+            from capsul.pipeline.pipeline_nodes import Node
+            project.process_order.append(node)
 
         if not isinstance(in_process, ProcessMIA):
 
@@ -230,13 +241,15 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             self.complete_parameters_mia()
             self.completion_progress = self.completion_progress_total
 
-        print('completion done for', self.process.name)
-        # handle automatic inheritance when missing
-        try:
-            self.update_auto_inheritance()
-        except Exception as e:
-            print('EXCEPTION:', e)
-        print('auto-inheritance done for', self.process.name)
+    @staticmethod
+    def get_project(process):
+        project = None
+        if isinstance(process, ProcessNode):
+            process = process.process
+        if hasattr(process, 'get_study_config'):
+            study_config = process.get_study_config()
+            project = getattr(study_config, 'project', None)
+        return project
 
     @staticmethod
     def complete_nipype_common(process):
@@ -340,7 +353,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         fields = project.session.get_fields_names(COLLECTION_CURRENT)
         pfields = [field for field in fields if attributes.trait(field)]
-        #print('pfields:', pfields)
         if not pfields:
             return attributes
 
@@ -357,23 +369,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             else:
                 par_values = [par_value]
 
-            #editable_fixed = attributes.parameter_attributes.get(param,
-                                                                 #([], {}))
-            #editable_attributes, fixed_attibute_values = editable_fixed
-            #fieldsea = {}
-            #pfields = []
-            #print('editable_attributes', param, editable_attributes)
-            #for ea in editable_attributes:
-                #print(list(ea.user_traits().keys()))
-                #eafields = [field for field in fields
-                            #if field in ea.user_traits()
-                                #and field not in pfields]
-                #fieldsea.update({field: ea for field in eafields})
-                #pfields + eafields
-            #print('pfields:', pfields)
-            #if not pfields:
-                #continue
-
             fvalues = [[] for field in pfields]
             for value in par_values:
                 if not isinstance(value, str):
@@ -388,8 +383,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     COLLECTION_CURRENT, rel_value, fields=pfields,
                     as_list=True)
                 if document:
-                    print('FOUND', param, document)
-                    #attributes.set_parameter_attributes(param, document)
                     for fvalue, dvalue in zip(fvalues, document):
                       fvalue.append(dvalue if dvalue is not None else '')
                 else:
@@ -398,139 +391,17 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             if fvalues[0] and not all([all([x is None for x in y])
                                        for y in fvalues]):
-                print('fvalues:', fvalues)
                 if isinstance(par_value, list):
                     for field, value in zip(pfields, fvalues):
-                        #setattr(ea, field, value)
                         setattr(attributes, field, value)
                 else:
                     for field, value in zip(pfields, fvalues):
-                        #setattr(fieldsea[field], field, value[0])
                         setattr(attributes, field, value[0])
 
         return attributes
 
-    def update_auto_inheritance(self):
-
-        print('update_auto_inheritance:', self.process.name)
-
-        node = self.process
-        process = node
-        if isinstance(process, ProcessNode):
-            process = process.process
-
-        if not isinstance(process, Process) or isinstance(process, Pipeline):
-            # keep only leaf processes that actually produce outputs
-            return
-
-        if hasattr(process, 'auto_inheritance_dict'):
-            del process.auto_inheritance_dict
-
-        if not hasattr(process, 'get_study_config'):
-            return
-        study_config = process.get_study_config()
-
-        project = getattr(study_config, 'project', None)
-        if not project:
-            # no databasing, nothing to be done.
-            return
-
-        proj_dir = os.path.join(
-            os.path.abspath(os.path.normpath(project.folder)), '')
-        pl = len(proj_dir)
-
-        if isinstance(process, Process):
-            inputs = process.get_inputs()
-            outputs = process.get_outputs()
-            # ProcessMIA / Process_Mia specific
-            if hasattr(process, 'list_outputs') \
-                    and hasattr(process, 'outputs'):
-                # normally same as outputs, but it may contain an additional
-                # "notInDb" key.
-                outputs.update(process.outputs)
-
-        else:
-            outputs = {
-                param: node.get_plug_value(param)
-                for param, trait in process.user_traits().items()
-                if trait.output}
-            inputs = {
-                param: node.get_plug_value(param)
-                for param, trait in process.user_traits().items()
-                if not trait.output}
-
-        # if the process has a single input with a value in the database,
-        # then we can deduce its output database tags/attributes from it
-
-        values = {}
-        for key, value in inputs.items():
-
-            trait = process.trait(key)
-            if not is_file_trait(trait):
-                continue
-
-            paths = []
-            if isinstance(value, list):
-                for val in value:
-                    if isinstance(val, str):
-                        paths.append(val)
-            elif isinstance(value, str):
-                paths.append(value)
-            for path in paths:
-                path = os.path.abspath(os.path.normpath(path))
-                if path.startswith(proj_dir):
-                    rpath = path[pl:]
-                    if project.session.has_document(COLLECTION_CURRENT, rpath):
-                        # we'd better use rpath, but inheritance_dict
-                        # is using full paths.
-                        values[key] = path
-                        break
-                        # TODO what if several path values are valid ?
-
-        if len(values) == 0:
-            # zero inputs are registered in the database: we cannot
-            # infer outputs tags automatically. OK we leave.
-            return
-        elif len(values) == 1:
-            main_param = next(iter(values.keys()))
-            main_value = values[main_param]
-        else:
-            # several inputs are registered in the database: we cannot
-            # infer outputs tags automatically too, but we mark the ambiguity
-            # to ask the user later
-            main_value = values
-
-        notInDb = set(outputs.get('notInDb', []))
-
-        auto_inheritance_dict = {}
-
-        for plug_name, plug_value in outputs.items():
-
-            if plug_name in notInDb:
-                continue
-
-            trait = process.trait(plug_name)
-            if not trait or not is_file_trait(trait):
-                continue
-
-            plug_values = set()
-            todo = [plug_value]
-            while todo:
-                value = todo.pop(0)
-                if isinstance(value, list):
-                    todo += value
-                elif isinstance(value, str):
-                    path = os.path.abspath(os.path.normpath(value))
-                    if path.startswith(proj_dir):
-                        #rpath = path[pl:]
-                        plug_values.add(value)
-
-            for value in plug_values:
-                auto_inheritance_dict[value] = main_value
-
-        if auto_inheritance_dict:
-            process.auto_inheritance_dict = auto_inheritance_dict
-            print('auto_inheritance_dict for', node.name, ':', auto_inheritance_dict)
+    def get_attribute_values(self):
+        return self.fallback_engine.get_attribute_values()
 
 class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
     """
