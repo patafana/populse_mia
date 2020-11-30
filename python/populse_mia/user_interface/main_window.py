@@ -491,7 +491,8 @@ class MainWindow(QMainWindow):
                                      '[ExportToMIA] PatientName-StudyName-'
                                      'CreationDate-SeqNumber-Protocol-'
                                      'SequenceName-AcquisitionTime',
-                                     'CloseAfterExport'])
+                                     'CloseAfterExport',
+                                     '[ExportOptions] 00013'])
 
         # 'NoLogExport'if we don't want log export
 
