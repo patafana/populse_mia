@@ -308,7 +308,8 @@ class PipelineManagerTab(QWidget):
             for elt in p_value:
                 self.add_plug_value_to_database(elt, brick_id, node_name,
                                                 plug_name, full_name, node,
-                                                inner_trait)
+                                                inner_trait, inputs,
+                                                attributes)
             return
 
         if not is_file_trait(trait, allow_dir=True) \
