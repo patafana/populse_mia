@@ -163,18 +163,31 @@ from capsul.attributes.completion_engine import (
 
 class MIAProcessCompletionEngine(ProcessCompletionEngine):
     """
-    A specialized :class:`~cpasul.attributes.completion_engine.ProcessCompletionEngine` for
-    :class:`ProcessMIA` instances completion.
+    A specialized
+    :class:`~capsul.attributes.completion_engine.ProcessCompletionEngine` for
+    completion of *all processes* within the Populse_MIA context.
 
-    Such processes use their method :meth:`ProcessMIA.list_outputs` to perform
-    completion from given input parameters. It is currently not based on
-    attributes like in capsul completion.
+    :class:`PopulseMIA` processes instances and :class:NipypeProcess` instances
+    have a special handling.
+
+    :class:`PopulseMIA` processes use their method
+    :meth:`ProcessMIA.list_outputs` to perform completion from given input
+    parameters. It is currently not based on attributes like in capsul
+    completion, but on filenames.
 
     Processes also get their matlab / SPM settings filled in from the config if
-    they need them.
+    they need them (:class:`NipypeProcess` instances).
 
     If the process use it and it is in the study config, their "project"
     parameter is also filled in, as well as the "output_directory" parameter.
+
+    The "normal" Capsul completion system is also complemented using MIA
+    database: attributes from input parameters in the database (called "tags"
+    here in MIA) are added to the completion attributes.
+
+    The MIA project will keep track of completed processes, in the correct
+    completion order, so that other operations can be performed following the
+    same order later after completion.
     """
 
     def __init__(self, process, name, fallback_engine):
@@ -194,6 +207,10 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
     def remove_switch_observer(self, observer=None):
         # reimplemented since it is expectes in switches completion engine
         return self.fallback_engine.remove_switch_observer(observer)
+
+    def get_attribute_values(self):
+        # re-route to underlying fallback engine
+        return self.fallback_engine.get_attribute_values()
 
     def complete_parameters(self, process_inputs={}):
 
@@ -253,6 +270,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
     @staticmethod
     def complete_nipype_common(process):
+        '''
+        Set Nipype parameters for SPM. This is used both on
+        :class:`NipypeProcess` and :class:`ProcessMIA` instances which have the
+        appropriate parameters.
+        '''
 
         # Test for matlab launch
         if process.trait('use_mcr'):
@@ -294,6 +316,12 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 process.mfile = True
 
     def complete_parameters_mia(self, process_inputs={}):
+        '''
+        Completion for :class:`ProcessMIA` instances. This is done using their
+        :meth: `ProcessMIA.list_outputs` method, which fills in output
+        parameters from input values, and sets the internal `inheritance_dict`
+        used after completion for data indexation in MIA.
+        '''
 
         self.set_parameters(process_inputs)
         verbose = False
@@ -334,6 +362,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         MIAProcessCompletionEngine.complete_nipype_common(process)
 
     def complete_attributes_with_database(self, process_inputs={}):
+        '''
+        Augments the Capsul completion system attributes associated with a
+        process. Attributes from the database are queried for input parameters,
+        and added to the completion attributes values, if they match.
+        '''
 
         # re-route to underlying fallback engine
         attributes = self.fallback_engine.get_attribute_values()
@@ -389,6 +422,14 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     for fvalue in fvalues:
                       fvalue.append('')
 
+            # temporarily block attributes change notification in order to
+            # avoid triggering another completion while we are already in this
+            # process.
+            completion_ongoing_f = self.fallback_engine.completion_ongoing
+            self.fallback_engine.completion_ongoing = True
+            completion_ongoing = self.completion_ongoing
+            self.completion_ongoing = True
+
             if fvalues[0] and not all([all([x is None for x in y])
                                        for y in fvalues]):
                 if isinstance(par_value, list):
@@ -398,14 +439,16 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     for field, value in zip(pfields, fvalues):
                         setattr(attributes, field, value[0])
 
+            # restore notification
+            self.fallback_engine.completion_ongoing = completion_ongoing_f
+            self.completion_ongoing = completion_ongoing
+
         return attributes
 
-    def get_attribute_values(self):
-        return self.fallback_engine.get_attribute_values()
 
 class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
     """
-    Completion engine factory specialization for ProcessMIA process instances.
+    Completion engine factory specialization for Popules MIA context.
     Its ``factory_id`` is "mia_completion".
 
     This factory is activated in the
@@ -416,8 +459,10 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
             + ['populse_mia.user_interface.pipeline_manager.process_mia']
         study_config.process_completion =  'mia_completion'
 
-    Once this is done, the completion system will be activated for all process,
-    and use differently all MIA processes and nipype processes.
+    Once this is done, the completion system will be activated for all
+    processes, and use differently all MIA processes and nipype processes. For
+    regular processes, additional database operations will be performed, then
+    the underlying completion system will be called (FOM or other).
     """
 
     factory_id = 'mia_completion'

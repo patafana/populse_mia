@@ -348,8 +348,11 @@ class PipelineManagerTab(QWidget):
         bricks.append(brick_id)
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
+        if file_extension == '.gz':
+            filename, file_extension = os.path.splitext(filename)
         ptype = TYPE_UNKNOWN
-        if file_extension in (".nii", ".gz"):  # FIXME .gz is not enough
+        if file_extension in (".nii", ".mnc", ".ima", ".img"):
+            # (not all nifti but all volumes, image "scans")
             ptype = TYPE_NII
         elif file_extension == ".mat":
             ptype = TYPE_MAT
@@ -956,16 +959,6 @@ class PipelineManagerTab(QWidget):
             # add process characteristics in  the database
             # if init is otherwise OK
 
-            #nodes_list = [n for n in pipeline.nodes.items()
-                          #if n[0] != ''
-                              #and pipeline_tools.is_node_enabled(
-                                  #pipeline, n[0], n[1])]
-
-            from capsul.attributes.completion_engine \
-                import ProcessCompletionEngine
-
-            inheritance_dict = {}
-
             for node in self.project.process_order:
                 process = node
                 if isinstance(node, ProcessNode):
@@ -973,19 +966,6 @@ class PipelineManagerTab(QWidget):
                 node_name = getattr(process, 'context_name', node.name)
 
                 self.update_auto_inheritance(node)
-
-                inheritance_dict = {}  # FIXME temp ?
-
-                process = node
-                if hasattr(node, 'process'):
-                    process = node.process
-                if hasattr(process, 'auto_inheritance_dict'):
-                    inheritance_dict.update(
-                      {k: v
-                        for k, v in process.auto_inheritance_dict.items()
-                        if k not in inheritance_dict})
-                if hasattr(process, 'inheritance_dict'):
-                    inheritance_dict.update(process.inheritance_dict)
 
                 # Adding the brick to the bricks history
                 if not isinstance(node, (PipelineNode, Pipeline)):
@@ -1157,6 +1137,42 @@ class PipelineManagerTab(QWidget):
         QApplication.instance().restoreOverrideCursor()
 
     def update_auto_inheritance(self, node):
+        '''
+        Try (as best as possible) to assign output parameters to input ones,
+        to get database tags for them.
+
+        When a node has only one input with a value (filename) in the database,
+        then output filenames are considered to inherit from it.
+        When several input parameters have values in the database, then if they
+        are all equal, we can fallback to the first case.
+        When values are different, and have different database tags, then the
+        ambiguity remains, and we keep track of the several possible inputs
+        which can provide tags for outputs.
+
+        The process attribute auto_inheritance_dict is filled with these
+        values. It's a dict with the shape::
+
+            {output_filename: <input_spec>}
+
+        `output_filename` is the relative filename in the database
+
+        `<input_spec>` can be:
+
+        * a string: filename
+        * a dict::
+
+                {input_param: input_filename}
+
+        `auto_inheritance_dict` is built automatically, ans is used as a
+        fallback to :class:`ProcessMIA` `inheritance_dict`, built "manually"
+        (specialized for each process) in the :meth:`ProcessMIA.list_outputs`
+        when the latter does not exist, or does not specify what an output
+        inherits from.
+
+        If ambiguities still subsist, the MIA infrastructure will ask the user
+        how to solve them, which is not very convenient, and error-prone, thus
+        should be avoided.
+        '''
 
         # print('update_auto_inheritance:', node.name)
 
