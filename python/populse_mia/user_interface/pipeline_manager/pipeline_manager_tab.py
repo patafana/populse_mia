@@ -1706,6 +1706,7 @@ class PipelineManagerTab(QWidget):
         outputs = set()
         proj_dir = os.path.join(os.path.abspath(os.path.normpath(
             self.project.folder)), '')
+        lp = len(proj_dir)
 
         def _update_set(outputs, output):
             ''' update the outputs set with file/dir names in output, relative
@@ -1716,10 +1717,10 @@ class PipelineManagerTab(QWidget):
                 if isinstance(output, (list, set, tuple)):
                     todo += output
                 elif isinstance(output, str):
-                    if os.path.abspath(os.path.normpath(output)).startswith(
-                            proj_dir):
-                        output = os.path.abspath(os.path.normpath(output))[
-                            len(proj_dir):]
+                    path = os.path.abspath(os.path.normpath(output))
+                    if path.startswith(proj_dir): # and os.path.exists(path):
+                        # record only existing files
+                        output = path[lp:]
                         outputs.add(output)
 
         for node_name, node in all_nodes:
@@ -1738,8 +1739,8 @@ class PipelineManagerTab(QWidget):
         # couldn't build a working request. Thus for now I bypass it to use the
         # SQL engine underneath. That's bad, and temporary until someone
         # explains me (Denis).
-        primary_key = self.project.session.engine.primary_key(
-            COLLECTION_CURRENT)
+        primary_key = self.project.session.get_collection(
+            COLLECTION_CURRENT).primary_key
         pk_column = self.project.session.engine.field_column[
             COLLECTION_CURRENT][primary_key]
         #filter_query = '{%s} IN ((%s))' \
@@ -1750,19 +1751,78 @@ class PipelineManagerTab(QWidget):
 
         filter_query = '[%s] in (%s)' \
             % (pk_column, ', '.join('?' for output in outputs))
-        scan_bricks = self.project.session.engine._select_documents(
+        scan_bricks = list(self.project.session.engine._select_documents(
             COLLECTION_CURRENT, filter_query, list(outputs),
-            fields=[TAG_BRICKS], as_list=True)
+            fields=[TAG_BRICKS], as_list=True))
         for sbricks in scan_bricks:
-            bricks.update(sbricks[0])
+            if sbricks and sbricks[0] is not None:
+                bricks.update(sbricks[0])
 
-        for brick in bricks:
-            if self.project.session.get_value(COLLECTION_BRICK, brick,
-                                              BRICK_EXEC) == "Not Done":
+        brick_key = self.project.session.get_collection(
+            COLLECTION_BRICK).primary_key
+        brick_column = self.project.session.engine.field_column[
+            COLLECTION_BRICK][brick_key]
+        filter_query = '[%s] in (%s)' \
+            % (brick_column, ', '.join('?' for brick in bricks))
+        bricks_exec = self.project.session.engine._select_documents(
+            COLLECTION_BRICK, filter_query, list(bricks),
+            fields=[BRICK_EXEC], as_list=True)
+
+        bricks_exec = {brid: brexec[0]
+                       for brid, brexec in zip(bricks, bricks_exec)}
+
+        # find out obsolete bricks (which correspond to a done execution for
+        # a file that has been re-written more recently)
+        # this is not a very good criterion. We must have the brick ID marked
+        # somewhere in the real execution (soma-workflow) in order to know for
+        # sure what has re-run or not.
+        used_bricks = {}
+        for output, sbricks in zip(outputs, scan_bricks):
+            sbrick = sbricks[0]
+            if sbrick is not None and len(sbrick) >= 2:
+                recent = [brid for brid in sbrick
+                          if bricks_exec.get(brid) == 'Not Done']
+                if recent and len(recent) != len(sbrick):
+                    self.project.session.set_value(
+                        COLLECTION_CURRENT, output, TAG_BRICKS, recent)
+                    sbricks[0] = recent
+            else:
+                if sbrick is not None:
+                    recent = sbrick
+                else:
+                    recent = []
+            if os.path.exists(os.path.join(proj_dir, output)):
+                used_bricks[output] = recent
+
+        ubricks = set()
+        for sbricks in used_bricks.values():
+            ubricks.update(sbricks)
+
+        # clear obsolete bricks
+        for brick in bricks.difference(ubricks):
+            print('remove obsolete brick:', brick)
+            try:
+                self.project.session.remove_document(COLLECTION_BRICK, brick)
+            except ValueError:
+                pass  # malformed database, the brick doesn't exist
+
+        # clear non-written output files
+        for output in outputs:
+            if output not in used_bricks:
+                print('remove non-existing file:', output)
+                self.project.session.remove_document(COLLECTION_CURRENT,
+                                                     output)
+                self.project.session.remove_document(COLLECTION_INITIAL,
+                                                     output)
+
+        # set Done status on used bricks
+        for brick, brexec in bricks_exec.items():
+            if brexec == 'Not Done' and brick in ubricks:
                 self.project.session.set_values(
                     COLLECTION_BRICK, brick,
                     {BRICK_EXEC: "Done",
                      BRICK_EXEC_TIME: datetime.datetime.now()})
+
         self.project.saveModifications()
 
     def show_status(self):
@@ -2378,8 +2438,8 @@ class RunWorker(QThread):
             while self.status in (swconstants.WORKFLOW_NOT_STARTED,
                                   swconstants.WORKFLOW_IN_PROGRESS):
                 #print(self.status)
+                self.status = engine.wait(exec_id, 1, pipeline)
                 with self.lock:
-                    self.status = engine.wait(exec_id, 1, pipeline)
                     if self.interrupt_request:
                         print('*** INTERRUPT ***')
                         engine.interrupt(exec_id)
@@ -2457,12 +2517,14 @@ class RunWorker(QThread):
             #                                  module
 
             # postprocess each node to index outputs
-            if self.status == swconstants.WORKFLOW_DONE:
-                self.pipeline_manager.postprocess_pipeline_execution(pipeline)
+            # if self.status == swconstants.WORKFLOW_DONE:
+            # do it even in case of failure to get partial outputs and clean
+            # the remainings
+            self.pipeline_manager.postprocess_pipeline_execution(pipeline)
            
         except (OSError, ValueError, Exception) as e:
-            print('\n{0} has not been launched:\n{1}\n'.format(pipeline.name,
-                                                               e))
+            print('\n{0} has not run correctly:\n{1}\n'.format(
+                      pipeline.name, e))
             import traceback
             traceback.print_exc()
 
