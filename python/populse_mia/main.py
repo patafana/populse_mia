@@ -675,7 +675,7 @@ def main():
                if i not in pypath and not any(x in i for x in matches):
                     pypath.append(i)
         pc['path'] = pypath
-        print('changed python conf:', pc)
+        print('\nChanged python conf:', pc)
 
         config.update_capsul_config()
         config.saveConfig()

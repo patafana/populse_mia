@@ -896,7 +896,7 @@ class PipelineManagerTab(QWidget):
         #
         # I'm sorry I am writing another code for that.
 
-        print('init pipeline...')
+        print('- Init pipeline...')
         import time
         t0 = time.time()
 
@@ -926,7 +926,7 @@ class PipelineManagerTab(QWidget):
         # Capsul parameters completion
         print('Completion...')
         self.complete_pipeline_parameters(pipeline)
-        print('completion done.')
+        print('completion done.\n')
 
         # check missing inputs
         missing_inputs = pipeline.get_missing_mandatory_parameters()
@@ -1730,9 +1730,11 @@ class PipelineManagerTab(QWidget):
         bricks = set()
         for scan in self.project.session.get_documents_names(
                 COLLECTION_CURRENT):
-            if scan in outputs:
-                bricks.update(self.project.session.get_value(
-                    COLLECTION_CURRENT, scan, TAG_BRICKS))
+            brickName = self.project.session.get_value(COLLECTION_CURRENT,
+                                                       scan,
+                                                       TAG_BRICKS)
+            if scan in outputs and brickName:
+                bricks.update(brickName)
 
         for brick in bricks:
             if self.project.session.get_value(COLLECTION_BRICK, brick,
