@@ -1714,7 +1714,7 @@ class PipelineManagerTab(QWidget):
                             proj_dir):
                         output = os.path.abspath(os.path.normpath(output))[
                             len(proj_dir):]
-                    outputs.add(output)
+                        outputs.add(output)
 
         for node_name, node in all_nodes:
             if isinstance(node, ProcessNode):
@@ -1728,13 +1728,27 @@ class PipelineManagerTab(QWidget):
                     _update_set(outputs, output)
 
         bricks = set()
-        for scan in self.project.session.get_documents_names(
-                COLLECTION_CURRENT):
-            brickName = self.project.session.get_value(COLLECTION_CURRENT,
-                                                       scan,
-                                                       TAG_BRICKS)
-            if scan in outputs and brickName:
-                bricks.update(brickName)
+        # FIXME: I can't cope with Populse-DB unknown query language, I
+        # couldn't build a working request. Thus for now I bypass it to use the
+        # SQL engine underneath. That's bad, and temporary until someone
+        # explains me (Denis).
+        primary_key = self.project.session.engine.primary_key(
+            COLLECTION_CURRENT)
+        pk_column = self.project.session.engine.field_column[
+            COLLECTION_CURRENT][primary_key]
+        #filter_query = '{%s} IN ((%s))' \
+            #% (primary_key, ', '.join('"%s"' % output for output in outputs))
+        #scan_bricks = self.project.session.filter_documents(
+            #COLLECTION_CURRENT, filter_query, fields=[TAG_BRICKS],
+            #as_list=True)
+
+        filter_query = '[%s] in (%s)' \
+            % (pk_column, ', '.join('?' for output in outputs))
+        scan_bricks = self.project.session.engine._select_documents(
+            COLLECTION_CURRENT, filter_query, list(outputs),
+            fields=[TAG_BRICKS], as_list=True)
+        for sbricks in scan_bricks:
+            bricks.update(sbricks[0])
 
         for brick in bricks:
             if self.project.session.get_value(COLLECTION_BRICK, brick,
