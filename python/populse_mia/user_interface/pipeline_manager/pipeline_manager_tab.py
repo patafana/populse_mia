@@ -416,6 +416,12 @@ class PipelineManagerTab(QWidget):
             relfile = os.path.abspath(os.path.normpath(parent_file))[
                 len(db_dir):]
 
+            if relfile == p_value:
+                # output is one of the inputs: OK nothing to be done.
+                all_cvalues = {}
+                all_ivalues = {}
+                break
+
             scan = self.project.session.get_document(
                 COLLECTION_CURRENT, relfile)
 
