@@ -1818,10 +1818,13 @@ class PipelineManagerTab(QWidget):
         # set Done status on used bricks
         for brick, brexec in bricks_exec.items():
             if brexec == 'Not Done' and brick in ubricks:
-                self.project.session.set_values(
-                    COLLECTION_BRICK, brick,
-                    {BRICK_EXEC: "Done",
-                     BRICK_EXEC_TIME: datetime.datetime.now()})
+                try:
+                    self.project.session.set_values(
+                        COLLECTION_BRICK, brick,
+                        {BRICK_EXEC: "Done",
+                        BRICK_EXEC_TIME: datetime.datetime.now()})
+                except ValueError:
+                    pass  # brick has already been removed
 
         self.project.saveModifications()
 
