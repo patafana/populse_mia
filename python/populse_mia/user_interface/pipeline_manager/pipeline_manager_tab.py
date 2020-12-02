@@ -976,7 +976,17 @@ class PipelineManagerTab(QWidget):
 
                 # Adding the brick to the bricks history
                 if not isinstance(node, (PipelineNode, Pipeline)):
-                    self.brick_id = str(uuid.uuid4())
+                    # check if brick_id has already been assgned
+                    brick_id = getattr(node, 'brick_id', None)
+                    if brick_id is None and isinstance(node, ProcessNode):
+                        brick_id = getattr(node.process, 'brick_id', None)
+                    if brick_id is None:
+                        brick_id = str(uuid.uuid4())
+                    # set brick_id in process
+                    self.brick_id = brick_id
+                    node.brick_id = brick_id
+                    if isinstance(node, ProcessNode):
+                        node.process.brick_id = brick_id
                     self.brick_list.append(self.brick_id)
                     self.project.session.add_document(COLLECTION_BRICK,
                                                       self.brick_id)
