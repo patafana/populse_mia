@@ -880,3 +880,69 @@ class Project():
         """Unsave the pending operations of the project."""
 
         self.unsavedModifications = False
+
+    def get_data_history(self, path):
+        """
+        Get the processing history for the given data file.
+
+        the history dict contains several elements:
+
+        - 'parent_files': set of other data used (directy or indirectly) to
+        produce the data.
+        - 'processes': processing bricks set from each ancestor data which
+        lead to the given one. Elements are process (brick) UUIDs.
+
+        Returns
+        -------
+        history: dict
+        """
+        parents = set()
+        procs = set()
+        todo = [path]
+        proj_dir = os.path.join(os.path.abspath(
+            os.path.normpath(self.folder)), '')
+        pl = len(proj_dir)
+
+        while todo:
+            path = todo.pop(0)
+            bricks = self.session.get_document(
+                COLLECTION_CURRENT, path, fields=[TAG_BRICKS], as_list=True)
+            if not bricks or not bricks[0]:
+                continue
+
+            bricks = bricks[0]
+            # print('bricks:', bricks)
+
+            for brid in reversed(bricks):  # process from newer to older
+                if brid in procs:
+                    continue
+                procs.add(brid)
+                brick = self.session.get_document(COLLECTION_BRICK, brid)
+                if brick.Exec != 'Done':
+                    # not run, this brick has not produced outputs
+                    continue
+
+                inputs = brick['Input(s)']
+                values = []
+                tval = list(inputs.values())
+                while tval:
+                    value = tval.pop(0)
+                    if isinstance(value, list):
+                        tval += value
+                        continue
+                    if not isinstance(value, str):
+                        continue
+                    aval = os.path.abspath(os.path.normpath(value))
+                    if not aval.startswith(proj_dir):
+                        continue
+
+                    values.append(aval[pl:])
+
+                values = [value for value in values
+                          if value not in parents]
+                parents.update(values)
+                todo += values
+
+        return {'parent_files': parents,
+                'processes': procs}
+
