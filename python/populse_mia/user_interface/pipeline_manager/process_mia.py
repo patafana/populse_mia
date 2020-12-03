@@ -321,10 +321,10 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                                     .mlab.inputs.script_file)
                     else:
                         iscript = process.name + '.m'
-                    if not getattr(process, 'brick_id', None):
-                        process.brick_id = str(uuid.uuid4())
+                    if not getattr(process, 'uuid', None):
+                        process.uuid = str(uuid.uuid4())
                     iscript = os.path.basename(iscript)[:-2] \
-                        + '_%s.m' % process.brick_id
+                        + '_%s.m' % process.uuid
                     process._spm_script_file = os.path.abspath(
                         os.path.join(project.folder, 'scripts', iscript))
 

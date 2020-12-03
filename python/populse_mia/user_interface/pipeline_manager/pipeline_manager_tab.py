@@ -814,7 +814,7 @@ class PipelineManagerTab(QWidget):
 
                     trait = process.trait(plug_name)
                     self.add_plug_value_to_database(plug_value,
-                                                    self.brick_id,
+                                                    node.uuid,
                                                     node_name,
                                                     plug_name,
                                                     full_name,
@@ -826,7 +826,7 @@ class PipelineManagerTab(QWidget):
         # Adding I/O to database history
         # Setting brick init state if init finished correctly
         self.project.session.set_values(
-            COLLECTION_BRICK, self.brick_id,
+            COLLECTION_BRICK, node.uuid,
             {BRICK_INPUTS: inputs,
              BRICK_OUTPUTS: outputs,
              BRICK_INIT: "Done"})
@@ -977,21 +977,20 @@ class PipelineManagerTab(QWidget):
                 # Adding the brick to the bricks history
                 if not isinstance(node, (PipelineNode, Pipeline)):
                     # check if brick_id has already been assgned
-                    brick_id = getattr(node, 'brick_id', None)
+                    brick_id = getattr(node, 'uuid', None)
                     if brick_id is None and isinstance(node, ProcessNode):
-                        brick_id = getattr(node.process, 'brick_id', None)
+                        brick_id = getattr(node.process, 'uuid', None)
                     if brick_id is None:
                         brick_id = str(uuid.uuid4())
                     # set brick_id in process
-                    self.brick_id = brick_id
-                    node.brick_id = brick_id
+                    node.uuid = brick_id
                     if isinstance(node, ProcessNode):
-                        node.process.brick_id = brick_id
-                    self.brick_list.append(self.brick_id)
+                        node.process.uuid = brick_id
+                    self.brick_list.append(brick_id)
                     self.project.session.add_document(COLLECTION_BRICK,
-                                                      self.brick_id)
+                                                      brick_id)
                     self.project.session.set_values(
-                        COLLECTION_BRICK, self.brick_id,
+                        COLLECTION_BRICK, brick_id,
                         {BRICK_NAME: node_name,
                         BRICK_INIT_TIME: datetime.datetime.now(),
                         BRICK_INIT: "Not Done",
@@ -1743,6 +1742,8 @@ class PipelineManagerTab(QWidget):
 
                 for param, output in process.get_outputs().items():
                     _update_set(outputs, output)
+
+        print('update status for outputs:\n', outputs)
 
         bricks = set()
         # FIXME: I can't cope with Populse-DB unknown query language, I
