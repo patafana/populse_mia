@@ -1690,6 +1690,33 @@ class PipelineManagerTab(QWidget):
 
         print('postprocess pipeline:', pipeline)
 
+        to_upate = self.project.finished_bricks(
+            self.get_capsul_engine(), pipeline=pipeline, include_done=False)
+
+        # get obsolete bricks (done) referenced from current outputs
+        bricks = set()
+
+        scan_bricks = list(self.project.session.get_documents(
+            COLLECTION_CURRENT, document_ids=list(outputs),
+            fields=[TAG_BRICKS], as_list=True))
+
+        for sbricks in scan_bricks:
+            if sbricks and sbricks[0] is not None:
+                bricks.update(sbricks[0])
+
+        bricks_exec = self.project.session.get_documents(
+            COLLECTION_BRICK, fields=[BRICK_EXEC], document_ids=list(bricks),
+            as_list=True)
+
+        bricks_exec = {brid
+                       for brid, brexec in zip(bricks, bricks_exec)
+                       if brexec and brexec[0] == 'Done'}
+
+
+
+
+
+
         nodes_list = [n for n in pipeline.nodes.items()
                       if n[0] != ''
                           and pipeline_tools.is_node_enabled(
@@ -1735,10 +1762,6 @@ class PipelineManagerTab(QWidget):
         for node_name, node in all_nodes:
             if isinstance(node, ProcessNode):
                 process = node.process
-                # This cannot be done in remote execution
-                # will be obsolete, we will do the same for all processes
-                #if hasattr(process, 'manage_brick_after_run'):
-                    #process.manage_brick_after_run()
 
                 for param, output in process.get_outputs().items():
                     _update_set(outputs, output)
@@ -1746,38 +1769,18 @@ class PipelineManagerTab(QWidget):
         print('update status for outputs:\n', outputs)
 
         bricks = set()
-        # FIXME: I can't cope with Populse-DB unknown query language, I
-        # couldn't build a working request. Thus for now I bypass it to use the
-        # SQL engine underneath. That's bad, and temporary until someone
-        # explains me (Denis).
-        primary_key = self.project.session.get_collection(
-            COLLECTION_CURRENT).primary_key
-        pk_column = self.project.session.engine.field_column[
-            COLLECTION_CURRENT][primary_key]
-        #filter_query = '{%s} IN ((%s))' \
-            #% (primary_key, ', '.join('"%s"' % output for output in outputs))
-        #scan_bricks = self.project.session.filter_documents(
-            #COLLECTION_CURRENT, filter_query, fields=[TAG_BRICKS],
-            #as_list=True)
 
-        filter_query = '[%s] in (%s)' \
-            % (pk_column, ', '.join('?' for output in outputs))
-        scan_bricks = list(self.project.session.engine._select_documents(
-            COLLECTION_CURRENT, filter_query, list(outputs),
+        scan_bricks = list(self.project.session.get_documents(
+            COLLECTION_CURRENT, document_ids=list(outputs),
             fields=[TAG_BRICKS], as_list=True))
+
         for sbricks in scan_bricks:
             if sbricks and sbricks[0] is not None:
                 bricks.update(sbricks[0])
 
-        brick_key = self.project.session.get_collection(
-            COLLECTION_BRICK).primary_key
-        brick_column = self.project.session.engine.field_column[
-            COLLECTION_BRICK][brick_key]
-        filter_query = '[%s] in (%s)' \
-            % (brick_column, ', '.join('?' for brick in bricks))
-        bricks_exec = self.project.session.engine._select_documents(
-            COLLECTION_BRICK, filter_query, list(bricks),
-            fields=[BRICK_EXEC], as_list=True)
+        bricks_exec = self.project.session.get_documents(
+            COLLECTION_BRICK, fields=[BRICK_EXEC], document_ids=list(bricks),
+            as_list=True)
 
         bricks_exec = {brid: brexec[0]
                        for brid, brexec in zip(bricks, bricks_exec)}

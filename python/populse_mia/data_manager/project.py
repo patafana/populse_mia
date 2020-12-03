@@ -17,7 +17,7 @@ Contains:
 
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 import yaml
 import json
 import glob
@@ -36,6 +36,7 @@ from populse_db.database import (
     FIELD_TYPE_JSON, FIELD_TYPE_DATETIME,
     FIELD_TYPE_INTEGER)
 
+from capsul.pipeline import pipeline_tools
 COLLECTION_CURRENT = "current"
 COLLECTION_INITIAL = "initial"
 COLLECTION_BRICK = "brick"
@@ -881,7 +882,7 @@ class Project():
 
         self.unsavedModifications = False
 
-    def get_data_history(self, path):
+    def get_data_history(self, path, timepoint=None):
         """
         Get the processing history for the given data file.
 
@@ -896,15 +897,38 @@ class Project():
         -------
         history: dict
         """
+
+        def latest_before(datetimes, timepoint):
+            dbest = None
+            ibest = None
+            for i, d in enumerate(datetimes):
+                if d is not None:
+                    delta = timepoint - d
+                    if (delta >= timedelta(0)
+                        and (dbest is None or delta < dbest)):
+                        dbest = delta
+                        ibest = i
+            return ibest
+
+        def latest_brick_before(bricks, timepoint):
+            dates = [b[BRICK_EXEC_TIME] for b in bricks]
+            return latest_before(dates, timepoint)
+
         parents = set()
         procs = set()
-        todo = [path]
         proj_dir = os.path.join(os.path.abspath(
             os.path.normpath(self.folder)), '')
         pl = len(proj_dir)
 
+        if timepoint is None:
+            timepoint = datetime.now()
+
+        my_path = path
+        todo = [(path, timepoint)]
+        obsolete = set()
+
         while todo:
-            path = todo.pop(0)
+            path, timepoint = todo.pop(0)
             bricks = self.session.get_document(
                 COLLECTION_CURRENT, path, fields=[TAG_BRICKS], as_list=True)
             if not bricks or not bricks[0]:
@@ -912,37 +936,237 @@ class Project():
 
             bricks = bricks[0]
             # print('bricks:', bricks)
+            brick_docs = list(self.session.get_documents(
+                COLLECTION_BRICK, document_ids=bricks))
+            best = latest_brick_before(brick_docs, timepoint)
+            if best is None:
+                continue
 
-            for brid in reversed(bricks):  # process from newer to older
-                if brid in procs:
+            brid = bricks[best]
+            brick = brick_docs[best]
+
+            if path == my_path:
+                obsolete = set(b.ID for b in brick_docs
+                               if b is not None and b.Exec == 'Done')
+            bid = set(b.ID for b in brick_docs)
+            dropped = [b for b in bricks if b not in bid]
+            obsolete.update(dropped)
+
+            #for brid in reversed(bricks):  # process from newer to older
+
+            if brid in procs:
+                continue
+            procs.add(brid)
+            #brick = self.session.get_document(COLLECTION_BRICK, brid)
+            if brick.Exec != 'Done':
+                # not run, this brick has not produced outputs
+                continue
+            brick_timepoint = brick[BRICK_EXEC_TIME]
+
+            inputs = brick[BRICK_INPUTS]
+            values = []
+            tval = list(inputs.values())
+            while tval:
+                value = tval.pop(0)
+                if isinstance(value, list):
+                    tval += value
                     continue
-                procs.add(brid)
-                brick = self.session.get_document(COLLECTION_BRICK, brid)
-                if brick.Exec != 'Done':
-                    # not run, this brick has not produced outputs
+                if not isinstance(value, str):
+                    continue
+                aval = os.path.abspath(os.path.normpath(value))
+                if not aval.startswith(proj_dir):
                     continue
 
-                inputs = brick['Input(s)']
-                values = []
-                tval = list(inputs.values())
-                while tval:
-                    value = tval.pop(0)
-                    if isinstance(value, list):
-                        tval += value
-                        continue
-                    if not isinstance(value, str):
-                        continue
-                    aval = os.path.abspath(os.path.normpath(value))
-                    if not aval.startswith(proj_dir):
-                        continue
+                values.append(aval[pl:])
 
-                    values.append(aval[pl:])
+            values = [value for value in values
+                      if value not in parents]
+            parents.update(values)
+            todo += [(v, brick_timepoint) for v in values]
 
-                values = [value for value in values
-                          if value not in parents]
-                parents.update(values)
-                todo += values
+        obsolete = obsolete.difference(procs)
 
         return {'parent_files': parents,
-                'processes': procs}
+                'processes': procs,
+                'obsolete': obsolete}
 
+    def finished_bricks(self, engine, pipeline=None, include_done=False):
+        """
+        """
+        bricks = self.get_finished_bricks_in_workflows(engine)
+        if pipeline:
+            pbricks = self.get_finished_bricks_in_pipeline(engine, pipeline)
+            pbricks.update(bricks)
+            bricks = pbricks
+
+        # filter jobs actually in MIA database
+        docs = self.session.get_documents(
+            COLLECTION_BRICK, document_ids=list(bricks.keys()),
+            fields=[BRICK_ID, BRICK_EXEC, BRICK_OUTPUTS], as_list=True)
+        docs = {brid: {'brick_exec': brick_exec, 'outputs': outputs}
+                for brid, brick_exec, outputs in docs
+                if include_done or brick_exec == 'Not Done'}
+
+        def updated(d1, d2):
+            d1.update(d2)
+            return d1
+
+        bricks = {brid: updated(value, docs[brid])
+                  for brid, value in bricks.items() if brid in docs}
+
+        # get complete list of outputs to be updated in the database
+        outputs = set()
+        proj_dir = os.path.join(os.path.abspath(os.path.normpath(
+            self.folder)), '')
+        lp = len(proj_dir)
+
+        def _update_set(outputs, output):
+            ''' update the outputs set with file/dir names in output, relative
+            to the project directory '''
+            todo = [output]
+            while todo:
+                output = todo.pop(0)
+                if isinstance(output, (list, set, tuple)):
+                    todo += output
+                elif isinstance(output, str):
+                    path = os.path.abspath(os.path.normpath(output))
+                    if path.startswith(proj_dir): # and os.path.exists(path):
+                        # record only existing files
+                        output = path[lp:]
+                        outputs.add(output)
+
+        procs = {}
+
+        for brid, brdesc in bricks.items():
+            out_data = brdesc['outputs']
+            for param, output in out_data.items():
+                _update_set(outputs, output)
+
+        return {'bricks': bricks, 'outputs': outputs}
+
+    def get_finished_bricks_in_workflows(self, engine):
+        """
+        """
+        import soma_workflow.client as swclient
+        from soma_workflow import constants
+
+        swm = engine.study_config.modules['SomaWorkflowConfig']
+        swm.connect_resource(engine.connected_to())
+        controller = swm.get_workflow_controller()
+
+        jobs = {}
+
+        for wf_id in controller.workflows():
+            wf_st = controller.workflow_elements_status(wf_id)
+
+            finished_jobs = {}
+            for job_st in wf_st[0]:
+                job_id = job_st[0]
+                if job_st[1] != 'done' or job_st[3][0] != 'finished_regularly':
+                    continue
+                finished_jobs[job_id] = job_st
+
+            if not finished_jobs:
+                continue
+
+            wf = controller.workflow(wf_id)
+            for job in wf.jobs:
+                brid = getattr(job, 'uuid', None)
+                if not brid:
+                    continue
+                # get engine job
+                ejob = wf.job_mapping[job]
+                job_id = ejob.job_id
+                status = finished_jobs.get(job_id, None)
+                if not status:
+                    continue
+
+                jobs[brid] = {'workflow': wf_id,
+                              'job': job,
+                              'job_id': job_id,
+                              'swf_status': status}
+
+        return jobs
+
+    def get_finished_bricks_in_pipeline(self, engine, pipeline):
+        """
+        """
+        nodes_list = [n for n in pipeline.nodes.items()
+                      if n[0] != ''
+                          and pipeline_tools.is_node_enabled(
+                              pipeline, n[0], n[1])]
+
+        all_nodes = list(nodes_list)
+        while nodes_list:
+            node_name, node = nodes_list.pop(0)
+            if hasattr(node, 'process'):
+                process = node.process
+
+                if isinstance(node, PipelineNode):
+                    new_nodes = [
+                        n for n in process.nodes.items()
+                        if n[0] != ''
+                            and pipeline_tools.is_node_enabled(
+                                process, n[0], n[1])]
+                    nodes_list += new_nodes
+                    all_nodes += new_nodes
+
+        procs = {}
+
+        for node_name, node in all_nodes:
+            if isinstance(node, ProcessNode):
+                process = node.process
+                brid = getattr(process, 'uuid', None)
+                if brid is not None:
+                    procs[brid] = {'process': process}
+
+        return procs
+
+    def get_orphan_bricks(self, bricks=None):
+        """
+        """
+        orphan = set()
+        used_bricks = set()
+
+        brick_docs = self.session.get_documents(
+            COLLECTION_BRICK, document_ids=bricks,
+            fields=[BRICK_ID, BRICK_OUTPUTS], as_list=True)
+
+        proj_dir = os.path.join(os.path.abspath(os.path.normpath(
+            self.folder)), '')
+        lp = len(proj_dir)
+
+        for brick in brick_docs:
+            brid = brick[0]
+            if brid is None:
+                continue
+            if brick[1] is None:
+                orphan.add(brid)
+                continue
+
+            todo = list(brick[1].values())
+            values = set()
+            while todo:
+                value = todo.pop(0)
+                if isinstance(value, (list, set, tuple)):
+                    todo += value
+                elif isinstance(value, str):
+                    path = os.path.abspath(os.path.normpath(value))
+                    if path.startswith(proj_dir):
+                        value = path[lp:]
+                        values.add(value)
+            docs = self.session.get_documents(
+                COLLECTION_CURRENT, document_ids=list(values),
+                fields=[TAG_FILENAME, TAG_BRICKS], as_list=True)
+            used = False
+            for doc in docs:
+                if doc[1] and brid in doc[1]:
+                    used = True
+                    used_bricks.add(brid)
+                    break
+            if not used:
+                orphan.add(brid)
+        if bricks:
+            orphan.update(brid for brid in bricks if brid not in used_bricks)
+
+        return orphan
