@@ -1693,152 +1693,26 @@ class PipelineManagerTab(QWidget):
         to_upate = self.project.finished_bricks(
             self.get_capsul_engine(), pipeline=pipeline, include_done=False)
 
-        # get obsolete bricks (done) referenced from current outputs
-        bricks = set()
+        outputs = to_upate['outputs']
+        bricks = to_upate['bricks']
 
-        scan_bricks = list(self.project.session.get_documents(
-            COLLECTION_CURRENT, document_ids=list(outputs),
-            fields=[TAG_BRICKS], as_list=True))
-
-        for sbricks in scan_bricks:
-            if sbricks and sbricks[0] is not None:
-                bricks.update(sbricks[0])
-
-        bricks_exec = self.project.session.get_documents(
-            COLLECTION_BRICK, fields=[BRICK_EXEC], document_ids=list(bricks),
-            as_list=True)
-
-        bricks_exec = {brid
-                       for brid, brexec in zip(bricks, bricks_exec)
-                       if brexec and brexec[0] == 'Done'}
-
-
-
-
-
-
-        nodes_list = [n for n in pipeline.nodes.items()
-                      if n[0] != ''
-                          and pipeline_tools.is_node_enabled(
-                              pipeline, n[0], n[1])]
-
-        all_nodes = list(nodes_list)
-        while nodes_list:
-            node_name, node = nodes_list.pop(0)
-            if hasattr(node, 'process'):
-                process = node.process
-
-                if isinstance(node, PipelineNode):
-                    new_nodes = [
-                        n for n in process.nodes.items()
-                        if n[0] != ''
-                            and pipeline_tools.is_node_enabled(
-                                process, n[0], n[1])]
-                    nodes_list += new_nodes
-                    all_nodes += new_nodes
-
-        # Manage the bricks history after the run. Get them from the pipeline
-        # output values.
-        outputs = set()
-        proj_dir = os.path.join(os.path.abspath(os.path.normpath(
-            self.project.folder)), '')
-        lp = len(proj_dir)
-
-        def _update_set(outputs, output):
-            ''' update the outputs set with file/dir names in output, relative
-            to the project directory '''
-            todo = [output]
-            while todo:
-                output = todo.pop(0)
-                if isinstance(output, (list, set, tuple)):
-                    todo += output
-                elif isinstance(output, str):
-                    path = os.path.abspath(os.path.normpath(output))
-                    if path.startswith(proj_dir): # and os.path.exists(path):
-                        # record only existing files
-                        output = path[lp:]
-                        outputs.add(output)
-
-        for node_name, node in all_nodes:
-            if isinstance(node, ProcessNode):
-                process = node.process
-
-                for param, output in process.get_outputs().items():
-                    _update_set(outputs, output)
-
-        print('update status for outputs:\n', outputs)
-
-        bricks = set()
-
-        scan_bricks = list(self.project.session.get_documents(
-            COLLECTION_CURRENT, document_ids=list(outputs),
-            fields=[TAG_BRICKS], as_list=True))
-
-        for sbricks in scan_bricks:
-            if sbricks and sbricks[0] is not None:
-                bricks.update(sbricks[0])
-
-        bricks_exec = self.project.session.get_documents(
-            COLLECTION_BRICK, fields=[BRICK_EXEC], document_ids=list(bricks),
-            as_list=True)
-
-        bricks_exec = {brid: brexec[0]
-                       for brid, brexec in zip(bricks, bricks_exec)}
-
-        # find out obsolete bricks (which correspond to a done execution for
-        # a file that has been re-written more recently)
-        # this is not a very good criterion. We must have the brick ID marked
-        # somewhere in the real execution (soma-workflow) in order to know for
-        # sure what has re-run or not.
-        used_bricks = {}
-        for output, sbricks in zip(outputs, scan_bricks):
-            sbrick = sbricks[0]
-            if sbrick is not None and len(sbrick) >= 2:
-                recent = [brid for brid in sbrick
-                          if bricks_exec.get(brid) == 'Not Done']
-                if recent and len(recent) != len(sbrick):
-                    self.project.session.set_value(
-                        COLLECTION_CURRENT, output, TAG_BRICKS, recent)
-                    sbricks[0] = recent
+        # set state of bricks: done + exec date
+        for brid, brick in bricks.items():
+            swf_status = brick.get('swf_status')
+            if swf_status:
+                exec_date = swf_status[4][2]
             else:
-                if sbrick is not None:
-                    recent = sbrick
-                else:
-                    recent = []
-            if os.path.exists(os.path.join(proj_dir, output)):
-                used_bricks[output] = recent
+                exec_date = datetime.now()  # no real info about exec time
+            self.project.session.set_values(
+                COLLECTION_BRICK, brid,
+                {BRICK_EXEC: 'Done', BRICK_EXEC_TIME: exec_date})
 
-        ubricks = set()
-        for sbricks in used_bricks.values():
-            ubricks.update(sbricks)
+        # now cleanup earlier history of data
+        obsolete = self.project.update_data_history(outputs)
 
-        # clear obsolete bricks
-        for brick in bricks.difference(ubricks):
-            print('remove obsolete brick:', brick)
-            try:
-                self.project.session.remove_document(COLLECTION_BRICK, brick)
-            except ValueError:
-                pass  # malformed database, the brick doesn't exist
-
-        # clear non-written output files
-        for output in outputs:
-            if output not in used_bricks:
-                print('remove non-existing file:', output)
-                self.project.session.remove_document(COLLECTION_CURRENT,
-                                                     output)
-                self.project.session.remove_document(COLLECTION_INITIAL,
-                                                     output)
-
-        # set Done status on used bricks
-        for brick, brexec in bricks_exec.items():
-            if brexec == 'Not Done' and brick in ubricks:
-                try:
-                    self.project.session.set_values(
-                        COLLECTION_BRICK, brick,
-                        {BRICK_EXEC: "Done",
-                        BRICK_EXEC_TIME: datetime.datetime.now()})
-                except ValueError:
-                    pass  # brick has already been removed
+        # get obsolete bricks (done) referenced from current outputs
+        print('obsolete bricks:', obsolete)
+        self.project.cleanup_orphan_bricks(obsolete)
 
         self.project.saveModifications()
 

@@ -37,6 +37,8 @@ from populse_db.database import (
     FIELD_TYPE_INTEGER)
 
 from capsul.pipeline import pipeline_tools
+from capsul.pipeline.pipeline_nodes import PipelineNode, ProcessNode
+
 COLLECTION_CURRENT = "current"
 COLLECTION_INITIAL = "initial"
 COLLECTION_BRICK = "brick"
@@ -882,6 +884,41 @@ class Project():
 
         self.unsavedModifications = False
 
+    def files_in_project(self, files):
+        """
+        Return values in files that are file / directory names within the
+        project folder.
+
+        `files` are walked recursively and can be, or contain, lists, tuples,
+        sets, dicts (only dict `values()` are considered). Dict keys are
+        dropped and all filenames are merged into a single set.
+
+        The returned value is a set of filenames (str).
+        """
+        proj_dir = os.path.join(os.path.abspath(
+            os.path.normpath(self.folder)), '')
+        pl = len(proj_dir)
+
+        values = set()
+        tval = [files]
+        while tval:
+            value = tval.pop(0)
+            if isinstance(value, list, tuple, set):
+                tval += value
+                continue
+            if isinstance(value, dict):
+                tval += value.values()
+                continue
+            if not isinstance(value, str):
+                continue
+            aval = os.path.abspath(os.path.normpath(value))
+            if not aval.startswith(proj_dir):
+                continue
+
+            values.add(aval[pl:])
+
+        return values
+
     def get_data_history(self, path, timepoint=None):
         """
         Get the processing history for the given data file.
@@ -989,6 +1026,42 @@ class Project():
         return {'parent_files': parents,
                 'processes': procs,
                 'obsolete': obsolete}
+
+    def update_data_history(self, data):
+        """
+        Cleanup earlier history of given data by removing in their bricks list
+        those which correspond to obsolete runs (data has been re-written by
+        more recent runs). This function only updates data status (bricks
+        list), it does not remove obsolete bricks from the database.
+
+        Returns
+        -------
+        obsolete: set
+            set of obsolete bricks thay may become orphan.
+        """
+        #
+        scan_bricks = list(self.session.get_documents(
+            COLLECTION_CURRENT, document_ids=list(data),
+            fields=[TAG_FILENAME, TAG_BRICKS], as_list=True))
+        scan_bricks = {brick[0]: brick[1] for brick in scan_bricks
+                       if brick and brick[0] is not None}
+
+        obsolete = set()
+        for output in data:
+            old_bricks = scan_bricks.get(output)
+            o_hist = self.get_data_history(output)
+            obsolete.update(o_hist['obsolete'])
+            if old_bricks:
+                new_bricks = [brid for brid in old_bricks
+                              if brid in o_hist['processes']]
+                if len(new_bricks) != len(old_bricks):
+                    print('update file history for:', output, ':', old_bricks,
+                          '->', new_bricks)
+                    self.session.set_value(
+                        COLLECTION_CURRENT, output, TAG_BRICKS, new_bricks)
+
+        return obsolete
+
 
     def finished_bricks(self, engine, pipeline=None, include_done=False):
         """
@@ -1127,6 +1200,8 @@ class Project():
         """
         orphan = set()
         used_bricks = set()
+        if not isinstance(bricks, list):
+            bricks = list(bricks)
 
         brick_docs = self.session.get_documents(
             COLLECTION_BRICK, document_ids=bricks,
@@ -1170,3 +1245,17 @@ class Project():
             orphan.update(brid for brid in bricks if brid not in used_bricks)
 
         return orphan
+
+    def cleanup_orphan_bricks(self, bricks=None):
+        """
+        Remove orphan bricks frol the database
+        """
+        obsolete = self.get_orphan_bricks(bricks)
+        print('really orphan:', obsolete)
+        for brick in obsolete:
+            print('remove obsolete brick:', brick)
+            try:
+                self.session.remove_document(COLLECTION_BRICK, brick)
+            except ValueError:
+                pass  # malformed database, the brick doesn't exist
+
