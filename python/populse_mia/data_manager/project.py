@@ -979,8 +979,8 @@ class Project():
             if best is None:
                 continue
 
-            brid = bricks[best]
             brick = brick_docs[best]
+            brid = brick[BRICK_ID]
 
             if path == my_path:
                 obsolete = set(b.ID for b in brick_docs
