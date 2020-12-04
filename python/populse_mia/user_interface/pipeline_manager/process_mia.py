@@ -108,7 +108,7 @@ class ProcessMIA(Process):
         return []
 
     def relax_nipype_exists_constraints(self):
-        if hasattr(self, 'process'):
+        if hasattr(self, 'process') and hasattr(self.process, 'inputs'):
             ni_inputs = self.process.inputs
             for name, trait in ni_inputs.traits().items():
                 relax_exists_constraint(trait)
@@ -227,7 +227,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             in_process = in_process.process
 
         # nipype special case -- output_directory is set from MIA project
-        if isinstance(in_process, NipypeProcess):
+        if isinstance(in_process, (NipypeProcess, ProcessMIA)):
             self.complete_nipype_common(in_process)
 
         project = self.get_project(in_process)
