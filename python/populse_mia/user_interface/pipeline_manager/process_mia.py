@@ -315,17 +315,28 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                         os.makedirs(out_dir)
                     process.output_directory = out_dir
 
+                tname = None
                 if process.trait('_spm_script_file'):
+                    tname = '_spm_script_file'
+                elif process.trait('spm_script_file'):
+                    tname = 'spm_script_file'
+                if tname:
                     if hasattr(process, '_nipype_interface'):
                         iscript = (process._nipype_interface
-                                    .mlab.inputs.script_file)
+                                   .mlab.inputs.script_file)
+                    elif (hasattr(process, 'process')
+                          and hasattr(process.process, '_nipype_interface')):
+                        # ProcessMIA with a NipypeProcess inside
+                        iscript = (process.process._nipype_interface
+                                   .mlab.inputs.script_file)
                     else:
                         iscript = process.name + '.m'
                     process.uuid = str(uuid.uuid4())
                     iscript = os.path.basename(iscript)[:-2] \
                         + '_%s.m' % process.uuid
-                    process._spm_script_file = os.path.abspath(
-                        os.path.join(project.folder, 'scripts', iscript))
+                    setattr(process, tname,
+                            os.path.abspath(os.path.join(
+                                project.folder, 'scripts', iscript)))
 
                 process.mfile = True
 
