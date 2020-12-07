@@ -54,8 +54,8 @@ class ProcessMIA(Process):
     """
 
     
-    def __init__(self):
-        super(ProcessMIA, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(ProcessMIA, self).__init__(*args, **kwargs)
         # self.filters = {}  # use if the filters are set on plugs
 
     def get_brick_to_update(self, bricks):
