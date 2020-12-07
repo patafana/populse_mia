@@ -316,9 +316,10 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     process.output_directory = out_dir
 
                 tname = None
-                if process.trait('_spm_script_file'):
-                    tname = '_spm_script_file'
-                elif process.trait('spm_script_file'):
+                tmap = getattr(process, '_nipype_trait_mapping', {})
+                tname = tmap.get('_spm_script_file', '_spm_script_file')
+                if (not process.trait(tname)
+                    and process.trait('spm_script_file')):
                     tname = 'spm_script_file'
                 if tname:
                     if hasattr(process, '_nipype_interface'):
@@ -372,7 +373,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         outputs = initResult_dict.get('outputs', {})
         for parameter, value in outputs.items():
             if parameter == 'notInDb' \
-                    or self.process.is_parameter_protected(parameter):
+                    or process.is_parameter_protected(parameter):
                 continue  # special non-param or set manually
             try:
                 setattr(process, parameter, value)
