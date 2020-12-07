@@ -346,7 +346,8 @@ class PipelineManagerTab(QWidget):
             COLLECTION_CURRENT, p_value, TAG_BRICKS)
         if bricks is None:
             bricks = []
-        bricks.append(brick_id)
+        if brick_id not in bricks:
+            bricks.append(brick_id)
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
         if file_extension == '.gz':
