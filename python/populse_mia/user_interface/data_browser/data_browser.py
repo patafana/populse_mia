@@ -1319,41 +1319,54 @@ class TableDataBrowser(QTableWidget):
         """
         doc = self.project.session.get_document(COLLECTION_BRICK, name)
         if doc is not None:
-            inputs_list = []
-            for key in doc["Input(s)"]:
-                if isinstance(doc["Input(s)"][key], str):
-                    inputs_list.append(doc["Input(s)"][key])
-                elif isinstance(doc["Input(s)"][key], list):
-                    for item in doc["Input(s)"][key]:
-                        if isinstance(item, str):
-                            inputs_list.append(item)
-            for key in doc["Output(s)"]:
-                if isinstance(doc["Output(s)"][key], str):
-                    if ((doc["Output(s)"][key] != "") and
-                          (doc["Output(s)"][key] not in inputs_list)):
-                        doc_delete = os.path.relpath(doc["Output(s)"][key],
-                                                     self.project.folder)
-                        doc_list = self.project.session.get_documents_names(
-                                                             COLLECTION_CURRENT)
-                        scan_object = self.project.session.get_document(
-                                                             COLLECTION_CURRENT,
-                                                             doc_delete)
-                        if scan_object is not None:
-                            scan_name = getattr(scan_object, TAG_FILENAME)
-                            row = self.get_scan_row(scan_name)
+            inputs = set()
+            todo = list(doc["Input(s)"].values())
+            while todo:
+                value = todo.pop(0)
+                if isinstance(value, str):
+                    inputs.add(value)
+                elif isinstance(value, list):
+                    todo += value
+            outputs = set()
+            todo = list(doc["Output(s)"].values())
+            while todo:
+                value = todo.pop(0)
+                if isinstance(value, str):
+                    outputs.add(value)
+                elif isinstance(value, list):
+                    todo += value
+
+            for output in outputs:
+                if ((output != "") and
+                    (output not in inputs)):
+
+                    doc_delete = os.path.relpath(value,
+                                                 self.project.folder)
+                    scan_object = self.project.session.get_document(
+                        COLLECTION_CURRENT, doc_delete,
+                        fields=[TAG_FILENAME, TAG_BRICKS], as_list=True)
+                    row = None
+                    if scan_object is not None:
+                        bricks = scan_object[1]
+                        if bricks and name in bricks:
+                            bricks = [brick for brick in bricks
+                                      if brick != name]
+                        if not bricks or len(bricks) == 0:
+                            row = self.get_scan_row(doc_delete)
                         else:
-                            row = None
-                        if row is not None:
-                            self.removeRow(row)
-                        if doc_delete in doc_list:
-                            self.project.session.remove_document(
-                                COLLECTION_CURRENT, doc_delete)
-                        doc_list = self.project.session.get_documents_names(
-                            COLLECTION_INITIAL)
-                        if doc_delete in doc_list:
+                            self.project.session.set_value(
+                                COLLECTION_CURRENT, doc_delete, TAG_BRICKS,
+                                bricks)
+                    if row is not None:
+                        self.removeRow(row)
+                        self.project.session.remove_document(
+                            COLLECTION_CURRENT, doc_delete)
+                        try:
                             self.project.session.remove_document(
                                 COLLECTION_INITIAL, doc_delete)
-        if name in self.project.session.get_documents_names(COLLECTION_BRICK):
+                        except ValueError:
+                            pass
+
             self.project.session.remove_document(COLLECTION_BRICK, name)
 
         self.resizeColumnsToContents()
