@@ -1059,6 +1059,13 @@ class PipelineManagerTab(QWidget):
 
         return init_result
 
+    def cleanup_older_init(self):
+
+        for brick in self.brick_list:
+            print('cleanup brick', brick)
+            self.main_window.data_browser.table_data.delete_from_brick(
+                brick)
+
     def initialize(self):
         """Clean previous initialization then initialize the current
         pipeline."""
@@ -1067,9 +1074,7 @@ class PipelineManagerTab(QWidget):
 
         if self.init_clicked:
 
-            for brick in self.brick_list:
-                self.main_window.data_browser.table_data.delete_from_brick(
-                    brick)
+            self.cleanup_older_init()
 
         self.ignore_node = False
         self.key = {}
