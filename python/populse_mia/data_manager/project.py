@@ -1201,7 +1201,7 @@ class Project():
         orphan = set()
         orphan_weak_files = set()
         used_bricks = set()
-        if not isinstance(bricks, list):
+        if bricks is not None and not isinstance(bricks, list):
             bricks = list(bricks)
 
         brick_docs = self.session.get_documents(
