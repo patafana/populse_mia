@@ -903,7 +903,7 @@ class Project():
         tval = [files]
         while tval:
             value = tval.pop(0)
-            if isinstance(value, list, tuple, set):
+            if isinstance(value, (list, tuple, set)):
                 tval += value
                 continue
             if isinstance(value, dict):
