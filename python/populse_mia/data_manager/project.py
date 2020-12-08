@@ -1199,6 +1199,7 @@ class Project():
         """
         """
         orphan = set()
+        orphan_weak_files = set()
         used_bricks = set()
         if not isinstance(bricks, list):
             bricks = list(bricks)
@@ -1234,23 +1235,30 @@ class Project():
                 COLLECTION_CURRENT, document_ids=list(values),
                 fields=[TAG_FILENAME, TAG_BRICKS], as_list=True)
             used = False
+            orphan_files = set()
             for doc in docs:
                 if doc[1] and brid in doc[1]:
+                    if doc[0].startswith('scripts/'):
+                        # script files are "weak" and should not prevent
+                        # brick deletion.
+                        orphan_files.add(doc[0])
+                        continue
                     used = True
                     used_bricks.add(brid)
                     break
             if not used:
                 orphan.add(brid)
+                orphan_weak_files.update(orphan_files)
         if bricks:
             orphan.update(brid for brid in bricks if brid not in used_bricks)
 
-        return orphan
+        return (orphan, orphan_weak_files)
 
     def cleanup_orphan_bricks(self, bricks=None):
         """
         Remove orphan bricks frol the database
         """
-        obsolete = self.get_orphan_bricks(bricks)
+        obsolete, orphan_files = self.get_orphan_bricks(bricks)
         print('really orphan:', obsolete)
         for brick in obsolete:
             print('remove obsolete brick:', brick)
@@ -1258,4 +1266,13 @@ class Project():
                 self.session.remove_document(COLLECTION_BRICK, brick)
             except ValueError:
                 pass  # malformed database, the brick doesn't exist
+        for doc in orphan_files:
+            print('remove orphan file:', doc)
+            try:
+                self.session.remove_document(COLLECTION_CURRENT, doc)
+                self.session.remove_document(COLLECTION_INITIAL, doc)
+            except ValueError:
+                pass  # malformed database, the file doesn't exist
+            if os.path.exists(os.path.join(self.folder, doc)):
+                os.unlink(os.path.join(self.folder, doc))
 
