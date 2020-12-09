@@ -1963,7 +1963,8 @@ class PipelineManagerTab(QWidget):
         if userlevel \
                 != self.pipelineEditorTabs.get_current_editor().userlevel:
             self.pipelineEditorTabs.get_current_editor().userlevel = userlevel
-            self.nodeController.process_widget.userlevel = userlevel
+            if self.nodeController.process_widget:
+                self.nodeController.process_widget.userlevel = userlevel
 
         # If the user mode is chosen, the process library is not available
         # and the user cannot save a pipeline
