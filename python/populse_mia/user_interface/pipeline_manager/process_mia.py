@@ -42,70 +42,12 @@ class ProcessMIA(Process):
    This class is mainly used by MIA bricks.
 
     .. Methods:
-        - get_brick_to_update: give the brick to update given the scan list
-           of bricks
-        - get_scan_bricks: give the list of bricks given an output value
         - list_outputs: generates the outputs of the process (need to be
            overridden)
         - manage_matlab_launch_parameters: Set the Matlab's config parameters
            when a Nipype process is used
-        - remove_brick_output: remove the bricks from the outputs
 
     """
-
-    
-    def __init__(self, *args, **kwargs):
-        super(ProcessMIA, self).__init__(*args, **kwargs)
-        # self.filters = {}  # use if the filters are set on plugs
-
-    def get_brick_to_update(self, bricks):
-        """Give the brick to update, given the scan list of bricks.
-
-        :param bricks: list of scan bricks
-        :return: Brick to update
-        """
-        if bricks is None:
-            return
-
-        if len(bricks) == 0:
-            return None
-        if len(bricks) == 1:
-            return bricks[0]
-        else:
-            brick_to_keep = bricks[len(bricks) - 1]
-            for brick in bricks:
-                exec_status = self.project.session.get_value(COLLECTION_BRICK,
-                                                             brick, BRICK_EXEC)
-                exec_time = self.project.session.get_value(COLLECTION_BRICK,
-                                                           brick,
-                                                           BRICK_EXEC_TIME)
-                if (exec_time is None and exec_status is None and brick !=
-                        brick_to_keep):
-                    # The other bricks not run are removed
-                    outputs = self.project.session.get_value(COLLECTION_BRICK,
-                                                             brick,
-                                                             BRICK_OUTPUTS)
-                    if outputs is not None:
-                        for output_name in outputs:
-                            output_value = outputs[output_name]
-                            self.remove_brick_output(brick, output_value)
-                    self.project.session.remove_document(COLLECTION_BRICK,
-                                                         brick)
-                    self.project.saveModifications()
-            return brick_to_keep
-
-    def get_scan_bricks(self, output_value):
-        """Give the list of bricks, given an output value.
-
-        :param output_value: output value
-        :return: list of bricks related to the output
-        """
-        for scan in self.project.session.get_documents_names(
-                COLLECTION_CURRENT):
-            if scan in str(output_value):
-                return self.project.session.get_value(COLLECTION_CURRENT,
-                                                      scan, TAG_BRICKS)
-        return []
 
     def relax_nipype_exists_constraints(self):
         if hasattr(self, 'process') and hasattr(self.process, 'inputs'):
@@ -129,30 +71,6 @@ class ProcessMIA(Process):
             self.process.inputs.paths = self.paths
             self.process.inputs.matlab_cmd = self.matlab_cmd
             self.process.inputs.mfile = self.mfile
-
-    def remove_brick_output(self, brick, output):
-        """Removes the bricks from the outputs.
-
-        :param output: output
-        :param brick: brick
-        """
-        if type(output) in [list, TraitListObject]:
-            for single_value in output:
-                self.remove_brick_output(brick, single_value)
-            return
-
-        for scan in self.project.session.get_documents_names(
-                                                            COLLECTION_CURRENT):
-
-            if scan in output:
-                output_bricks = self.project.session.get_value(
-                                           COLLECTION_CURRENT, scan, TAG_BRICKS)
-                output_bricks.remove(brick)
-                self.project.session.set_value(
-                            COLLECTION_CURRENT, scan, TAG_BRICKS, output_bricks)
-                self.project.session.set_value(
-                            COLLECTION_INITIAL, scan, TAG_BRICKS, output_bricks)
-                self.project.saveModifications()
 
 
 # ---- completion system for Capsul ---
@@ -295,51 +213,50 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 process.matlab_cmd = config.get_matlab_command()
 
         # add "project" attribute if the process is using it
-        if hasattr(process, 'get_study_config'):
-            study_config = process.get_study_config()
+        study_config = process.get_study_config()
 
-            project = getattr(study_config, 'project', None)
-            if project:
-                if hasattr(process, 'use_project') and process.use_project:
-                    process.project = self.project
-                # set output_directory
-                if process.trait('output_directory') \
-                        and process.output_directory in (None, Undefined, ''):
-                    out_dir = os.path.abspath(os.path.join(project.folder,
-                                                           'data',
-                                                           'derived_data'))
-                    # ensure this output_directory exists since it is not
-                    # actually an output but an input, and thus it is supposed
-                    # to exist in Capsul.
-                    if not os.path.exists(out_dir):
-                        os.makedirs(out_dir)
-                    process.output_directory = out_dir
+        project = getattr(study_config, 'project', None)
+        if project:
+            if hasattr(process, 'use_project') and process.use_project:
+                process.project = self.project
+            # set output_directory
+            if process.trait('output_directory') \
+                    and process.output_directory in (None, Undefined, ''):
+                out_dir = os.path.abspath(os.path.join(project.folder,
+                                                        'data',
+                                                        'derived_data'))
+                # ensure this output_directory exists since it is not
+                # actually an output but an input, and thus it is supposed
+                # to exist in Capsul.
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+                process.output_directory = out_dir
 
-                tname = None
-                tmap = getattr(process, '_nipype_trait_mapping', {})
-                tname = tmap.get('_spm_script_file', '_spm_script_file')
-                if (not process.trait(tname)
-                    and process.trait('spm_script_file')):
-                    tname = 'spm_script_file'
-                if tname:
-                    if hasattr(process, '_nipype_interface'):
-                        iscript = (process._nipype_interface
-                                   .mlab.inputs.script_file)
-                    elif (hasattr(process, 'process')
-                          and hasattr(process.process, '_nipype_interface')):
-                        # ProcessMIA with a NipypeProcess inside
-                        iscript = (process.process._nipype_interface
-                                   .mlab.inputs.script_file)
-                    else:
-                        iscript = process.name + '.m'
-                    process.uuid = str(uuid.uuid4())
-                    iscript = os.path.basename(iscript)[:-2] \
-                        + '_%s.m' % process.uuid
-                    setattr(process, tname,
-                            os.path.abspath(os.path.join(
-                                project.folder, 'scripts', iscript)))
+            tname = None
+            tmap = getattr(process, '_nipype_trait_mapping', {})
+            tname = tmap.get('_spm_script_file', '_spm_script_file')
+            if (not process.trait(tname)
+                and process.trait('spm_script_file')):
+                tname = 'spm_script_file'
+            if tname:
+                if hasattr(process, '_nipype_interface'):
+                    iscript = (process._nipype_interface
+                                .mlab.inputs.script_file)
+                elif (hasattr(process, 'process')
+                      and hasattr(process.process, '_nipype_interface')):
+                    # ProcessMIA with a NipypeProcess inside
+                    iscript = (process.process._nipype_interface
+                                .mlab.inputs.script_file)
+                else:
+                    iscript = process.name + '.m'
+                process.uuid = str(uuid.uuid4())
+                iscript = os.path.basename(iscript)[:-2] \
+                    + '_%s.m' % process.uuid
+                setattr(process, tname,
+                        os.path.abspath(os.path.join(
+                            project.folder, 'scripts', iscript)))
 
-                process.mfile = True
+            process.mfile = True
 
     def complete_parameters_mia(self, process_inputs={}):
         '''
