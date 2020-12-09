@@ -782,6 +782,10 @@ class CapsulNodeController(QWidget):
         hlayout.addWidget(self.line_edit_node_name)
         v_box_final.addLayout(hlayout)
 
+    def __del__(self):
+        # remove callback
+        self.release_process()
+
     def display_parameters(self, node_name, process, pipeline):
         """Display the parameters of the selected node.
 
@@ -835,13 +839,28 @@ class CapsulNodeController(QWidget):
                 btn.clicked.connect(self.filter_attributes)
                 self.process_widget.attrib_widget.layout().insertWidget(0, btn)
         self.layout().addWidget(self.process_widget)
+        self.process.on_trait_change(self.parameters_changed)
+
+    def release_process(self):
+        """
+        remove notification from process
+        """
+        self.process.on_trait_change(self.parameters_changed, remove=True)
 
     def update_parameters(self, process=None):
         """Update the parameters values.
 
+        Does nothing any longer since the controller widget already reacts to
+        changes in the process parameters.
+
         :param process: process of the node
         """
-        print('update_parameters called.')
+        pass
+
+    def parameters_changed(self, param, value, old_value):
+        value_type = type(value)
+        self.value_changed.emit(["plug_value", self.node_name, old_value,
+                                 param, value_type, value])
 
     def update_node_name(self, pipeline, new_node_name=None):
         """Change the name of the selected node and updates the pipeline.

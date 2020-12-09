@@ -672,6 +672,8 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.get_current_pipeline().nodes[
                 node_name].process)
 
+        self.run_pipeline_action.setDisabled(True)
+
         # Cause a segmentation fault
         # from capsul.qt_gui.widgets.pipeline_developper_view import NodeGWidget
         # for item in self.pipelineEditorTabs.get_current_editor().scene.items():
