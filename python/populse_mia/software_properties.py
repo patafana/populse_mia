@@ -352,7 +352,8 @@ class Config:
         userlevel: int
         """
         return self.config.get("capsul_config", {}).get(
-            "study_config", {}).get("user_level", 0)
+            "engine", {}).get("global", {}).get(
+              'capsul.engine.module.axon', {}).get('user_level', 0)
 
     def get_mainwindow_maximized(self):
         """Get the maximized (fullscreen) flag
