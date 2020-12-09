@@ -49,28 +49,9 @@ class ProcessMIA(Process):
 
     """
 
-    def relax_nipype_exists_constraints(self):
-        if hasattr(self, 'process') and hasattr(self.process, 'inputs'):
-            ni_inputs = self.process.inputs
-            for name, trait in ni_inputs.traits().items():
-                relax_exists_constraint(trait)
-
     def list_outputs(self):
         """Override the outputs of the process."""
-        self.relax_nipype_exists_constraints()
-
-    def manage_matlab_launch_parameters(self):
-        """Set the Matlab's config parameters when a Nipype process is used.
-
-        Called in bricks.
-        """
-        # Note: this is a non-general trick which should probably not be here.
-        if hasattr(self, "process") and hasattr(self.process, 'inputs') \
-                and hasattr(self, 'use_mcr'):
-            self.process.inputs.use_mcr = self.use_mcr
-            self.process.inputs.paths = self.paths
-            self.process.inputs.matlab_cmd = self.matlab_cmd
-            self.process.inputs.mfile = self.mfile
+        pass
 
 
 # ---- completion system for Capsul ---
