@@ -244,6 +244,15 @@ class PipelineManagerTab(QWidget):
             "Status", self)
         self.show_pipeline_status_action.triggered.connect(self.show_status)
 
+        self.garbage_collect_action = QAction(
+            QIcon(os.path.join(sources_images_dir, 'garbage_collect.png')),
+            "Cleanup", self)
+        self.garbage_collect_action.triggered.connect(self.garbage_collect)
+        self.garbage_collect_action.setToolTip(
+            'cleanup obsolete items in the database (pipeline inits, '
+            'obsolete data...). Not needed in normal situations, but useful '
+            'after a reconnection (client/server) or application crash.')
+
         # if config.get_user_mode() == True:
         #     self.save_pipeline_action.setDisabled(True)
         #     self.save_pipeline_as_action.setDisabled(True)
@@ -1343,6 +1352,7 @@ class PipelineManagerTab(QWidget):
         self.tags_menu.addAction(self.run_pipeline_action)
         self.tags_menu.addAction(self.stop_pipeline_action)
         self.tags_menu.addAction(self.show_pipeline_status_action)
+        self.tags_menu.addAction(self.garbage_collect_action)
 
         self.tags_tool_button.setText('Pipeline')
         self.tags_tool_button.setPopupMode(
@@ -1358,6 +1368,7 @@ class PipelineManagerTab(QWidget):
         self.menu_toolbar.addAction(self.run_pipeline_action)
         self.menu_toolbar.addAction(self.stop_pipeline_action)
         self.menu_toolbar.addAction(self.show_pipeline_status_action)
+        self.menu_toolbar.addAction(self.garbage_collect_action)
         self.menu_toolbar.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                         QtWidgets.QSizePolicy.Fixed)
 
@@ -1732,6 +1743,17 @@ class PipelineManagerTab(QWidget):
         status_widget = StatusWidget(self)
         status_widget.show()
         self.status_widget = status_widget
+
+    def garbage_collect(self):
+        """
+        Index finished brick executions,
+        Collect obsolete bricks and data and remove them from the database
+
+        This performs a posptocessing on current and older pipelines, and
+        cleans up the database.
+        """
+        self.postprocess_pipeline_execution()
+        self.project.cleanup_orphan_bricks()
 
     def saveParameters(self):
         """
