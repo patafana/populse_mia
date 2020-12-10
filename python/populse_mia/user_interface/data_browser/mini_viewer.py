@@ -356,19 +356,22 @@ class MiniViewer(QWidget):
         # The image to display depends on the dimension of the image
         # In the 3D case, each slice is displayed
         if len(im.shape) == 3:
-            im_2D = im.get_fdata()[:, :, i].copy()
+            #im_2D = im.get_fdata()[:, :, i].copy()
+            im_2D = np.asarray(img.dataobj)[:, :, i].copy()
 
         # In the 4D case, each middle slice of the 3D dimension is displayed
         # for each time in the 4D dimension
         elif len(im.shape) == 4:
-            im_3D = im.get_fdata()[:, :, :, i].copy()
+            #im_3D = im.get_fdata()[:, :, :, i].copy()
+            im_3D = np.asarray(img.dataobj)[:, :, :, i].copy()
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
 
         # In the 5D case, each first time of the 4D dimension and
         # its middle slice of the 3D dimension is displayed
         elif len(im.shape) == 5:
-            im_4D = im.get_fdata()[:, :, :, :, i].copy()
+            #im_4D = im.get_fdata()[:, :, :, :, i].copy()
+            im_4D =  np.asarray(img.dataobj)[:, :, :, :, i].copy()
             im_3D = im_4D[:, :, :, 1]
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
@@ -395,7 +398,8 @@ class MiniViewer(QWidget):
 
         display_size = (128, 128)
         display_type = np.uint8  # this MUST be an integer data type
-        display_pctl = 0.5  # percentile (0.5%) of values to clip at the low and high end of intensities.
+        display_pctl = 0.5  # percentile (0.5%) of values to clip at the
+                            # low and high end of intensities.
         display_max = np.iinfo(display_type).max
         display_min = np.iinfo(display_type).min
 
@@ -404,10 +408,13 @@ class MiniViewer(QWidget):
             im2D = self.im_2D[idx]
 
         # Resize image first, for three reasons:
-        #  1 - it may slightly changes the intensity scale, so re-scaling should be done after this
-        #  2 - rescaling before rotation is slightly faster, specially for large images (> display_size).
-        #  3 - rescaling may alter the occurrence of nan or infinite values (e.g. an image may become all-nan)
-        # anti_aliasing keyword is defined in skimage since version 0.14.0
+        #  1 - it may slightly changes the intensity scale, so re-scaling
+        #      should be done after this
+        #  2 - rescaling before rotation is slightly faster, specially for
+        #      large images (> display_size).
+        #  3 - rescaling may alter the occurrence of nan or infinite values
+        #      (e.g. an image may become all-nan), anti_aliasing keyword is
+        #      defined in skimage since version 0.14.0
 
         if version.parse(sk.__version__) >= version.Version("0.14.0"):
             im2D = resize(im2D, display_size, mode='constant',
@@ -418,16 +425,22 @@ class MiniViewer(QWidget):
         # Rescale image while handling Nans and infinite values
         im_mask = np.isfinite(im2D)
         if np.any(im_mask):  # if we have any finite value to work with
-            im2D -= np.percentile(im2D[im_mask], display_pctl)  # shift the lower percentile chosen to 0.0
-            im_max = np.percentile(im2D[im_mask], 100.0 - display_pctl)  # determine max from upper percentile
+            # shift the lower percentile chosen to 0.0
+            im2D -= np.percentile(im2D[im_mask], display_pctl)
+            # determine max from upper percentile
+            im_max = np.percentile(im2D[im_mask], 100.0 - display_pctl)
             if im_max > 0:  # avoid dividing by zero
-                im2D *= (display_max - display_min) / im_max  # re-scale to display range
-            im2D += display_min  # shift lowest value to lower limit of display range
-
-        np.clip(im2D, display_min, display_max, im2D)  # clip all values to display range, remove infinite values
-        im2D = im2D.astype(display_type)  # convert to integer display data type. NaNs get converted to 0.
-
-        im2D = np.rot90(im2D, 3).copy()  # Rotate. Copy array to avoid negative strides (Qt doesn't handle that)
+                # re-scale to display range
+                im2D *= (display_max - display_min) / im_max
+            # shift lowest value to lower limit of display range
+            im2D += display_min
+            
+        # clip all values to display range, remove infinite values
+        np.clip(im2D, display_min, display_max, im2D)
+        # convert to integer display data type. NaNs get converted to 0.
+        im2D = im2D.astype(display_type)
+        # Rotate. Copy array to avoid negative strides (Qt doesn't handle that)
+        im2D = np.rot90(im2D, 3).copy()
 
         if im2d_provided:
             return im2D
@@ -447,20 +460,27 @@ class MiniViewer(QWidget):
         # Depending on the dimension, reading the image data and
         # changing the cursors maximum
         if len(self.img[idx].shape) == 3:
+            #self.im_2D.insert(
+            #    idx, self.img[idx].get_fdata()[:, :, sl3D].copy())
             self.im_2D.insert(
-                idx, self.img[idx].get_fdata()[:, :, sl3D].copy())
+                idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(0)
             self.slider_5D[idx].setMaximum(0)
         if len(self.img[idx].shape) == 4:
+            #self.im_2D.insert(
+            #    idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D].copy())
             self.im_2D.insert(
-                idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D].copy())
+                idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D, sl4D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(self.img[idx].shape[3] - 1)
             self.slider_5D[idx].setMaximum(0)
         if len(self.img[idx].shape) == 5:
+           # self.im_2D.insert(
+           #     idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D, sl5D].copy())
             self.im_2D.insert(
-                idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D, sl5D].copy())
+                idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D,
+                                                       sl4D, sl5D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(self.img[idx].shape[3] - 1)
             self.slider_5D[idx].setMaximum(self.img[idx].shape[4] - 1)
