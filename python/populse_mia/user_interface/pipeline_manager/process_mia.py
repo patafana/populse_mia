@@ -26,7 +26,6 @@ import uuid
 from capsul.api import Process, Pipeline
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
-from soma.controller.trait_utils import relax_exists_constraint, is_file_trait
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
