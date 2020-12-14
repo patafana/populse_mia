@@ -748,7 +748,7 @@ class PipelineManagerTab(QWidget):
         # get a working / configured CapsulEngine
         engine = self.get_capsul_engine()
         if not pipeline:
-            pipeline = self.pipelineEditorTabs.get_current_pipeline()
+            pipeline = self.get_pipeline_or_process()
         completion = ProcessCompletionEngine.get_completion_engine(pipeline)
         if completion:
             attributes = completion.get_attribute_values()
@@ -927,8 +927,7 @@ class PipelineManagerTab(QWidget):
         QApplication.processEvents()
         # If the initialisation is launch for the main pipeline
         if not pipeline:
-            pipeline = get_process_instance(
-                self.pipelineEditorTabs.get_current_pipeline())
+            pipeline = get_process_instance(self.get_pipeline_or_process())
             main_pipeline = True
 
         else:
@@ -1029,10 +1028,12 @@ class PipelineManagerTab(QWidget):
             if node_controller_node_name in ['inputs', 'outputs']:
                 node_controller_node_name = ''
 
+            process = pipeline
+            if isinstance(pipeline, Pipeline):
+                process = pipeline.nodes[node_controller_node_name].process
             self.nodeController.display_parameters(
-                self.nodeController.node_name,
-                pipeline.nodes[node_controller_node_name].process,
-                pipeline)
+                self.nodeController.node_name, process,
+                self.pipelineEditorTabs.get_current_pipeline())
 
 
             if not init_result:
@@ -1550,8 +1551,7 @@ class PipelineManagerTab(QWidget):
         self.ignore = {}
         self.ignore_node = False
 
-        self.last_run_pipeline \
-            = self.pipelineEditorTabs.get_current_pipeline()
+        self.last_run_pipeline = self.get_pipeline_or_process()
         self.last_status = swconstants.WORKFLOW_NOT_STARTED
         self.last_run_log = None
         self.last_pipeline_name \
@@ -1704,8 +1704,9 @@ class PipelineManagerTab(QWidget):
         again then.
         """
         if not pipeline:
-            pipeline = get_process_instance(
-                self.pipelineEditorTabs.get_current_pipeline())
+            pipeline = getattr(self, 'last_run_pipeline', None)
+            if pipeline is None:
+                pipeline = self.pipelineEditorTabs.get_current_pipeline()
 
         print('postprocess pipeline:', pipeline)
 
@@ -2027,8 +2028,7 @@ class PipelineManagerTab(QWidget):
         """
         from capsul.attributes.completion_engine import ProcessCompletionEngine
 
-        c_e = self.pipelineEditorTabs.get_current_editor()
-        pipeline = c_e.scene.pipeline
+        pipeline = self.get_pipeline_or_process()
         engine = self.get_capsul_engine()
         pipeline_name = 'Iteration_pipeline'
         node_name = 'iteration'
@@ -2038,6 +2038,24 @@ class PipelineManagerTab(QWidget):
             make_optional=None)
         compl = ProcessCompletionEngine.get_completion_engine(it_pipeline)
         return it_pipeline
+
+    def get_pipeline_or_process(self, pipeline=None):
+        """
+        Get either the input pipeline (in the editor GUI), or its unique child
+        process, if it only has one unconnected child. It allows to use a
+        single process node from the GUI as a pipeline to iterate or run.
+        """
+        if pipeline is None:
+            c_e = self.pipelineEditorTabs.get_current_editor()
+            pipeline = c_e.scene.pipeline
+
+        if len(pipeline.nodes) == 2 and len(pipeline.pipeline_node.plugs) == 0:
+            for name, node in pipeline.nodes.items():
+                if name == '':
+                    continue
+                if isinstance(node, ProcessNode):
+                    return node.process
+        return pipeline
 
     def update_scans_list(self, iteration_list, all_iterations_list):
         """
@@ -2269,8 +2287,7 @@ class RunProgress(QWidget):
                 'Please see details using the status report button'
         else:
             try:
-                pipeline = self.pipeline_manager.pipelineEditorTabs. \
-                    get_current_pipeline()
+                pipeline = self.pipeline_manager.get_pipeline_or_process()
                 engine = pipeline.get_study_config().engine
                 engine.raise_for_status(self.worker.status,
                                         self.worker.exec_id)
@@ -2309,22 +2326,24 @@ class RunWorker(QThread):
 
     def run(self):
         def _check_nipype_processes(pplne):
-            for node_name, node in pplne.nodes.items():
-                if not hasattr(node, 'process'):
-                    continue  # not a process node
-                if isinstance(node.process, Pipeline):
-                    if node_name != "":
-                        _check_nipype_processes(node.process)
-                elif isinstance(node.process, NipypeProcess):
-                    node.process.activate_copy = False
+            if isinstance(pplne, Pipeline):
+                for node_name, node in pplne.nodes.items():
+                    if not hasattr(node, 'process'):
+                        continue  # not a process node
+                    if isinstance(node.process, Pipeline):
+                        if node_name != "":
+                            _check_nipype_processes(node.process)
+                    elif isinstance(node.process, NipypeProcess):
+                        node.process.activate_copy = False
+            elif isinstance(pipeline, NipypeProcess):
+                pipeline.activate_copy = False
 
         with self.lock:
             if self.interrupt_request:
                 print('*** INTERRUPT ***')
                 return
 
-        pipeline = self.pipeline_manager.pipelineEditorTabs. \
-            get_current_pipeline()
+        pipeline = self.pipeline_manager.get_pipeline_or_process()
         _check_nipype_processes(pipeline)
 
         with self.lock:
@@ -2356,7 +2375,7 @@ class RunWorker(QThread):
         print('running pipeline...')
 
         try:
-            exec_id = engine.start(pipeline)
+            exec_id, pipeline = engine.start(pipeline, get_pipeline=True)
             self.exec_id = exec_id
             while self.status in (swconstants.WORKFLOW_NOT_STARTED,
                                   swconstants.WORKFLOW_IN_PROGRESS):

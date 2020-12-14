@@ -36,6 +36,7 @@ from populse_db.database import (
     FIELD_TYPE_JSON, FIELD_TYPE_DATETIME,
     FIELD_TYPE_INTEGER)
 
+from capsul.api import Pipeline
 from capsul.pipeline import pipeline_tools
 from capsul.pipeline.pipeline_nodes import PipelineNode, ProcessNode
 
@@ -1164,6 +1165,15 @@ class Project():
     def get_finished_bricks_in_pipeline(self, engine, pipeline):
         """
         """
+        if not isinstance(pipeline, Pipeline):
+            # it's a single process...
+            procs = {}
+            brid = getattr(pipeline, 'uuid', None)
+            if brid is not None:
+                procs[brid] = {'process': pipeline}
+
+            return procs
+
         nodes_list = [n for n in pipeline.nodes.items()
                       if n[0] != ''
                           and pipeline_tools.is_node_enabled(
