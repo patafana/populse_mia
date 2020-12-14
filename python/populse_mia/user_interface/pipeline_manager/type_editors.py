@@ -93,6 +93,7 @@ class PopulseFileControlWidget(FileControlWidget):
         widget.pop_up = PlugFilter(project, scan_list, None, #(process)
                                    node_name, plug_name, node_controller,
                                    main_window)
+        widget.pop_up.setWindowModality(Qt.Qt.WindowModal)
         widget.pop_up.show()
         widget.pop_up.plug_value_changed.connect(
             partial(PopulseFileControlWidget.update_plug_value_from_filter,

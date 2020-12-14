@@ -273,7 +273,8 @@ class IterationTable(QWidget):
         tag_values = self.all_tag_values
         ui_iteration = PopUpSelectIteration(iterated_tag, tag_values)
         if ui_iteration.exec_():
-            self.tag_values_list = ui_iteration.final_values
+            self.tag_values_list = [t.replace('&', '')
+                                    for t in ui_iteration.final_values]
 
             self.combo_box.clear()
             self.combo_box.addItems(self.tag_values_list)
@@ -351,7 +352,8 @@ class IterationTable(QWidget):
 
         # Headers
         for idx in range(len(self.push_buttons)):
-            header_name = self.push_buttons[idx].text()
+            # FIXME should not use GUI text values !!
+            header_name = self.push_buttons[idx].text().replace('&', '')
             if header_name not in self.project.session.get_fields_names(
                     COLLECTION_CURRENT):
                 print("{0} not in the project's tags".format(header_name))
@@ -363,7 +365,7 @@ class IterationTable(QWidget):
 
         # Searching the database scans that correspond to iterated tag value
         filter_query = "({" + str(self.iterated_tag) + "} " + "==" + " \"" + \
-                       str(self.combo_box.currentText()) + "\")"
+                       str(self.combo_box.currentText()).replace('&', '') + "\")"
         scans_list = self.project.session.filter_documents(COLLECTION_CURRENT,
                                                            filter_query)
         scans_res = [getattr(document, TAG_FILENAME)
@@ -380,7 +382,7 @@ class IterationTable(QWidget):
         for scan_name in self.iteration_scans:
             row += 1
             for idx in range(len(self.push_buttons)):
-                tag_name = self.push_buttons[idx].text()
+                tag_name = self.push_buttons[idx].text().replace('&', '')
 
                 item = QTableWidgetItem()
                 item.setText(str(self.project.session.get_value(
