@@ -4,7 +4,10 @@ Module used by MIA bricks to run processes.
 
 :Contains:
     :Class:
+        - MIAProcessCompletionEngine
+        - MIAProcessCompletionEngineFactory
         - ProcessMIA
+ 
 
 """
 
@@ -16,50 +19,24 @@ Module used by MIA bricks to run processes.
 # for details.
 ##########################################################################
 
-import datetime
-from traits.trait_base import Undefined
-from traits.trait_handlers import TraitListObject
-import os
-import uuid
-
 # Capsul imports
 from capsul.api import Process, Pipeline
+from capsul.attributes.completion_engine import (ProcessCompletionEngine,
+                                                 ProcessCompletionEngineFactory)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
 from soma.utils.weak_proxy import get_ref
 
 # Populse_MIA imports
-from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
-                                              BRICK_OUTPUTS,COLLECTION_BRICK,
-                                              COLLECTION_CURRENT,
-                                              COLLECTION_INITIAL, TAG_BRICKS)
+from populse_mia.data_manager.project import COLLECTION_CURRENT
 
+# Soma-base import
+from soma.controller.trait_utils import relax_exists_constraint
 
-class ProcessMIA(Process):
-    """Class overriding the default capsul Process class, in order to
-    personalise the run for MIA bricks.
-
-   This class is mainly used by MIA bricks.
-
-    .. Methods:
-        - list_outputs: generates the outputs of the process (need to be
-           overridden)
-        - manage_matlab_launch_parameters: Set the Matlab's config parameters
-           when a Nipype process is used
-
-    """
-
-    def list_outputs(self):
-        """Override the outputs of the process."""
-        pass
-
-
-# ---- completion system for Capsul ---
-
-from capsul.attributes.completion_engine import (
-    ProcessCompletionEngine,
-    ProcessCompletionEngineFactory)
-
+# Other imports
+import os
+import uuid
+from traits.trait_base import Undefined
 
 class MIAProcessCompletionEngine(ProcessCompletionEngine):
     """
@@ -95,195 +72,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         super(MIAProcessCompletionEngine, self).__init__(process, name)
 
         self.fallback_engine = fallback_engine
-
-    def path_attributes(self, filename, parameter=None):
-        # re-route to underlying fallback engine
-        return self.fallback_engine.path_attributes(filename, parameter)
-
-    def get_path_completion_engine(self):
-        # re-route to underlying fallback engine
-        return self.fallback_engine.get_path_completion_engine()
-
-    def remove_switch_observer(self, observer=None):
-        # reimplemented since it is expectes in switches completion engine
-        return self.fallback_engine.remove_switch_observer(observer)
-
-    def get_attribute_values(self):
-        # re-route to underlying fallback engine
-        return self.fallback_engine.get_attribute_values()
-
-    def complete_parameters(self, process_inputs={}):
-
-        self.completion_progress = self.fallback_engine.completion_progress
-        self.completion_progress_total \
-            = self.fallback_engine.completion_progress_total
-
-        # handle database attributes and indexation
-        self.complete_attributes_with_database(process_inputs)
-
-        in_process = get_ref(self.process)
-        if isinstance(in_process, ProcessNode):
-            in_process = in_process.process
-
-        # nipype special case -- output_directory is set from MIA project
-        if isinstance(in_process, (NipypeProcess, ProcessMIA)):
-            self.complete_nipype_common(in_process)
-
-        project = self.get_project(in_process)
-        if project is not None:
-            # record completion order to perform 2nd pass tags recording and
-            # indexation
-            if not hasattr(project, 'process_order'):
-                project.process_order = []
-            node = self.process
-            if isinstance(node, Pipeline):
-                node = node.pipeline_node
-            from capsul.pipeline.pipeline_nodes import Node
-            project.process_order.append(node)
-
-        if not isinstance(in_process, ProcessMIA):
-
-            self.fallback_engine.complete_parameters(process_inputs)
-            self.completion_progress = self.fallback_engine.completion_progress
-            self.completion_progress_total \
-                = self.fallback_engine.completion_progress_total
-
-        else:
-
-            # here the process is a ProcessMIA instance. Use the specific
-            # method
-
-            #self.completion_progress = 0.
-            #self.completion_progress_total = 1.
-            self.complete_parameters_mia(process_inputs)
-            self.completion_progress = self.completion_progress_total
-
-    @staticmethod
-    def get_project(process):
-        project = None
-        if isinstance(process, ProcessNode):
-            process = process.process
-        if hasattr(process, 'get_study_config'):
-            study_config = process.get_study_config()
-            project = getattr(study_config, 'project', None)
-        return project
-
-    @staticmethod
-    def complete_nipype_common(process):
-        '''
-        Set Nipype parameters for SPM. This is used both on
-        :class:`NipypeProcess` and :class:`ProcessMIA` instances which have the
-        appropriate parameters.
-        '''
-
-        # Test for matlab launch
-        if process.trait('use_mcr'):
-
-            from populse_mia.software_properties import Config
-
-            config = Config()
-            if config.get_use_spm_standalone():
-                process.use_mcr = True
-                process.paths \
-                    = config.get_spm_standalone_path().split()
-                process.matlab_cmd = config.get_matlab_command()
-
-            elif config.get_use_spm():
-                process.use_mcr = False
-                process.paths = config.get_spm_path().split()
-                process.matlab_cmd = config.get_matlab_command()
-
-        # add "project" attribute if the process is using it
-        study_config = process.get_study_config()
-
-        project = getattr(study_config, 'project', None)
-        if project:
-            if hasattr(process, 'use_project') and process.use_project:
-                process.project = self.project
-            # set output_directory
-            if process.trait('output_directory') \
-                    and process.output_directory in (None, Undefined, ''):
-                out_dir = os.path.abspath(os.path.join(project.folder,
-                                                        'data',
-                                                        'derived_data'))
-                # ensure this output_directory exists since it is not
-                # actually an output but an input, and thus it is supposed
-                # to exist in Capsul.
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
-                process.output_directory = out_dir
-
-            tname = None
-            tmap = getattr(process, '_nipype_trait_mapping', {})
-            tname = tmap.get('_spm_script_file', '_spm_script_file')
-            if (not process.trait(tname)
-                and process.trait('spm_script_file')):
-                tname = 'spm_script_file'
-            if tname:
-                if hasattr(process, '_nipype_interface'):
-                    iscript = (process._nipype_interface
-                                .mlab.inputs.script_file)
-                elif (hasattr(process, 'process')
-                      and hasattr(process.process, '_nipype_interface')):
-                    # ProcessMIA with a NipypeProcess inside
-                    iscript = (process.process._nipype_interface
-                                .mlab.inputs.script_file)
-                else:
-                    iscript = process.name + '.m'
-                process.uuid = str(uuid.uuid4())
-                iscript = os.path.basename(iscript)[:-2] \
-                    + '_%s.m' % process.uuid
-                setattr(process, tname,
-                        os.path.abspath(os.path.join(
-                            project.folder, 'scripts', iscript)))
-
-            process.mfile = True
-
-    def complete_parameters_mia(self, process_inputs={}):
-        '''
-        Completion for :class:`ProcessMIA` instances. This is done using their
-        :meth: `ProcessMIA.list_outputs` method, which fills in output
-        parameters from input values, and sets the internal `inheritance_dict`
-        used after completion for data indexation in MIA.
-        '''
-
-        self.set_parameters(process_inputs)
-        verbose = False
-
-        node = self.process
-        process = node
-        if isinstance(node, ProcessNode):
-            process = node.process
-
-            is_plugged = {key:
-                          (bool(plug.links_to) or bool(plug.links_from))
-                          for key, plug in node.plugs.items()}
-        else:
-            is_plugged = None  # we cannot get this info
-        try:
-            initResult_dict = process.list_outputs(is_plugged=is_plugged)
-        except Exception as e:
-            print(e)
-            initResult_dict = {}
-        if not initResult_dict:
-            return  # the process is not really configured
-
-        outputs = initResult_dict.get('outputs', {})
-        for parameter, value in outputs.items():
-            if parameter == 'notInDb' \
-                    or process.is_parameter_protected(parameter):
-                continue  # special non-param or set manually
-            try:
-                setattr(process, parameter, value)
-            except Exception as e:
-                if verbose:
-                    print('Exception:', e)
-                    print('param:', pname)
-                    print('value:', repr(value))
-                    import traceback
-                    traceback.print_exc()
-
-        MIAProcessCompletionEngine.complete_nipype_common(process)
 
     def complete_attributes_with_database(self, process_inputs={}):
         '''
@@ -369,6 +157,194 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         return attributes
 
+    @staticmethod
+    def complete_nipype_common(process):
+        '''
+        Set Nipype parameters for SPM. This is used both on
+        :class:`NipypeProcess` and :class:`ProcessMIA` instances which have the
+        appropriate parameters.
+        '''
+
+        # Test for matlab launch
+        if process.trait('use_mcr'):
+
+            from populse_mia.software_properties import Config
+
+            config = Config()
+            if config.get_use_spm_standalone():
+                process.use_mcr = True
+                process.paths \
+                    = config.get_spm_standalone_path().split()
+                process.matlab_cmd = config.get_matlab_command()
+
+            elif config.get_use_spm():
+                process.use_mcr = False
+                process.paths = config.get_spm_path().split()
+                process.matlab_cmd = config.get_matlab_command()
+
+        # add "project" attribute if the process is using it
+        study_config = process.get_study_config()
+
+        project = getattr(study_config, 'project', None)
+        if project:
+            if hasattr(process, 'use_project') and process.use_project:
+                process.project = self.project
+            # set output_directory
+            if process.trait('output_directory') \
+                    and process.output_directory in (None, Undefined, ''):
+                out_dir = os.path.abspath(os.path.join(project.folder,
+                                                        'data',
+                                                        'derived_data'))
+                # ensure this output_directory exists since it is not
+                # actually an output but an input, and thus it is supposed
+                # to exist in Capsul.
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+                process.output_directory = out_dir
+
+            tname = None
+            tmap = getattr(process, '_nipype_trait_mapping', {})
+            tname = tmap.get('_spm_script_file', '_spm_script_file')
+            if (not process.trait(tname)
+                and process.trait('spm_script_file')):
+                tname = 'spm_script_file'
+            if tname:
+                if hasattr(process, '_nipype_interface'):
+                    iscript = (process._nipype_interface
+                                .mlab.inputs.script_file)
+                elif (hasattr(process, 'process')
+                      and hasattr(process.process, '_nipype_interface')):
+                    # ProcessMIA with a NipypeProcess inside
+                    iscript = (process.process._nipype_interface
+                                .mlab.inputs.script_file)
+                else:
+                    iscript = process.name + '.m'
+                process.uuid = str(uuid.uuid4())
+                iscript = os.path.basename(iscript)[:-2] \
+                    + '_%s.m' % process.uuid
+                setattr(process, tname,
+                        os.path.abspath(os.path.join(
+                            project.folder, 'scripts', iscript)))
+
+            process.mfile = True
+        
+    def complete_parameters(self, process_inputs={}):
+
+        self.completion_progress = self.fallback_engine.completion_progress
+        self.completion_progress_total \
+            = self.fallback_engine.completion_progress_total
+
+        # handle database attributes and indexation
+        self.complete_attributes_with_database(process_inputs)
+
+        in_process = get_ref(self.process)
+        if isinstance(in_process, ProcessNode):
+            in_process = in_process.process
+
+        # nipype special case -- output_directory is set from MIA project
+        if isinstance(in_process, (NipypeProcess, ProcessMIA)):
+            self.complete_nipype_common(in_process)
+
+        project = self.get_project(in_process)
+        if project is not None:
+            # record completion order to perform 2nd pass tags recording and
+            # indexation
+            if not hasattr(project, 'process_order'):
+                project.process_order = []
+            node = self.process
+            if isinstance(node, Pipeline):
+                node = node.pipeline_node
+            from capsul.pipeline.pipeline_nodes import Node
+            project.process_order.append(node)
+
+        if not isinstance(in_process, ProcessMIA):
+
+            self.fallback_engine.complete_parameters(process_inputs)
+            self.completion_progress = self.fallback_engine.completion_progress
+            self.completion_progress_total \
+                = self.fallback_engine.completion_progress_total
+
+        else:
+
+            # here the process is a ProcessMIA instance. Use the specific
+            # method
+
+            #self.completion_progress = 0.
+            #self.completion_progress_total = 1.
+            self.complete_parameters_mia()
+            self.completion_progress = self.completion_progress_total
+
+    def complete_parameters_mia(self, process_inputs={}):
+        '''
+        Completion for :class:`ProcessMIA` instances. This is done using their
+        :meth: `ProcessMIA.list_outputs` method, which fills in output
+        parameters from input values, and sets the internal `inheritance_dict`
+        used after completion for data indexation in MIA.
+        '''
+        self.set_parameters(process_inputs)
+        verbose = False
+
+        node = self.process
+        process = node
+        if isinstance(node, ProcessNode):
+            process = node.process
+
+            is_plugged = {key:
+                          (bool(plug.links_to) or bool(plug.links_from))
+                          for key, plug in node.plugs.items()}
+        else:
+            is_plugged = None  # we cannot get this info
+        try:
+            initResult_dict = process.list_outputs(is_plugged=is_plugged)
+        except Exception as e:
+            print(e)
+            initResult_dict = {}
+        if not initResult_dict:
+            return  # the process is not really configured
+
+        outputs = initResult_dict.get('outputs', {})
+        for parameter, value in outputs.items():
+            if parameter == 'notInDb' \
+                    or process.is_parameter_protected(parameter):
+                continue  # special non-param or set manually
+            try:
+                setattr(process, parameter, value)
+            except Exception as e:
+                if verbose:
+                    print('Exception:', e)
+                    print('param:', pname)
+                    print('value:', repr(value))
+                    import traceback
+                    traceback.print_exc()
+
+        MIAProcessCompletionEngine.complete_nipype_common(process)
+
+    def get_attribute_values(self):
+        # re-route to underlying fallback engine
+        return self.fallback_engine.get_attribute_values()
+
+    def get_path_completion_engine(self):
+        # re-route to underlying fallback engine
+        return self.fallback_engine.get_path_completion_engine()
+
+    @staticmethod
+    def get_project(process):
+        project = None
+        if isinstance(process, ProcessNode):
+            process = process.process
+        if hasattr(process, 'get_study_config'):
+            study_config = process.get_study_config()
+            project = getattr(study_config, 'project', None)
+        return project
+
+    def path_attributes(self, filename, parameter=None):
+        # re-route to underlying fallback engine
+        return self.fallback_engine.path_attributes(filename, parameter)
+
+    def remove_switch_observer(self, observer=None):
+        # reimplemented since it is expectes in switches completion engine
+        return self.fallback_engine.remove_switch_observer(observer)
+
 
 class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
     """
@@ -421,3 +397,82 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
 
         return MIAProcessCompletionEngine(process, name, fallback)
 
+
+class ProcessMIA(Process):
+    """Class overriding the default capsul Process class, in order to
+    personalise the run for MIA bricks.
+
+   This class is mainly used by MIA bricks.
+
+    .. Methods:
+        - _run_processes: call the run_process_mia method in the 
+                          ProcessMIA subclass
+        - list_outputs: override the outputs of the process
+        - make_initResult: make the final dictionnary for outputs,
+                           inheritance and requirement from the
+                           initialisation of a brick
+        - relax_nipype_exists_constraints: relax the exists constraint of
+                                           the process.inputs traits
+        - requirements: capsul Process.requirements() implementation using
+                        MIA's ProcessMIA.requirement attribute
+        - run_process_mia: implements specific runs for ProcessMia
+                           subclasses
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(ProcessMIA, self).__init__(*args, **kwargs)
+        self.requirement = None
+        self.outputs = {}
+        self.inheritance_dict = {}
+
+    def _run_process(self):
+        """ call the run_process_mia method in the Process_Mia subclass"""
+        self.run_process_mia()
+
+    def list_outputs(self):
+        """Override the outputs of the process."""
+        self.relax_nipype_exists_constraints()
+
+    def make_initResult(self):
+        """Make the initResult_dict from initialisation."""        
+        if ((self.requirement is None) or
+            (not self.inheritance_dict) or
+            (not self.outputs)):
+            print('\nDuring the {0} process initialisation, some possible '
+                   'problems were detected:'.format(self))
+             
+            if self.requirement is None:
+                 print('- requirement attribute was not found ...')
+
+            if not self.inheritance_dict:
+                print('- inheritance_dict attribute was not found ...')
+
+            if not self.outputs:
+                print('- outputs attribute was not found ...')
+
+            print()
+
+        return {'requirement': self.requirement, 'outputs': self.outputs,
+                'inheritance_dict': self.inheritance_dict}
+
+    def relax_nipype_exists_constraints(self):
+        """Relax the exists constraint of the process.inputs traits"""
+        if hasattr(self, 'process') and hasattr(self.process, 'inputs'):
+            ni_inputs = self.process.inputs
+            for name, trait in ni_inputs.traits().items():
+                relax_exists_constraint(trait)
+
+    def requirements(self):
+        """Capsul Process.requirements() implementation using MIA's
+        ProcessMIA.requirement attribute
+        """
+        if self.requirement:
+            return {req: 'any' for req in self.requirement}
+        return {}
+
+    def run_process_mia(self):
+        """
+        Implements specific runs for Process_Mia subclasses
+        """
+        pass
