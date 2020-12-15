@@ -26,6 +26,7 @@ import uuid
 from capsul.api import Process, Pipeline
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
+from soma.utils.weak_proxy import get_ref
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
@@ -120,7 +121,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         # handle database attributes and indexation
         self.complete_attributes_with_database(process_inputs)
 
-        in_process = self.process
+        in_process = get_ref(self.process)
         if isinstance(in_process, ProcessNode):
             in_process = in_process.process
 
@@ -154,7 +155,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             #self.completion_progress = 0.
             #self.completion_progress_total = 1.
-            self.complete_parameters_mia()
+            self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
 
     @staticmethod
