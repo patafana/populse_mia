@@ -1722,7 +1722,8 @@ class PipelineManagerTab(QWidget):
             if swf_status:
                 exec_date = swf_status[4][2]
             else:
-                exec_date = datetime.now()  # no real info about exec time
+                # no real info about exec time
+                exec_date = datetime.datetime.now()
             print('set exec status on:', brid, exec_date)
             self.project.session.set_values(
                 COLLECTION_BRICK, brid,
