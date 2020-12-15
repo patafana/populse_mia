@@ -115,7 +115,7 @@ class PopulseFileControlWidget(FileControlWidget):
             res = traits.Undefined
 
         # Set the selected file path to the path sub control
-        widget.path.setText(six.text_type(res))
+        widget.path.set_value(six.text_type(res))
 
 
 class PopulseDirectoryControlWidget(DirectoryControlWidget):
