@@ -25,13 +25,13 @@ from capsul.attributes.completion_engine import (ProcessCompletionEngine,
                                                  ProcessCompletionEngineFactory)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
-from soma.utils.weak_proxy import get_ref
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import COLLECTION_CURRENT
 
 # Soma-base import
 from soma.controller.trait_utils import relax_exists_constraint
+from soma.utils.weak_proxy import get_ref
 
 # Other imports
 import os
@@ -271,7 +271,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             #self.completion_progress = 0.
             #self.completion_progress_total = 1.
-            self.complete_parameters_mia()
+            self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
 
     def complete_parameters_mia(self, process_inputs={}):
