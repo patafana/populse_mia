@@ -357,13 +357,13 @@ class MiniViewer(QWidget):
         # In the 3D case, each slice is displayed
         if len(im.shape) == 3:
             #im_2D = im.get_fdata()[:, :, i].copy()
-            im_2D = np.asarray(img.dataobj)[:, :, i].copy()
+            im_2D = np.asarray(im.dataobj)[:, :, i].copy()
 
         # In the 4D case, each middle slice of the 3D dimension is displayed
         # for each time in the 4D dimension
         elif len(im.shape) == 4:
             #im_3D = im.get_fdata()[:, :, :, i].copy()
-            im_3D = np.asarray(img.dataobj)[:, :, :, i].copy()
+            im_3D = np.asarray(im.dataobj)[:, :, :, i].copy()
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
 
@@ -371,7 +371,7 @@ class MiniViewer(QWidget):
         # its middle slice of the 3D dimension is displayed
         elif len(im.shape) == 5:
             #im_4D = im.get_fdata()[:, :, :, :, i].copy()
-            im_4D =  np.asarray(img.dataobj)[:, :, :, :, i].copy()
+            im_4D =  np.asarray(im.dataobj)[:, :, :, :, i].copy()
             im_3D = im_4D[:, :, :, 1]
             middle_slice = int(im_3D.shape[2] / 2)
             im_2D = im_3D[:, :, middle_slice]
@@ -417,10 +417,22 @@ class MiniViewer(QWidget):
         #      defined in skimage since version 0.14.0
 
         if version.parse(sk.__version__) >= version.Version("0.14.0"):
-            im2D = resize(im2D, display_size, mode='constant',
-                          anti_aliasing=False)
+
+            try:
+                im2D = resize(im2D, display_size, mode='constant',
+                              anti_aliasing=False)
+
+            except ValueError:
+                im2D = resize(im2D.byteswap().newbyteorder(), display_size,
+                              mode='constant', anti_aliasing=False)
         else:
-            im2D = resize(im2D, display_size, mode='constant')
+
+            try:
+                im2D = resize(im2D, display_size, mode='constant')
+
+            except ValueError:
+                im2D = resize(im2D.byteswap().newbyteorder(), display_size,
+                              mode='constant')
 
         # Rescale image while handling Nans and infinite values
         im_mask = np.isfinite(im2D)
