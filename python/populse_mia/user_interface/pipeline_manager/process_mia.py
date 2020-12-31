@@ -26,6 +26,9 @@ from capsul.attributes.completion_engine import (ProcessCompletionEngine,
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
 
+# nipype imports
+from nipype.interfaces.base import File, traits_extension, InputMultiObject
+
 # Populse_MIA imports
 from populse_mia.data_manager.project import COLLECTION_CURRENT
 
@@ -36,7 +39,9 @@ from soma.utils.weak_proxy import get_ref
 # Other imports
 import os
 import uuid
+import traits.api as traits
 from traits.trait_base import Undefined
+
 
 class MIAProcessCompletionEngine(ProcessCompletionEngine):
     """
@@ -400,22 +405,24 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
 
 class ProcessMIA(Process):
     """Class overriding the default capsul Process class, in order to
-    personalise the run for MIA bricks.
+    customise the run for MIA bricks.
 
    This class is mainly used by MIA bricks.
 
     .. Methods:
-        - _run_processes: call the run_process_mia method in the 
+        - _run_processes: Call the run_process_mia method in the 
                           ProcessMIA subclass
-        - list_outputs: override the outputs of the process
-        - make_initResult: make the final dictionnary for outputs,
+        - init_default_traits: Automatically initialise necessary parameters
+                               for nipype or capsul
+        - list_outputs: Override the outputs of the process
+        - make_initResult: Make the final dictionnary for outputs,
                            inheritance and requirement from the
                            initialisation of a brick
-        - relax_nipype_exists_constraints: relax the exists constraint of
+        - relax_nipype_exists_constraints: Relax the exists constraint of
                                            the process.inputs traits
-        - requirements: capsul Process.requirements() implementation using
+        - requirements: Capsul Process.requirements() implementation using
                         MIA's ProcessMIA.requirement attribute
-        - run_process_mia: implements specific runs for ProcessMia
+        - run_process_mia: Implements specific runs for ProcessMia
                            subclasses
 
     """
@@ -427,8 +434,51 @@ class ProcessMIA(Process):
         self.inheritance_dict = {}
 
     def _run_process(self):
-        """ call the run_process_mia method in the Process_Mia subclass"""
+        """Call the run_process_mia method in the Process_Mia subclass"""
         self.run_process_mia()
+
+    def init_default_traits(self):
+        """Automatically initialise necessary parameters for nipype or capsul"""
+        if 'output_directory' not in self.user_traits():
+            self.add_trait("output_directory",
+                           traits.Directory(output=False,
+                                            optional=True,
+                                            userlevel=1))
+
+        if self.requirement is not None and 'spm' in self.requirement:
+
+            if 'use_mcr' not in self.user_traits():
+                self.add_trait("use_mcr",
+                               traits.Bool(optional=True,
+                                           userlevel=1))
+
+            if 'paths' not in  self.user_traits():
+                self.add_trait("paths",
+                               InputMultiObject(traits.Directory(),
+                                                optional=True,
+                                                userlevel=1))
+
+            if 'matlab_cmd' not in  self.user_traits():
+                self.add_trait("matlab_cmd",
+                               traits_extension.Str(optional=True,
+                                                    userlevel=1))
+
+            if 'mfile' not in  self.user_traits():
+                self.add_trait("mfile",
+                               traits.Bool(optional=True,
+                                           userlevel=1))
+
+            if 'spm_script_file' not in  self.user_traits():
+                spm_script_file_desc = ('The location of the output SPM matlab '
+                                        'script automatically generated at the '
+                                        'run step time (a string representing '
+                                        'a file).')
+                self.add_trait("spm_script_file",
+                               File(output=True,
+                                    optional=True,
+                                    input_filename=True,
+                                    userlevel=0,
+                                    desc=spm_script_file_desc))
 
     def list_outputs(self):
         """Override the outputs of the process."""
