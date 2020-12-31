@@ -241,10 +241,13 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         # handle database attributes and indexation
         self.complete_attributes_with_database(process_inputs)
-
         in_process = get_ref(self.process)
+
         if isinstance(in_process, ProcessNode):
             in_process = in_process.process
+
+        if not isinstance(in_process, Pipeline):
+            print('. {} process ...'.format(in_process.__class__.__name__))
 
         # nipype special case -- output_directory is set from MIA project
         if isinstance(in_process, (NipypeProcess, ProcessMIA)):

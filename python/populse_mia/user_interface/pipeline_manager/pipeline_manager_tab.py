@@ -74,6 +74,7 @@ import os
 import re
 import sys
 import threading
+import time
 import traceback
 import uuid
 from collections import OrderedDict
@@ -1010,8 +1011,7 @@ class PipelineManagerTab(QWidget):
         :param pipeline: not None if this method call a sub-pipeline
         :param pipeline_name: name of the parent pipeline
         """
-        print('- Init pipeline...')
-        import time
+        print('- Pipeline initialising ...\n')
         t0 = time.time()
 
         name = os.path.basename(
@@ -1037,7 +1037,7 @@ class PipelineManagerTab(QWidget):
         self.project.process_order = []
 
         # Capsul parameters completion
-        print('Completion...')
+        print('Completion ...\n')
         self.complete_pipeline_parameters(pipeline)
         print('completion done.\n')
 
@@ -2241,7 +2241,7 @@ class RunWorker(QThread):
                 print('*** INTERRUPT ***')
                 return
 
-        print('running pipeline...')
+        print('- Pipeline running ...\n')
 
         try:
             exec_id, pipeline = engine.start(pipeline, get_pipeline=True)
