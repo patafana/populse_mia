@@ -1039,7 +1039,7 @@ class PipelineManagerTab(QWidget):
         # Capsul parameters completion
         print('Completion ...')
         self.complete_pipeline_parameters(pipeline)
-        print('completion done.\n')
+        print('\nCompletion done.\n')
 
         # check missing inputs
         missing_inputs = pipeline.get_missing_mandatory_parameters()
