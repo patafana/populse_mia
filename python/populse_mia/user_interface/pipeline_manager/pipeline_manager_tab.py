@@ -1037,7 +1037,7 @@ class PipelineManagerTab(QWidget):
         self.project.process_order = []
 
         # Capsul parameters completion
-        print('Completion ...\n')
+        print('Completion ...')
         self.complete_pipeline_parameters(pipeline)
         print('completion done.\n')
 

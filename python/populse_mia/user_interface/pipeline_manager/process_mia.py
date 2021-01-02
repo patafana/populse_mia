@@ -23,14 +23,18 @@ Module used by MIA bricks to run processes.
 from capsul.api import Process, Pipeline
 from capsul.attributes.completion_engine import (ProcessCompletionEngine,
                                                  ProcessCompletionEngineFactory)
+from capsul.attributes.completion_engine_factory import (
+                                          BuiltinProcessCompletionEngineFactory)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
+
 
 # nipype imports
 from nipype.interfaces.base import File, traits_extension, InputMultiObject
 
 # Populse_MIA imports
 from populse_mia.data_manager.project import COLLECTION_CURRENT
+from populse_mia.software_properties import Config
 
 # Soma-base import
 from soma.controller.trait_utils import relax_exists_constraint
@@ -39,6 +43,7 @@ from soma.utils.weak_proxy import get_ref
 # Other imports
 import os
 import uuid
+import traceback
 import traits.api as traits
 from traits.trait_base import Undefined
 
@@ -172,9 +177,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         # Test for matlab launch
         if process.trait('use_mcr'):
-
-            from populse_mia.software_properties import Config
-
             config = Config()
             if config.get_use_spm_standalone():
                 process.use_mcr = True
@@ -246,9 +248,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         if isinstance(in_process, ProcessNode):
             in_process = in_process.process
 
-        if not isinstance(in_process, Pipeline):
-            print('. {} process ...'.format(in_process.__class__.__name__))
-
         # nipype special case -- output_directory is set from MIA project
         if isinstance(in_process, (NipypeProcess, ProcessMIA)):
             self.complete_nipype_common(in_process)
@@ -259,26 +258,35 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             # indexation
             if not hasattr(project, 'process_order'):
                 project.process_order = []
+                
             node = self.process
+            
             if isinstance(node, Pipeline):
                 node = node.pipeline_node
-            from capsul.pipeline.pipeline_nodes import Node
+
             project.process_order.append(node)
 
         if not isinstance(in_process, ProcessMIA):
-
+            if not isinstance(in_process, Pipeline):
+                print('\n. {0} ({1}) process node ...'.format(
+                    in_process.context_name.split('.')[-1],
+                    '.'.join((in_process.__module__,
+                              in_process.__class__.__name__))))
             self.fallback_engine.complete_parameters(process_inputs)
             self.completion_progress = self.fallback_engine.completion_progress
             self.completion_progress_total \
                 = self.fallback_engine.completion_progress_total
 
         else:
-
             # here the process is a ProcessMIA instance. Use the specific
             # method
 
             #self.completion_progress = 0.
             #self.completion_progress_total = 1.
+            print('\n. {0} ({1}) process node ...'.format(
+                self.process.context_name.split('.')[-1],
+                '.'.join((self.process.__module__,
+                          self.process.__class__.__name__))))
             self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
 
@@ -288,10 +296,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         :meth: `ProcessMIA.list_outputs` method, which fills in output
         parameters from input values, and sets the internal `inheritance_dict`
         used after completion for data indexation in MIA.
-        '''
+        '''        
         self.set_parameters(process_inputs)
         verbose = False
-
         node = self.process
         process = node
         if isinstance(node, ProcessNode):
@@ -322,7 +329,6 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     print('Exception:', e)
                     print('param:', pname)
                     print('value:', repr(value))
-                    import traceback
                     traceback.print_exc()
 
         MIAProcessCompletionEngine.complete_nipype_common(process)
@@ -395,10 +401,6 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
                 except ValueError:
                     pass # not found
         if engine_factory is None:
-
-            from capsul.attributes.completion_engine_factory \
-              import BuiltinProcessCompletionEngineFactory
-
             engine_factory = BuiltinProcessCompletionEngineFactory()
 
         fallback = engine_factory.get_completion_engine(process, name=name)
