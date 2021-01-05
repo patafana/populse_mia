@@ -428,7 +428,6 @@ class PipelineManagerTab(QWidget):
             attributes set coming from Capsul completion engine to be set on
             all outputs of the node
         """
-
         if isinstance(p_value, (list, TraitListObject)):
             inner_trait = trait.handler.inner_traits()[0]
             for elt in p_value:
@@ -1078,37 +1077,42 @@ class PipelineManagerTab(QWidget):
                 if isinstance(node, ProcessNode):
                     process = node.process
                 node_name = getattr(process, 'context_name', node.name)
-
                 self.update_auto_inheritance(node)
 
                 # Adding the brick to the bricks history
                 if not isinstance(node, (PipelineNode, Pipeline)):
                     # check if brick_id has already been assgned
                     brick_id = getattr(node, 'uuid', None)
+
                     if brick_id is None and isinstance(node, ProcessNode):
                         brick_id = getattr(node.process, 'uuid', None)
+
                     if brick_id is None:
                         brick_id = str(uuid.uuid4())
+
                     # set brick_id in process
                     node.uuid = brick_id
+
                     if isinstance(node, ProcessNode):
                         node.process.uuid = brick_id
+
                     self.brick_list.append(brick_id)
                     self.project.session.add_document(COLLECTION_BRICK,
                                                       brick_id)
+
+                    if node_name.split('.')[0] == 'Pipeline':
+                        node_name = '.'.join(node_name.split('.')[1:])
+
                     self.project.session.set_values(
                         COLLECTION_BRICK, brick_id,
                         {BRICK_NAME: node_name,
                         BRICK_INIT_TIME: datetime.datetime.now(),
                         BRICK_INIT: "Not Done",
                         BRICK_EXEC: "Not Done"})
-
                     self._register_node_io_in_database(node, pipeline_name)
 
         self.register_completion_attributes(pipeline)
-
         print('init time:', time.time() - t0)
-
         self.project.saveModifications()
 
         # Updating the node controller
@@ -1116,6 +1120,7 @@ class PipelineManagerTab(QWidget):
         # the Pipeline Manager (controller)
         if main_pipeline:
             node_controller_node_name = self.nodeController.node_name
+            
             #### Todo: Fix the problem of the controller that
             #### keeps the name of the old brick deleted until
             #### a click on the new one. This can cause a mia
@@ -1125,12 +1130,13 @@ class PipelineManagerTab(QWidget):
                 node_controller_node_name = ''
 
             process = pipeline
+
             if isinstance(pipeline, Pipeline):
                 process = pipeline.nodes[node_controller_node_name].process
+
             self.nodeController.display_parameters(
                 self.nodeController.node_name, process,
                 self.pipelineEditorTabs.get_current_pipeline())
-
 
             if not init_result:
                 self.msg = QMessageBox()
