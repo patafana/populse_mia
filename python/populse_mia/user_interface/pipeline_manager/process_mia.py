@@ -267,11 +267,20 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             project.process_order.append(node)
 
         if not isinstance(in_process, ProcessMIA):
-            if not isinstance(in_process, Pipeline):
+            
+            if (not isinstance(in_process, Pipeline) and
+                                         isinstance(in_process, NipypeProcess)):
+                print('\n. {0} ({1}) process node ...'.format(
+                   in_process.context_name.split('.')[-1],
+                   '.'.join((in_process._nipype_interface.__module__,
+                             in_process._nipype_interface.__class__.__name__))))
+
+            elif not isinstance(in_process, Pipeline):
                 print('\n. {0} ({1}) process node ...'.format(
                     in_process.context_name.split('.')[-1],
                     '.'.join((in_process.__module__,
                               in_process.__class__.__name__))))
+                      
             self.fallback_engine.complete_parameters(process_inputs)
             self.completion_progress = self.fallback_engine.completion_progress
             self.completion_progress_total \
