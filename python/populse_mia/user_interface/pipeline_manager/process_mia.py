@@ -268,16 +268,23 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         if not isinstance(in_process, ProcessMIA):
             
-            if (not isinstance(in_process, Pipeline) and
-                                         isinstance(in_process, NipypeProcess)):
-                print('\n. {0} ({1}) process node ...'.format(
-                   in_process.context_name.split('.')[-1],
+            if not isinstance(in_process, Pipeline):
+
+                if in_process.context_name.split('.')[0] == 'Pipeline':
+                    node_name = '.'.join(in_process.context_name.split('.')[1:])
+
+                else:
+                    node_name = in_process.context_name
+
+                if isinstance(in_process, NipypeProcess):
+                    print('\n. {0} ({1}) node ...'.format(
+                   node_name,
                    '.'.join((in_process._nipype_interface.__module__,
                              in_process._nipype_interface.__class__.__name__))))
 
-            elif not isinstance(in_process, Pipeline):
-                print('\n. {0} ({1}) process node ...'.format(
-                    in_process.context_name.split('.')[-1],
+                else:
+                    print('\n. {0} ({1}) node ...'.format(
+                    node_name,
                     '.'.join((in_process.__module__,
                               in_process.__class__.__name__))))
                       
@@ -292,8 +299,15 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             #self.completion_progress = 0.
             #self.completion_progress_total = 1.
-            print('\n. {0} ({1}) process node ...'.format(
-                self.process.context_name.split('.')[-1],
+
+            if self.process.context_name.split('.')[0] == 'Pipeline':
+                node_name = '.'.join(self.process.context_name.split('.')[1:])
+
+            else:
+                node_name = self.process.context_name
+            
+            print('\n. {0} ({1}) node ...'.format(
+                node_name,
                 '.'.join((self.process.__module__,
                           self.process.__class__.__name__))))
             self.complete_parameters_mia(process_inputs)
