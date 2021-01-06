@@ -48,6 +48,14 @@ if not os.path.dirname(os.path.dirname(
                      os.path.dirname(
                        os.path.dirname(
                          os.path.dirname(os.path.realpath(__file__)))))
+
+    # Note: The following syntax can also be used:
+    #root_dev_dir = os.path.abspath(os.path.join('__file__',
+    #                                            os.path.pardir,
+    #                                            os.path.pardir,
+    #                                            os.path.pardir,
+    #                                            os.path.pardir))
+
     branch = ''
     populse_bdir = ''
     capsul_bdir = ''
@@ -179,6 +187,28 @@ if not os.path.dirname(os.path.dirname(
             del mia_processes_dir
             del mia_processes
 
+    # Adding personal libraries (User_processes : by default in Mia, but others
+    # can be added by developers):
+    # FIXME: The same fix type will certainly have to be made in user
+    # mode (for ~/.populse_mia/process' ).
+    mia_proc = os.path.join(root_dev_dir, populse_bdir,
+                                'populse_mia', 'processes')
+    
+    if os.path.isdir(mia_proc):
+        mia_proc_dir = os.listdir(mia_proc)
+
+        if mia_proc_dir:
+            i += 1
+            sys.path.insert(i, mia_proc)
+            pypath.append(mia_proc)
+             
+            for elt in mia_proc_dir:
+                print('  . Using {0} package from {1}...'.format(elt, mia_proc))
+
+        del mia_proc_dir
+        del elt
+
+    del mia_proc
     del root_dev_dir
 
 elif 'CASA_DISTRO' in os.environ:
@@ -655,6 +685,7 @@ def main():
             del app
 
     global pypath
+
     if DEV_MODE and pypath:
         config = Config()
         config.get_capsul_engine()
@@ -662,21 +693,23 @@ def main():
         pc = c.setdefault('engine', {}).setdefault(
             'global', {}).setdefault('capsul.engine.module.python', {})
         pc['executable'] = sys.executable
+
         if 'path' in pc:
             matches=[os.path.join('populse_mia', 'python'),
                      'capsul',
                      os.path.join('populse_db', 'python'),
                      os.path.join('mia_processes', 'python'),
                      os.path.join('soma-base', 'python'),
-                     os.path.join('soma-workflow', 'python')]
+                     os.path.join('soma-workflow', 'python'),
+                     os.path.join('populse_mia', 'processes')]
 
             for i in pc['path']:
 
                if i not in pypath and not any(x in i for x in matches):
                     pypath.append(i)
+
         pc['path'] = pypath
         print('\nChanged python conf:', pc)
-
         config.update_capsul_config()
         config.saveConfig()
 
