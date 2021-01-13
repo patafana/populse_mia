@@ -312,26 +312,44 @@ class Config:
         capsul_config = self.get_capsul_config(sync_from_engine=False)
         engine = Config.capsul_engine
 
-        for module in capsul_config.get('engine_modules', []) \
-                + ['fom', 'nipype', 'python', 'fsl', 'freesurfer', 'axon']:
+        for module in capsul_config.get('engine_modules', []) + ['fom',
+                                                                 'nipype',
+                                                                 'python',
+                                                                 'fsl',
+                                                                 'freesurfer',
+                                                                 'axon']:
             engine.load_module(module)
 
         study_config = engine.study_config
-        study_config.import_from_dict(capsul_config.get('study_config', {}))
 
-        engine_config = capsul_config.get('engine')
-        if engine_config:
-            for environment, config in engine_config.items():
-                c = dict(config)
-                if 'capsul_engine' not in c \
-                        or 'uses' not in c['capsul_engine']:
-                    c['capsul_engine'] = {
+        try:
+            study_config.import_from_dict(capsul_config.get('study_config', {}))
+            
+        except Exception as exc:
+            print("\nAn issue is detected in the configuration of Mia's "
+                  "configuration:\n{}\nPlease check the settings in File > Mia "
+                  "Preferences > Pipeline ...".format(exc))
+    
+        else:
+            engine_config = capsul_config.get('engine')
+
+            if engine_config:
+
+                for environment, config in engine_config.items():
+                    c = dict(config)
+
+                    if ('capsul_engine' not in c or
+                                              'uses' not in c['capsul_engine']):
+                        c['capsul_engine'] = {
                         'uses': {engine.settings.module_name(m): 'ALL'
                                   for m in config.keys()}}
-                for mod, val in config.items():
-                    if 'config_id' not in val:
-                        val['config_id'] = mod.split('.')[-1]
-                engine.import_configs(environment, c)
+
+                    for mod, val in config.items():
+
+                        if 'config_id' not in val:
+                            val['config_id'] = mod.split('.')[-1]
+
+                    engine.import_configs(environment, c)
 
         return engine
 
