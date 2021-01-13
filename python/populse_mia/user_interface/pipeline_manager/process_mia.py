@@ -20,7 +20,7 @@ Module used by MIA bricks to run processes.
 ##########################################################################
 
 # Capsul imports
-from capsul.api import Process, Pipeline
+from capsul.api import capsul_engine, Process, Pipeline
 from capsul.attributes.completion_engine import (ProcessCompletionEngine,
                                                  ProcessCompletionEngineFactory)
 from capsul.attributes.completion_engine_factory import (
@@ -507,6 +507,18 @@ class ProcessMIA(Process):
                                     input_filename=True,
                                     userlevel=0,
                                     desc=spm_script_file_desc))
+
+    def init_process(self, int_name):
+        """
+
+        """
+        if getattr(self, 'study_config'):
+            ce = self.study_config.engine
+
+        else:
+            ce = capsul_engine()
+
+        self.process = ce.get_process_instance(int_name)
 
     def list_outputs(self):
         """Override the outputs of the process."""
