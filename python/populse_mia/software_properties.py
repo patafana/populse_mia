@@ -337,7 +337,7 @@ class Config:
 
                 for environment, config in engine_config.items():
                     c = dict(config)
-
+                    
                     if ('capsul_engine' not in c or
                                               'uses' not in c['capsul_engine']):
                         c['capsul_engine'] = {
@@ -349,10 +349,16 @@ class Config:
                         if 'config_id' not in val:
                             val['config_id'] = mod.split('.')[-1]
 
-                    engine.import_configs(environment, c)
+                    try:
+                        engine.import_configs(environment, c)
+
+                    except Exception as exc:
+                        print("\nAn issue is detected in the configuration of "
+                              "Mia's configuration:\n{}\nPlease check the "
+                              "settings in File > Mia Preferences > "
+                              "Pipeline ...".format(exc))
 
         return engine
-
 
     def get_user_mode(self):
         """Get if user mode is disabled or enabled in the preferences.
