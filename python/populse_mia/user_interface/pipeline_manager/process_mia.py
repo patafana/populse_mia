@@ -510,7 +510,9 @@ class ProcessMIA(Process):
 
     def init_process(self, int_name):
         """
+        Instantiation of the process attribute given an process identifier.
 
+        :param int_name: a process identifier
         """
         if getattr(self, 'study_config'):
             ce = self.study_config.engine
