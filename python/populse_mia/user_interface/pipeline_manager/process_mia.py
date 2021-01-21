@@ -545,7 +545,9 @@ class ProcessMIA(Process):
 
             print()
 
-        if self.outputs and self.requirement is not None and 'spm' in self.requirement:
+        if (self.outputs and
+                 self.requirement is not None and
+                 'spm' in self.requirement):
             self.outputs["notInDb"] = ["spm_script_file"]
 
         return {'requirement': self.requirement, 'outputs': self.outputs,
