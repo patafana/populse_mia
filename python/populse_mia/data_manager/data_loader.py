@@ -24,14 +24,15 @@ Contains:
 # for details.
 ##########################################################################
 
-import glob
-import os.path
-import json
-import hashlib  # To generate the md5 of each path
 import datetime
+import glob
+import hashlib  # To generate the md5 of each path
+import json
+import os.path
+import threading
+import traceback
 from time import time, sleep
 from datetime import datetime
-import threading
 
 # PyQt5 imports
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
@@ -336,11 +337,16 @@ class ImportWorker(QThread):
 
         # Missing values added thanks to default values
         for tag in self.project.session.get_fields(COLLECTION_CURRENT):
+
             if tag.origin == TAG_ORIGIN_USER:
+
                 for scan in self.scans_added:
-                    if tag.default_value is not None and \
-                            self.project.session.get_value(
-                                COLLECTION_CURRENT, scan[0], tag.field_name) is None:
+
+                    if (tag.default_value is not None and
+                            self.project.session.get_value(COLLECTION_CURRENT,
+                                                           scan[0],
+                                                           tag.field_name)
+                                                                       is None):
                         # Value added to history
                         values_added.append([scan, tag.field_name,
                                              tag.default_value,
@@ -447,8 +453,19 @@ def verify_scans(project):
         if os.path.exists(file_path):
             # If the file exists, we do the checksum
             with open(file_path, 'rb') as scan_file:
-                data = scan_file.read()
-                actual_md5 = hashlib.md5(data).hexdigest()
+
+                try:
+                    data = scan_file.read()
+
+                except Exception as e:
+                    print('\nError while reading the "{0}" file '
+                          '...!\nTraceback:'.format(os.path.abspath(file_path)))
+                    print(''.join(traceback.format_tb(e.__traceback__)), end='')
+                    print('{0}: {1}\n'.format(e.__class__.__name__, e))
+                    actual_md5 = None
+
+                else:
+                    actual_md5 = hashlib.md5(data).hexdigest()
 
             initial_checksum = project.session.get_value(COLLECTION_CURRENT,
                                                          scan, TAG_CHECKSUM)

@@ -328,7 +328,7 @@ class DataBrowser(QWidget):
                         full_name = os.sep + full_name
                     if full_name not in full_names:
                         full_names.append(full_name)
-
+                        
             self.viewer.verify_slices(full_names)
 
     def connect_toolbar(self):
@@ -865,9 +865,10 @@ class TableDataBrowser(QTableWidget):
                     COLLECTION_CURRENT, tag)
 
                 if tag_object is not None:
-                    item.setToolTip("Description: " + str(
-                        tag_object.description) + "\nUnit: " + str(
-                        tag_object.unit) + "\nType: " + str(tag_object.field_type))
+                    item.setToolTip("Description: " +
+                                    str(tag_object.description) +
+                                    "\nUnit: " + str(tag_object.unit) +
+                                    "\nType: " + str(tag_object.field_type))
 
                 # Set column type
 
@@ -1978,9 +1979,11 @@ class TableDataBrowser(QTableWidget):
                     try:
                         self.project.session.set_value(
                             COLLECTION_CURRENT, scan, tag_name, initial_value)
-                        set_item_data(self.item(row_iter, col), initial_value,
+                        set_item_data(self.item(row_iter, col),
+                                      initial_value,
                                       self.project.session.get_field(
-                                          COLLECTION_CURRENT, tag_name).field_type)
+                                          COLLECTION_CURRENT,
+                                          tag_name).field_type)
                         # For history
                         modified_values.append(
                             [scan, tag_name, current_value, initial_value])
