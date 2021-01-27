@@ -526,6 +526,12 @@ class ProcessMIA(Process):
         """Override the outputs of the process."""
         self.relax_nipype_exists_constraints()
 
+        if self.outputs:
+            self.outputs = {}
+
+        if self.inheritance_dict:
+            self.inheritance_dict = {}
+
     def make_initResult(self):
         """Make the initResult_dict from initialisation."""        
         if ((self.requirement is None) or
