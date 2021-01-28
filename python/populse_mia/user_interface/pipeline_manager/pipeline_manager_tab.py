@@ -1015,6 +1015,7 @@ class PipelineManagerTab(QWidget):
 
         name = os.path.basename(
             self.pipelineEditorTabs.get_current_filename())
+        if name == '': name = 'NoName'
         self.main_window.statusBar().showMessage(
             'Pipeline "{0}" is getting initialized. '
             'Please wait.'.format(name))
@@ -1495,6 +1496,7 @@ class PipelineManagerTab(QWidget):
         from soma_workflow import constants as swconstants
 
         name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
+        if name == '': name = 'NoName'
         self.brick_list = []
         self.main_window.statusBar().showMessage(
             'Pipeline "{0}" is getting run. Please wait.'.format(name))
@@ -1506,8 +1508,8 @@ class PipelineManagerTab(QWidget):
         self.last_run_pipeline = self.get_pipeline_or_process()
         self.last_status = swconstants.WORKFLOW_NOT_STARTED
         self.last_run_log = None
-        self.last_pipeline_name \
-            = self.pipelineEditorTabs.get_current_filename()
+        self.last_pipeline_name = self.pipelineEditorTabs.get_current_filename()
+        if self.last_pipeline_name == '': self.last_pipeline_name = 'NoName'
 
         #if self.iterationTable.check_box_iterate.isChecked():
             #iterated_tag = self.iterationTable.iterated_tag
