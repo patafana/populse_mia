@@ -193,7 +193,7 @@ class PipelineManagerTab(QWidget):
         self.processLibrary = ProcessLibraryWidget(self.main_window)
         self.processLibrary.process_library.item_library_clicked.connect(
             self.item_library_clicked)
-        self.item_library_clicked.connect(self._show_preview)
+        #self.item_library_clicked.connect(self._show_preview)
 
         # self.diagramScene = DiagramScene(self)
         self.pipelineEditorTabs = PipelineEditorTabs(
@@ -216,9 +216,9 @@ class PipelineManagerTab(QWidget):
         self.iterationTable.iteration_table_updated.connect(
             self.update_scans_list)
 
-        self.previewBlock = PipelineDevelopperView(
-            pipeline=None, allow_open_controller=False,
-            show_sub_pipelines=True, enable_edition=False)
+        #self.previewBlock = PipelineDevelopperView(
+        #    pipeline=None, allow_open_controller=False,
+        #    show_sub_pipelines=True, enable_edition=False)
 
         self.startedConnection = None
 
@@ -394,10 +394,10 @@ class PipelineManagerTab(QWidget):
         self.show_pipeline_status_action.setIcon(
             QIcon(self._mmovie.currentPixmap()))        
 
-    def _show_preview(self, name_item):
-
-        self.previewBlock.centerOn(0, 0)
-        self.find_process(name_item)
+    #def _show_preview(self, name_item):
+    #
+    #    self.previewBlock.centerOn(0, 0)
+    #    self.find_process(name_item)
 
     def add_plug_value_to_database(self, p_value, brick_id, node_name,
                                    plug_name, full_name, node, trait, inputs,
@@ -701,45 +701,45 @@ class PipelineManagerTab(QWidget):
         self.project.session.set_values(
             COLLECTION_INITIAL, p_value, ivalues)
 
-    def add_process_to_preview(self, class_process, node_name=None):
-        """Add a process to the pipeline.
+    #def add_process_to_preview(self, class_process, node_name=None):
+    #    """Add a process to the pipeline.
+    #
+    #    :param class_process: process class's name (str)
+    #    :param node_name: name of the corresponding node
+    #       (using when undo/redo) (str)
+    #    """
+    #
+    #    # pipeline = self.previewBlock.scene.pipeline
+    #    pipeline = Pipeline()
+    #    if not node_name:
+    #        class_name = class_process.__name__
+    #        i = 1
+    #
+    #        node_name = class_name.lower() + str(i)
+    #
+    #        while node_name in pipeline.nodes and i < 100:
+    #            i += 1
+    #            node_name = class_name.lower() + str(i)
+    #
+    #        process_to_use = class_process()
+    #
+    #    else:
+    #        process_to_use = class_process
+    #
+    #    try:
+    #        process = get_process_instance(
+    #            process_to_use)
+    #    except Exception as e:
+    #        return
 
-        :param class_process: process class's name (str)
-        :param node_name: name of the corresponding node
-           (using when undo/redo) (str)
-        """
+    #    pipeline.add_process(node_name, process)
+    #    self.previewBlock.set_pipeline(pipeline)
 
-        # pipeline = self.previewBlock.scene.pipeline
-        pipeline = Pipeline()
-        if not node_name:
-            class_name = class_process.__name__
-            i = 1
+    #    # Capsul update
+    #    node = pipeline.nodes[node_name]
+    #    # gnode = self.scene.add_node(node_name, node)
 
-            node_name = class_name.lower() + str(i)
-
-            while node_name in pipeline.nodes and i < 100:
-                i += 1
-                node_name = class_name.lower() + str(i)
-
-            process_to_use = class_process()
-
-        else:
-            process_to_use = class_process
-
-        try:
-            process = get_process_instance(
-                process_to_use)
-        except Exception as e:
-            return
-
-        pipeline.add_process(node_name, process)
-        self.previewBlock.set_pipeline(pipeline)
-
-        # Capsul update
-        node = pipeline.nodes[node_name]
-        # gnode = self.scene.add_node(node_name, node)
-
-        return node, node_name
+    #    return node, node_name
 
     def build_iterated_pipeline(self):
         """
@@ -853,38 +853,38 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.get_current_pipeline())
         self.scrollArea.setWidget(self.nodeController)
 
-    def find_process(self, path):
-        """
-        Find the dropped process in the system's paths
-
-        :param path: class's path (e.g. "nipype.interfaces.spm.Smooth") (str)
-        """
-
-        package_name, process_name = os.path.splitext(path)
-        process_name = process_name[1:]
-        __import__(package_name)
-        pkg = sys.modules[package_name]
-        for name, instance in sorted(list(pkg.__dict__.items())):
-            if name == process_name and inspect.isclass(instance):
-                try:
-                    process = get_process_instance(instance)
-                except Exception as e:
-                    print(e)
-                    return
-                else:
-                    node, node_name = self.add_process_to_preview(instance)
-                    gnode = self.previewBlock.scene.gnodes[node_name]
-                    gnode.setPos(0, 0)
-                    gnode.updateInfoActived(True)
-                    # gnode.active = True
-                    # gnode.update_node()
-                    rect = gnode.sceneBoundingRect()
-                    self.previewBlock.scene.setSceneRect(rect)
-                    self.previewBlock.fitInView(
-                        rect.x(), rect.y(), rect.width() * 1.2,
-                                            rect.height() * 1.2,
-                        Qt.KeepAspectRatio)
-                    self.previewBlock.setAlignment(Qt.AlignCenter)
+    #def find_process(self, path):
+    #    """
+    #    Find the dropped process in the system's paths
+    #
+    #    :param path: class's path (e.g. "nipype.interfaces.spm.Smooth") (str)
+    #    """
+    # 
+    #    package_name, process_name = os.path.splitext(path)
+    #    process_name = process_name[1:]
+    #    __import__(package_name)
+    #    pkg = sys.modules[package_name]
+    #    for name, instance in sorted(list(pkg.__dict__.items())):
+    #        if name == process_name and inspect.isclass(instance):
+    #            try:
+    #                process = get_process_instance(instance)
+    #            except Exception as e:
+    #                print(e)
+    #                return
+    #            else:
+    #                node, node_name = self.add_process_to_preview(instance)
+    #                gnode = self.previewBlock.scene.gnodes[node_name]
+    #                gnode.setPos(0, 0)
+    #                gnode.updateInfoActived(True)
+    #                # gnode.active = True
+    #                # gnode.update_node()
+    #                rect = gnode.sceneBoundingRect()
+    #                self.previewBlock.scene.setSceneRect(rect)
+    #                self.previewBlock.fitInView(
+    #                    rect.x(), rect.y(), rect.width() * 1.2,
+    #                                        rect.height() * 1.2,
+    #                    Qt.KeepAspectRatio)
+    #                self.previewBlock.setAlignment(Qt.AlignCenter)
 
     def finish_execution(self):
         """
@@ -1241,7 +1241,7 @@ class PipelineManagerTab(QWidget):
         # self.previewDiagram.setEnabled(False)
 
         self.splitter0.addWidget(self.processLibrary)
-        self.splitter0.addWidget(self.previewBlock)
+        #self.splitter0.addWidget(self.previewBlock)
 
         self.splitter1.addWidget(self.splitter0)
         self.splitter1.addWidget(self.pipelineEditorTabs)
