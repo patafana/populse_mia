@@ -579,7 +579,9 @@ class ProcessMIA(Process):
         Implements specific runs for Process_Mia subclasses
         """
         if self.requirement is not None and 'spm' in self.requirement:
-            self.process._spm_script_file = self.spm_script_file
 
-        if self.output_directory:
-            self.process.output_directory = self.output_directory
+            if self.spm_script_file:
+                self.process._spm_script_file = self.spm_script_file
+
+            if self.output_directory:
+                self.process.output_directory = self.output_directory
