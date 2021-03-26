@@ -585,3 +585,15 @@ class ProcessMIA(Process):
 
             if self.output_directory:
                 self.process.output_directory = self.output_directory
+
+            if self.use_mcr:
+                self.process.use_mcr = self.use_mcr
+
+            if self.paths:
+                self.process.paths = self.paths
+
+            if self.matlab_cmd:
+                self.process.matlab_cmd = self.matlab_cmd
+
+            if self.mfile:
+                 self.process.mfile = self.mfile
