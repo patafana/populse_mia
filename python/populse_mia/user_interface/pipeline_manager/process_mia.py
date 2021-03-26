@@ -67,8 +67,8 @@ class ProcessMIA(Process):
 
     """
 
-    def __init__(self):
-        super(ProcessMIA, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(ProcessMIA, self).__init__(*args, **kwargs)
         self.change_dir = False
         self.requirement = None
         self.outputs = {}
@@ -265,7 +265,8 @@ class ProcessMIA(Process):
         """
         Implements specific runs for Process_Mia subclasses
         """
-        pass
+        if self.change_dir:
+            self.manage_matlab_launch_parameters()
 
     def switch_to_scripts_dir(self):
         """Method that changes the current working directory to the scripts
