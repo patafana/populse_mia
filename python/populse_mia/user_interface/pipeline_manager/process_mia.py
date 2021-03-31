@@ -178,10 +178,10 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         # Test for matlab launch
         if process.trait('use_mcr'):
             config = Config()
+
             if config.get_use_spm_standalone():
                 process.use_mcr = True
-                process.paths \
-                    = config.get_spm_standalone_path().split()
+                process.paths = config.get_spm_standalone_path().split()
                 process.matlab_cmd = config.get_matlab_command()
 
             elif config.get_use_spm():
@@ -191,49 +191,63 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
         # add "project" attribute if the process is using it
         study_config = process.get_study_config()
-
         project = getattr(study_config, 'project', None)
+
         if project:
+
             if hasattr(process, 'use_project') and process.use_project:
                 process.project = self.project
+
             # set output_directory
-            if process.trait('output_directory') \
-                    and process.output_directory in (None, Undefined, ''):
+            if (process.trait('output_directory') and
+                         process.output_directory in (None, Undefined, '')):
                 out_dir = os.path.abspath(os.path.join(project.folder,
-                                                        'data',
-                                                        'derived_data'))
+                                                       'data',
+                                                       'derived_data'))
+
                 # ensure this output_directory exists since it is not
                 # actually an output but an input, and thus it is supposed
                 # to exist in Capsul.
                 if not os.path.exists(out_dir):
                     os.makedirs(out_dir)
+
                 process.output_directory = out_dir
 
-            tname = None
-            tmap = getattr(process, '_nipype_trait_mapping', {})
-            tname = tmap.get('_spm_script_file', '_spm_script_file')
-            if (not process.trait(tname)
-                and process.trait('spm_script_file')):
-                tname = 'spm_script_file'
-            if tname:
-                if hasattr(process, '_nipype_interface'):
-                    iscript = (process._nipype_interface
-                                .mlab.inputs.script_file)
-                elif (hasattr(process, 'process')
-                      and hasattr(process.process, '_nipype_interface')):
-                    # ProcessMIA with a NipypeProcess inside
-                    iscript = (process.process._nipype_interface
-                                .mlab.inputs.script_file)
-                else:
-                    iscript = process.name + '.m'
-                process.uuid = str(uuid.uuid4())
-                iscript = os.path.basename(iscript)[:-2] \
-                    + '_%s.m' % process.uuid
-                setattr(process, tname,
-                        os.path.abspath(os.path.join(
-                            project.folder, 'scripts', iscript)))
+            if ((hasattr(process, '_nipype_interface_name') and
+                                     process._nipype_interface_name == 'spm') or
+                (hasattr(process.process, '_nipype_interface_name') and
+                       process.process._nipype_interface_name == 'spm')):
+                tname = None
+                tmap = getattr(process, '_nipype_trait_mapping', {})
+                tname = tmap.get('_spm_script_file', '_spm_script_file')
 
-            process.mfile = True
+                if (not process.trait(tname) and
+                        process.trait('spm_script_file')):
+                    tname = 'spm_script_file'
+
+                if tname:
+
+                    if hasattr(process, '_nipype_interface'):
+                        iscript = (process._nipype_interface
+                                   .mlab.inputs.script_file)
+
+                    elif (hasattr(process, 'process') and
+                          hasattr(process.process, '_nipype_interface')):
+                        # ProcessMIA with a NipypeProcess inside
+                        iscript = (process.process._nipype_interface
+                                   .mlab.inputs.script_file)
+
+                    else:
+                        iscript = process.name + '.m'
+
+                    process.uuid = str(uuid.uuid4())
+                    iscript = (os.path.basename(iscript)[:-2]
+                               + '_%s.m' % process.uuid)
+                    setattr(process, tname,
+                            os.path.abspath(os.path.join(
+                                project.folder, 'scripts', iscript)))
+
+                process.mfile = True
         
     def complete_parameters(self, process_inputs={}):
 

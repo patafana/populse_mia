@@ -428,6 +428,7 @@ class PipelineManagerTab(QWidget):
             attributes set coming from Capsul completion engine to be set on
             all outputs of the node
         """
+
         if isinstance(p_value, (list, TraitListObject)):
             inner_trait = trait.handler.inner_traits()[0]
             for elt in p_value:
@@ -437,8 +438,8 @@ class PipelineManagerTab(QWidget):
                                                 attributes)
             return
 
-        if not is_file_trait(trait, allow_dir=True) \
-                or p_value in ("<undefined>", Undefined, [Undefined]):
+        if (not is_file_trait(trait, allow_dir=True) or
+                p_value in ("<undefined>", Undefined, [Undefined])):
             # This means that the value is not a filename
             return
 
@@ -447,6 +448,7 @@ class PipelineManagerTab(QWidget):
         old_value = p_value
         #p_value = p_value.replace(self.project.folder, "")
         p_value = os.path.abspath(p_value)
+        
         if not p_value.startswith(os.path.abspath(os.path.join(
                 self.project.folder, ''))):
             # file name is outside the project folder: don't index it in the
@@ -1070,9 +1072,9 @@ class PipelineManagerTab(QWidget):
             init_result = False
 
         if init_result:
+
             # add process characteristics in  the database
             # if init is otherwise OK
-
             for node in self.project.process_order:
                 process = node
                 if isinstance(node, ProcessNode):
