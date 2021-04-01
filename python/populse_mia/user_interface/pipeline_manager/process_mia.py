@@ -592,13 +592,13 @@ class ProcessMIA(Process):
         """
         Implements specific runs for Process_Mia subclasses
         """
+        if self.output_directory:
+            self.process.output_directory = self.output_directory
+        
         if self.requirement is not None and 'spm' in self.requirement:
 
             if self.spm_script_file:
                 self.process._spm_script_file = self.spm_script_file
-
-            if self.output_directory:
-                self.process.output_directory = self.output_directory
 
             if self.use_mcr:
                 self.process.use_mcr = self.use_mcr
