@@ -65,7 +65,8 @@ else:
     def values(d):
         return d.values()
 
-
+# FilterWidget class is no longer used in V2
+'''
 class FilterWidget(QWidget):
     """Filter widget used on a Input_Filter process.
 
@@ -92,7 +93,7 @@ class FilterWidget(QWidget):
         :param node: instance of the corresponding Input_Filter node
         :param main_window: parent main window
         """
-
+        
         super(FilterWidget, self).__init__(None)
 
         self.setWindowTitle("Filter - " + node_name)
@@ -318,8 +319,11 @@ class FilterWidget(QWidget):
                     fields.addItem(visible_tag)
                 fields.model().sort(0)
                 fields.addItem("All visualized tags")
+'''
 
 
+# NodeController class is no longer used in V2
+'''
 class NodeController(QWidget):
     """
     Allow to change the input and output values of a pipeline node
@@ -349,7 +353,6 @@ class NodeController(QWidget):
         """
 
         super(NodeController, self).__init__(pipeline_manager_tab)
-
         self.project = project
         self.scan_list = scan_list
         self.main_window = main_window
@@ -746,7 +749,7 @@ class NodeController(QWidget):
             res = []
 
         self.update_plug_value("in", plug_name, pipeline, value_type, res)
-
+'''
 
 # FIXME temporary: another implementation of NodeController using Capsul
 # AttributedProcessWidget widget
@@ -760,6 +763,7 @@ class CapsulNodeController(QWidget):
 
     def __init__(self, project, scan_list, pipeline_manager_tab,
                  main_window):
+        
         super().__init__()
         self.project = project
         self.scan_list = scan_list
@@ -797,6 +801,7 @@ class CapsulNodeController(QWidget):
         :param process: process of the node
         :param pipeline: current pipeline
         """
+
         self.node_name = node_name
         # The pipeline global inputs and outputs node name cannot be modified
         if self.node_name not in ('inputs', 'outputs'):
@@ -821,7 +826,9 @@ class CapsulNodeController(QWidget):
                 'File': type_editors.PopulseFileControlWidget,
                 'Directory': type_editors.PopulseDirectoryControlWidget,
                 'List_File':
-                    type_editors.PopulseOffscreenListFileControlWidget},
+                    type_editors.PopulseOffscreenListFileControlWidget,
+                'Undefined':
+                    type_editors.PopulseUndefinedControlWidget},
             separate_outputs=True,
             user_data={'project': self.project,
                        'scan_list': self.scan_list,
@@ -832,6 +839,7 @@ class CapsulNodeController(QWidget):
         if hasattr(process, 'completion_engine'):
             compl = process.completion_engine
             atts = compl.get_attribute_values()
+
             if len(atts.user_traits()) != 0:
                 btn = QPushButton('Filter')
                 btn.setSizePolicy(Qt.QSizePolicy.Fixed,

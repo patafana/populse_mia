@@ -33,7 +33,7 @@ from populse_mia.software_properties import Config
 from populse_mia.user_interface.pipeline_manager.iteration_table import (
                                                                  IterationTable)
 from populse_mia.user_interface.pipeline_manager.node_controller import (
-                                           CapsulNodeController, NodeController)
+                                           CapsulNodeController) #, NodeController)
 from populse_mia.user_interface.pipeline_manager.pipeline_editor import (
                                                              PipelineEditorTabs)
 from populse_mia.user_interface.pipeline_manager.process_library import (

@@ -3,12 +3,15 @@ from soma.qt_gui.controls.Directory import DirectoryControlWidget
 from soma.qt_gui.controls.List_File_offscreen \
     import OffscreenListFileControlWidget
 from soma.qt_gui import controller_widget
-from soma.qt_gui.qt_backend import Qt
+from soma.qt_gui.qt_backend import Qt, QtGui
 from functools import partial
 from soma.utils.weak_proxy import weak_proxy
 import traits.api as traits
 import six
 
+# Define the logger
+import logging
+logger = logging.getLogger(__name__)
 
 class PopulseFileControlWidget(FileControlWidget):
 
@@ -274,4 +277,205 @@ class PopulseOffscreenListFileControlWidget(OffscreenListFileControlWidget):
 #controller_widget.ControllerWidget._defined_controls['Directory'] \
     #= PopulseDirectoryControlWidget
 
+
+class PopulseUndefinedControlWidget(object):
+    """Control for Undefined value.
+    """
+
+    @staticmethod
+    def is_valid(control_instance, *args, **kwargs):
+        """ Method to check if the new control value is correct.
+
+        Parameters
+        ----------
+        control_instance: QWidget (mandatory)
+            the control widget we want to validate
+
+        Returns
+        -------
+        out: bool
+            True if the control value is Undefined,
+            False otherwise
+        """
+
+        # Get the control current value
+        control_text = control_instance.text()
+
+        is_valid = False
+        
+        if control_text in ['<undefined>',
+          '<style>background-color: gray; text-color: red;</style><undefined>']:
+            is_valid = True
+
+        return is_valid
+        
+    @classmethod
+    def check(cls, control_instance):
+        """ Check if a controller widget control is filled correctly.
+
+        Parameters
+        ----------
+        cls: StrControlWidget (mandatory)
+            a StrControlWidget control
+        control_instance: QLineEdit (mandatory)
+            the control widget we want to validate
+        """
+
+        pass
+ 
+    @staticmethod
+    def create_widget(parent, control_name, control_value, trait,
+                      label_class=None, user_data=None):
+        """ Method to create the Undefined widget.
+
+        Parameters
+        ----------
+        parent: QWidget (mandatory)
+            the parent widget
+        control_name: str (mandatory)
+            the name of the control we want to create
+        control_value: str (mandatory)
+            the default control value
+        trait: Tait (mandatory)
+            the trait associated to the control
+        label_class: Qt widget class (optional, default: None)
+            the label widget will be an instance of this class. Its constructor
+            will be called using 2 arguments: the label string and the parent
+            widget.
+
+        Returns
+        -------
+        out: 2-uplet
+            a two element tuple of the form (control widget: QLineEdit,
+            associated label: QLabel)
+        """
+
+        # Create the widget 
+        widget = Qt.QLabel(
+                '<style>background-color: gray; text-color: red;</style>'
+                + str(traits.Undefined), parent)
+
+        # Create the label associated with the string widget
+        control_label = control_name
+        if label_class is None:
+            label_class = QtGui.QLabel
+        if control_label is not None:
+            label = label_class(control_label, parent)
+        else:
+            label = None
+
+        return (widget, label)
+
+    @staticmethod
+    def update_controller(controller_widget, control_name, control_instance,
+                          reset_invalid_value, *args, **kwargs):
+
+        """ Update one element of the controller.
+
+        At the end the controller trait value with the name 'control_name'
+        will match the controller widget user parameters defined in
+        'control_instance'.
+
+        Parameters
+        ----------
+        controller_widget: ControllerWidget (mandatory)
+            a controller widget that contains the controller we want to update
+        control_name: str(mandatory)
+            the name of the controller widget control we want to synchronize
+            with the controller
+        control_instance: QLineEdit (mandatory)
+            the instance of the controller widget control we want to
+            synchronize with the controller
+        """
+
+        # Update the controller only if the control is valid
+        if PopulseUndefinedControlWidget.is_valid(control_instance):
+
+            # Define the control value
+            new_trait_value = traits.Undefined
+            setattr(controller_widget.controller, control_name,
+                    new_trait_value)
+            logger.debug(
+                "'PopulseUndefinedControlWidget' associated controller trait "
+                "'{0}' has been updated with value '{1}'.".format(
+                                                 control_name, new_trait_value))
+        elif reset_invalid_value:
+            # invalid, reset GUI to older value
+            old_trait_value = getattr(controller_widget.controller,
+                                      control_name)
+            control_instance.setText(old_trait_value)
+
+    @staticmethod
+    def update_controller_widget(controller_widget, control_name,
+                                 control_instance):
+        """ Update one element of the controller widget.
+
+        At the end the controller widget user editable parameter with the
+        name 'control_name' will match the controller trait value with the same
+        name.
+
+        Parameters
+        ----------
+        controller_widget: ControllerWidget (mandatory)
+            a controller widget that contains the controller we want to update
+        control_name: str(mandatory)
+            the name of the controller widget control we want to synchronize
+            with the controller
+        control_instance: QLineEdit (mandatory)
+            the instance of the controller widget control we want to
+            synchronize with the controller
+        """
+
+        # Define the trait value
+        new_controller_value = str(traits.Undefined)
+
+        # Set the trait
+        control_instance.setText(new_controller_value)
+        logger.debug("'PopulseUndefinedControlWidget' has been updated "
+                     "with value '{0}'.".format(new_controller_value))
+        # Set the controller trait value
+        PopulseUndefinedControlWidget.update_controller(controller_widget,
+                                   control_name, control_instance,
+                                   True)
+
+    @classmethod
+    def connect(cls, controller_widget, control_name, control_instance):
+        """ Connect a 'Str' or 'String' controller trait and a
+        'StrControlWidget' controller widget control.
+
+        Parameters
+        ----------
+        cls: StrControlWidget (mandatory)
+            a StrControlWidget control
+        controller_widget: ControllerWidget (mandatory)
+            a controller widget that contains the controller we want to update
+        control_name: str (mandatory)
+            the name of the controller widget control we want to synchronize
+            with the controller
+        control_instance: QLineEdit (mandatory)
+            the instance of the controller widget control we want to
+            synchronize with the controller
+
+        """
+
+        pass
+
+    @staticmethod
+    def disconnect(controller_widget, control_name, control_instance):
+        """ Disconnect a 'Str' or 'String' controller trait and a
+        'StrControlWidget' controller widget control.
+
+        Parameters
+        ----------
+        controller_widget: ControllerWidget (mandatory)
+            a controller widget that contains the controller we want to update
+        control_name: str(mandatory)
+            the name of the controller widget control we want to synchronize
+            with the controller
+        control_instance: QLineEdit (mandatory)
+            the instance of the controller widget control we want to
+            synchronize with the controller
+        """
+
+        pass
 

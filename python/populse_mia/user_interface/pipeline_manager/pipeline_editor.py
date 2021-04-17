@@ -47,8 +47,9 @@ from capsul.pipeline.python_export import save_py_pipeline
 from soma.utils.weak_proxy import weak_proxy
 
 # Populse_MIA imports
-from populse_mia.user_interface.pipeline_manager.node_controller import (
-                                                                   FilterWidget)
+# FilterWidget class is no longer used in V2 ??
+#from populse_mia.user_interface.pipeline_manager.node_controller import (
+#                                                                   FilterWidget)
 from populse_mia.user_interface.pop_ups import PopUpClosePipeline
 from populse_mia.software_properties import Config
 from populse_mia.software_properties import verCmp
