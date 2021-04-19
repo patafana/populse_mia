@@ -789,6 +789,10 @@ class PipelineManagerTab(QWidget):
         Update history when a pipeline node is changed
 
         :param signal_list: list of the needed parameters to update history
+         According to populse_mia.user_interface.pipeline_manager.node_controller.CapsulNodeController.parameters_changed()
+         the list should be, for a parameter change:
+         ["plug_value", self.node_name, old_value, param, value_type, value]
+         This is not the case!
         """
 
         case = signal_list.pop(0)
@@ -827,9 +831,11 @@ class PipelineManagerTab(QWidget):
         if case == "node_name":
             node_name = signal_list[1]
 
-        self.nodeController.update_parameters(
-            self.pipelineEditorTabs.get_current_pipeline().nodes[
-                node_name].process)
+        # This is a 3ct hack to remove a node in the pipeline manager
+        if node_name in self.pipelineEditorTabs.get_current_pipeline().nodes:
+            self.nodeController.update_parameters(
+                self.pipelineEditorTabs.get_current_pipeline().nodes[
+                    node_name].process)
 
         self.run_pipeline_action.setDisabled(True)
 
