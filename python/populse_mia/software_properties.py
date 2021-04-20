@@ -104,6 +104,7 @@ class Config:
         - getChainCursors: returns if the "chain cursors" checkbox of the
           mini viewer is activated
         - get_config_path: returns the configuration file directory
+        - get_fsl_config: returns the path of the FSL config file
         - get_mainwindow_maximized: get the maximized (fullscreen) flag
         - get_mainwindow_size: get the main window size
         - get_matlab_command: returns Matlab command
@@ -128,6 +129,8 @@ class Config:
           version)
         - getTextColor: return the text color
         - getThumbnailTag: returns the tag that is displayed in the mini viewer
+        - get_use_fsl: returns the value of "use fsl" checkbox in the
+          preferences
         - get_use_matlab: returns the value of "use matlab" checkbox in the
           preferences
         - get_use_matlab_standalone: returns the value of "use matlab
@@ -152,6 +155,7 @@ class Config:
         - setChainCursors: set the "chain cursors" checkbox of the mini viewer
         - set_mainwindow_maximized: set the maximized (fullscreen) flag
         - set_mainwindow_size: set main window size
+        - set_fsl_config: set the path of the FSL config file
         - set_matlab_path: set the path of Matlab's executable
         - set_matlab_standalone_path: set the path of Matlab Compiler Runtime
         - set_max_projects: set the maximum number of projects displayed in
@@ -168,6 +172,7 @@ class Config:
         - set_spm_standalone_path: set the path of SPM12 (standalone version)
         - setTextColor: set the text color
         - setThumbnailTag: set the tag that is displayed in the mini viewer
+        - set_use_fsl: set the value of "use fsl" checkbox in the preferences
         - set_use_matlab: set the value of "use matlab" checkbox in the
           preferences
         - set_use_matlab_standalone: set the value of "use matlab standalone"
@@ -237,7 +242,16 @@ class Config:
         use_spm = self.get_use_spm()
         use_spm_standalone = self.get_use_spm_standalone()
         use_matlab = self.get_use_matlab()
+        use_fsl = self.get_use_fsl()
+        fsl_config = self.get_fsl_config()
 
+        if use_fsl and os.path.exists(fsl_config):
+            sconf.update(dict(use_fsl=True,
+                              fsl_config=fsl_config))
+
+        else:
+            sconf.update(dict(use_fsl=False))
+        
         if use_spm_standalone and os.path.exists(
                 spm_standalone_path) and os.path.exists(
                     matlab_standalone_path):
@@ -326,8 +340,8 @@ class Config:
             study_config.import_from_dict(capsul_config.get('study_config', {}))
             
         except Exception as exc:
-            print("\nAn issue is detected in the configuration of Mia's "
-                  "configuration:\n{}\nPlease check the settings in File > Mia "
+            print("\nAn issue is detected in the Mia's configuration"
+                  ":\n{}\nPlease check the settings in File > Mia "
                   "Preferences > Pipeline ...".format(exc))
     
         else:
@@ -353,10 +367,10 @@ class Config:
                         engine.import_configs(environment, c)
 
                     except Exception as exc:
-                        print("\nAn issue is detected in the configuration of "
-                              "Mia's configuration:\n{}\nPlease check the "
-                              "settings in File > Mia Preferences > "
-                              "Pipeline ...".format(exc))
+                        print("\nAn issue is detected in the Mia's "
+                              "configuration:\n{}\nPlease check the settings "
+                              "in File > Mia Preferences > Pipeline "
+                              "...".format(exc))
 
         return engine
 
@@ -535,6 +549,11 @@ class Config:
         mia_path = self.get_mia_path()
         return os.path.join(mia_path, 'properties')
 
+    def get_fsl_config(self):
+        """Get the FSL config file  path
+        """
+        return self.config.get("fsl_config", "")
+
     def get_mri_conv_path(self):
         """Get the MRIManager.jar path.
 
@@ -580,6 +599,14 @@ class Config:
 
         """
         return self.config.get("spm_standalone", "")
+
+    def get_use_fsl(self):
+        """Get the value of "use fsl" checkbox in the preferences.
+
+        :return: boolean
+
+        """
+        return self.config.get("use_fsl", False)
 
     def get_use_matlab(self):
         """Get the value of "use matlab" checkbox in the preferences.
@@ -809,6 +836,16 @@ class Config:
         self.config['mainwindow_size'] = list(size)
         self.saveConfig()
 
+    def set_fsl_config(self, path):
+        """Set  the FSL config file
+
+        :param: path: string of path
+
+        """
+        self.config["fsl_config"] = path
+        # Then save the modification
+        self.saveConfig()
+
     def set_matlab_path(self, path):
         """Set the path of Matlab's executable.
 
@@ -886,6 +923,16 @@ class Config:
 
         """
         self.config["spm_standalone"] = path
+        # Then save the modification
+        self.saveConfig()
+
+    def set_use_fsl(self, use_fsl):
+        """Set the value of "use fsl" checkbox in the preferences.
+
+        :param: use_fsl: boolean
+
+        """
+        self.config["use_fsl"] = use_fsl
         # Then save the modification
         self.saveConfig()
 

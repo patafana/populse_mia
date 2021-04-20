@@ -1761,6 +1761,7 @@ class PopUpPreferences(QDialog):
     """Is called when the user wants to change the software preferences.
 
     .. Methods:
+        - browse_fsl: called when fsl browse button is clicked
         - browse_matlab: called when matlab browse button is clicked
         - browse_matlab_standalone: called when matlab browse button is clicked
         - browse_mri_conv_path: called when "MRIManager.jar" browse
@@ -1773,6 +1774,7 @@ class PopUpPreferences(QDialog):
         - user_mode_switch: called when the user mode checkbox
           is clicked
         - ok_clicked: saves the modifications to the config file and apply them
+        - use_fsl_changed: called when the use_fsl checkbox is changed
         - use_matlab_changed: called when the use_matlab checkbox is changed
         - use_spm_changed: called when the use_spm checkbox is changed
         - use_spm_standalone_changed: called when the use_spm_standalone
@@ -2079,6 +2081,36 @@ class PopUpPreferences(QDialog):
 
         self.groupbox_spm.setLayout(v_box_spm)
 
+        # Groupbox "FSL"
+        self.groupbox_fsl = QtWidgets.QGroupBox("FSL")
+
+        self.use_fsl_label = QLabel("Use FSL")
+        self.use_fsl_checkbox = QCheckBox('', self)
+
+        self.fsl_label = QLabel("FSL config file:")
+        self.fsl_choice = QLineEdit(config.get_fsl_config())
+        self.fsl_browse = QPushButton("Browse")
+        self.fsl_browse.clicked.connect(self.browse_fsl)
+
+        h_box_use_fsl = QtWidgets.QHBoxLayout()
+        h_box_use_fsl.addWidget(self.use_fsl_checkbox)
+        h_box_use_fsl.addWidget(self.use_fsl_label)
+        h_box_use_fsl.addStretch(1)
+
+        h_box_fsl_path = QtWidgets.QHBoxLayout()
+        h_box_fsl_path.addWidget(self.fsl_choice)
+        h_box_fsl_path.addWidget(self.fsl_browse)
+
+        v_box_fsl_path = QtWidgets.QVBoxLayout()
+        v_box_fsl_path.addWidget(self.fsl_label)
+        v_box_fsl_path.addLayout(h_box_fsl_path)
+
+        v_box_fsl = QtWidgets.QVBoxLayout()
+        v_box_fsl.addLayout(h_box_use_fsl)
+        v_box_fsl.addLayout(v_box_fsl_path)
+
+        self.groupbox_fsl.setLayout(v_box_fsl)
+
         # Groupbox "CAPSUL"
         groupbox_capsul = Qt.QGroupBox("CAPSUL")
         capsul_config_button = Qt.QPushButton(
@@ -2093,16 +2125,13 @@ class PopUpPreferences(QDialog):
         groupbox_capsul.setLayout(v_box_capsul)
 
         # general layout
-
         self.tab_pipeline_layout = QtWidgets.QVBoxLayout()
         self.tab_pipeline_layout.addWidget(self.groupbox_matlab)
         self.tab_pipeline_layout.addWidget(self.groupbox_spm)
+        self.tab_pipeline_layout.addWidget(self.groupbox_fsl)
         self.tab_pipeline_layout.addWidget(groupbox_capsul)
         self.tab_pipeline_layout.addStretch(1)
         self.tab_pipeline.setLayout(self.tab_pipeline_layout)
-
-        #print(config.get_use_spm_standalone())
-        #print(config.get_use_spm())
 
         if config.get_use_spm_standalone():
             archi = platform.architecture()
@@ -2122,6 +2151,9 @@ class PopUpPreferences(QDialog):
         else:
             self.use_matlab_checkbox.setChecked(False)
             self.use_matlab_standalone_checkbox.setChecked(False)
+
+        if config.get_use_fsl():
+            self.use_fsl_checkbox.setChecked(True)
 
         # The 'Appearance' tab
         self.tab_appearance = QtWidgets.QWidget()
@@ -2197,6 +2229,7 @@ class PopUpPreferences(QDialog):
         self.use_matlab_changed()
         self.use_matlab_standalone_changed()
         self.use_spm_standalone_changed()
+        self.use_fsl_changed()
 
         # Signals
         self.use_matlab_checkbox.stateChanged.connect(self.use_matlab_changed)
@@ -2205,6 +2238,17 @@ class PopUpPreferences(QDialog):
         self.use_spm_checkbox.stateChanged.connect(self.use_spm_changed)
         self.use_spm_standalone_checkbox.stateChanged.connect(
             self.use_spm_standalone_changed)
+        self.use_fsl_checkbox.stateChanged.connect(
+            self.use_fsl_changed)
+
+    def browse_fsl(self):
+        """Called when fsl browse button is clicked."""
+
+        fname = QFileDialog.getOpenFileName(self,
+                                            'Choose FSL config file',
+                                            os.path.expanduser('~'))[0]
+        if fname:
+            self.fsl_choice.setText(fname)
 
     def browse_matlab(self):
         """Called when matlab browse button is clicked."""
@@ -2361,6 +2405,18 @@ class PopUpPreferences(QDialog):
         capsul_config = config.get_capsul_config()
         modules = capsul_config.get('engine_modules', [])
         sc_dict = capsul_config.get('study_config', {})
+
+        if not config.get_use_fsl():
+
+            try:
+               del capsul_config['engine']['global'][
+                                        'capsul.engine.module.fsl']['directory']
+               del capsul_config['engine']['global'][
+                                        'capsul.engine.module.fsl']['config']
+
+            except KeyError:
+                pass
+
         # build a temporary new engine (because it may not be validated)
         engine = capsul_engine()
         for module in modules + ['fom', 'axon', 'python', 'fsl', 'freesurfer',
@@ -2396,6 +2452,7 @@ class PopUpPreferences(QDialog):
         #ok.clicked.connect(dialog.accept)
         #cancel.clicked.connect(dialog.reject)
         result = dialog.exec()
+
         if result:
             envs = engine.settings.get_all_environments()
             settings = {}
@@ -2507,6 +2564,10 @@ class PopUpPreferences(QDialog):
         max_projects = min(max(self.max_projects_box.value(), 1), 20)
         config.set_max_projects(max_projects)
 
+        # Use FSL
+        if self.use_fsl_checkbox.isChecked():
+            config.set_use_spm(True)
+            
         # Use Matlab or Matlab standalone
         if not self.use_matlab_checkbox.isChecked(
         ) and not self.use_matlab_standalone_checkbox.isChecked():
@@ -2533,6 +2594,48 @@ class PopUpPreferences(QDialog):
         main_window.windowName += " - "
         main_window.setWindowTitle(main_window.windowName +
                                    main_window.projectName)
+        
+        # FSL config test
+        fsl_conf = self.fsl_choice.text()
+
+        if self.use_fsl_checkbox.isChecked():
+
+            if fsl_conf == "":
+                fsl_cmd = 'flirt'
+
+            else:
+                fsl_dir = os.path.dirname(fsl_conf)
+
+                if fsl_dir.endswith(os.path.join('etc', 'fslconf')):
+                    fsl_dir = os.path.dirname(os.path.dirname(fsl_dir))
+
+                elif fsl_dir.endswith('etc'):
+                    fsl_dir = os.path.dirname(fsl_dir)
+
+                fsl_cmd = os.path.join(fsl_dir, 'bin', 'flirt')
+
+            try:
+                p = subprocess.Popen(
+                    [fsl_cmd, '-version'],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+                output, err = p.communicate()
+
+                if err == b'':
+                    config.set_fsl_config(fsl_conf)
+                    config.set_use_fsl(True)
+
+                else:
+                    self.wrong_path(fsl_conf, "FSL")
+                    return
+                        
+            except:
+                self.wrong_path(fsl_conf, "FSL")
+                return
+
+        else:
+            config.set_use_fsl(False)
 
         # SPM & Matlab (license) config test
 
@@ -2788,6 +2891,17 @@ class PopUpPreferences(QDialog):
         self.accept()
         self.close()
 
+    def use_fsl_changed(self):
+        """Called when the use_fsl checkbox is changed."""
+
+        if not self.use_fsl_checkbox.isChecked():
+            self.fsl_choice.setDisabled(True)
+            self.fsl_label.setDisabled(True)
+
+        else:
+            self.fsl_choice.setDisabled(False)
+            self.fsl_label.setDisabled(False)
+        
     def use_matlab_changed(self):
         """Called when the use_matlab checkbox is changed."""
 
