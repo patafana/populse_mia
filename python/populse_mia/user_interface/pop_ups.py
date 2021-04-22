@@ -2411,6 +2411,11 @@ class PopUpPreferences(QDialog):
             try:
                del capsul_config['engine']['global'][
                                         'capsul.engine.module.fsl']['directory']
+
+            except KeyError:
+                pass
+
+            try:
                del capsul_config['engine']['global'][
                                         'capsul.engine.module.fsl']['config']
 
@@ -2627,11 +2632,11 @@ class PopUpPreferences(QDialog):
                     config.set_use_fsl(True)
 
                 else:
-                    self.wrong_path(fsl_conf, "FSL")
+                    self.wrong_path(fsl_conf, "FSL", "config file")
                     return
                         
             except:
-                self.wrong_path(fsl_conf, "FSL")
+                self.wrong_path(fsl_conf, "FSL", "config file")
                 return
 
         else:
@@ -3001,14 +3006,15 @@ class PopUpPreferences(QDialog):
             self.change_psswd.setVisible(False)
             self.edit_config.setVisible(False)
 
-    def wrong_path(self, path, tool):
+    def wrong_path(self, path, tool, extra_mess=""):
         QApplication.restoreOverrideCursor()
         self.status_label.setText("")
         self.msg = QMessageBox()
         self.msg.setIcon(QMessageBox.Critical)
         self.msg.setText("Invalid " + tool + " path")
+        if extra_mess: extra_mess = " " + extra_mess
         self.msg.setInformativeText(
-            "The " + tool + " path entered {0} is invalid.".format(path))
+            "The " + tool + extra_mess + " path entered {0} is invalid.".format(path))
         self.msg.setWindowTitle("Error")
         self.msg.setStandardButtons(QMessageBox.Ok)
         self.msg.buttonClicked.connect(self.msg.close)
