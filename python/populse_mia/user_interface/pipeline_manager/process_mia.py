@@ -215,8 +215,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             if ((hasattr(process, '_nipype_interface_name') and
                                      process._nipype_interface_name == 'spm') or
-                (hasattr(process.process, '_nipype_interface_name') and
-                       process.process._nipype_interface_name == 'spm')):
+                    (hasattr(process, 'process') and
+                     hasattr(process.process, '_nipype_interface_name') and
+                              process.process._nipype_interface_name == 'spm')):
                 tname = None
                 tmap = getattr(process, '_nipype_trait_mapping', {})
                 tname = tmap.get('_spm_script_file', '_spm_script_file')
@@ -262,7 +263,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         if isinstance(in_process, ProcessNode):
             in_process = in_process.process
 
-        # nipype special case -- output_directory is set from MIA project
+        # nipype special case -- output_directory is set from MIA project        
         if isinstance(in_process, (NipypeProcess, ProcessMIA)):
             self.complete_nipype_common(in_process)
 
