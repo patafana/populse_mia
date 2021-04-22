@@ -268,8 +268,12 @@ class PopulseOffscreenListFileControlWidget(OffscreenListFileControlWidget):
         :param filter_res_list: list of the filtered files
         """
         controller = widget.parent().controller
-        setattr(controller, plug_name, filter_res_list)
 
+        try:
+            setattr(controller, plug_name, filter_res_list)
+
+        except Exception as e:
+            print(e)
 
 
 #controller_widget.ControllerWidget._defined_controls['File'] \
