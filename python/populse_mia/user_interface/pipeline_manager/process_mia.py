@@ -593,7 +593,7 @@ class ProcessMIA(Process):
         """
         Implements specific runs for Process_Mia subclasses
         """
-        if self.output_directory:
+        if self.output_directory and hasattr(self, 'process'):
             self.process.output_directory = self.output_directory
         
         if self.requirement is not None and 'spm' in self.requirement:
