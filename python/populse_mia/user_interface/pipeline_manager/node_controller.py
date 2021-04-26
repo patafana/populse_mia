@@ -65,8 +65,7 @@ else:
     def values(d):
         return d.values()
 
-# FilterWidget class is no longer used in V2
-'''
+
 class FilterWidget(QWidget):
     """Filter widget used on a Input_Filter process.
 
@@ -319,7 +318,6 @@ class FilterWidget(QWidget):
                     fields.addItem(visible_tag)
                 fields.model().sort(0)
                 fields.addItem("All visualized tags")
-'''
 
 
 # NodeController class is no longer used in V2
