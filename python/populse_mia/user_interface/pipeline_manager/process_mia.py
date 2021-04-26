@@ -302,11 +302,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     node_name,
                     '.'.join((in_process.__module__,
                               in_process.__class__.__name__))))
-                      
+
             self.fallback_engine.complete_parameters(process_inputs)
             self.completion_progress = self.fallback_engine.completion_progress
-            self.completion_progress_total \
-                = self.fallback_engine.completion_progress_total
+            self.completion_progress_total = (self.fallback_engine.
+                                                      completion_progress_total)
 
         else:
             # here the process is a ProcessMIA instance. Use the specific
@@ -325,6 +325,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 node_name,
                 '.'.join((self.process.__module__,
                           self.process.__class__.__name__))))
+
             self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
 
@@ -339,6 +340,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         verbose = False
         node = self.process
         process = node
+
         if isinstance(node, ProcessNode):
             process = node.process
 
@@ -347,11 +349,16 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                           for key, plug in node.plugs.items()}
         else:
             is_plugged = None  # we cannot get this info
+
         try:
             initResult_dict = process.list_outputs(is_plugged=is_plugged)
+
         except Exception as e:
-            print(e)
+            print('\nError during initialisation ...!\nTraceback:')
+            print(''.join(traceback.format_tb(e.__traceback__)), end='')
+            print('{0}: {1}\n'.format(e.__class__.__name__, e))
             initResult_dict = {}
+
         if not initResult_dict:
             return  # the process is not really configured
 
