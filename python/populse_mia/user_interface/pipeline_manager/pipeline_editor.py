@@ -155,7 +155,7 @@ class PipelineEditor(PipelineDevelopperView):
 
     def _export_plug(self, pipeline_parameter=False, optional=None,
                      weak_link=None, from_undo=False, from_redo=False,
-                     temp_plug_name=None):
+                     temp_plug_name=None, multi_export=False):
         """Export a plug to a pipeline global input or output.
 
         :param pipeline_parameter: name of the pipeline input/output
@@ -165,6 +165,7 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: True if this method is called from a redo action
         :param temp_plug_name: tuple containing (the name of the node, the
            name of the plug) to export
+        :param multi_export: True if this method is called in export plugs case
         """
 
         # Bug: the first parameter (here pipeline_parameter) cannot be None
@@ -172,51 +173,130 @@ class PipelineEditor(PipelineDevelopperView):
         # it will be False...
 
         if temp_plug_name is None:
-            dial = self._PlugEdit()
-            dial.name_line.setText(self._temp_plug_name[1])
-            dial.optional.setChecked(self._temp_plug.optional)
             temp_plug_name = self._temp_plug_name
-
+        
+        if not pipeline_parameter:
+            dial = self._PlugEdit()
+            dial.name_line.setText(temp_plug_name[1])
+            dial.optional.setChecked(self._temp_plug.optional)
             res = dial.exec_()
+
         else:
             res = True
 
         if res:
+            same_name = False
+            check_plug = True
+            
             if not pipeline_parameter:
-                pipeline_parameter = str(dial.name_line.text())
+                plug_name = str(dial.name_line.text())
+
+            else:
+                plug_name = pipeline_parameter
+
+            while check_plug is True:
+            
+                if plug_name in self.scene.pipeline.pipeline_node.plugs:
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    title = "populse_mia - Warning: Duplicate pipeline plug"
+                    msgtext = ('The "{0}" pipeline plug already exists, do '
+                               'you want to connect to this existing '
+                               'plug ?'.format(plug_name))
+                    reply = msg.question(self, title, msgtext,
+                                         QMessageBox.Yes |
+                                         QMessageBox.No)
+
+                    if reply == QMessageBox.Yes:
+                        same_name = True
+                        check_plug = False
+                    
+                    elif reply == QMessageBox.No:
+                        new_name, ok = QInputDialog.getText(self,
+                                                            'Plug name Input '
+                                                            'Dialog',
+                                                            'The plug {0} '
+                                                            'already exists, '
+                                                            'please choose a '
+                                                            'new name.'.format(
+                                                                     plug_name))
+
+                        if (ok and
+                               new_name and
+                               not new_name.isspace() and
+                               plug_name != new_name):
+                            plug_name = new_name
+
+                            if (not plug_name in
+                                       self.scene.pipeline.pipeline_node.plugs):
+                                check_plug = False
+
+                else:
+                    same_name = False
+                    check_plug = False
+
+            pipeline_parameter = plug_name
 
             if optional is None:
-                optional = dial.optional.isChecked()
+
+                try:
+                    optional = dial.optional.isChecked()
+
+                except UnboundLocalError:
+                    pass
 
             if weak_link is None:
-                weak_link = dial.weak.isChecked()
+
+                try:
+                    weak_link = dial.weak.isChecked()
+
+                except UnboundLocalError:
+                    pass
+
 
             try:
-                self.scene.pipeline.export_parameter(
-                    temp_plug_name[0], temp_plug_name[1],
-                    pipeline_parameter=pipeline_parameter,
-                    is_optional=optional,
-                    weak_link=weak_link)
+                self.scene.pipeline.export_parameter(temp_plug_name[0],
+                                                     temp_plug_name[1],
+                                                     pipeline_parameter,
+                                                     weak_link=weak_link,
+                                                     is_optional=optional,
+                                                     same_name=same_name)
+
             except TraitError:
                 print("Cannot export {0}.{1} plug".format(temp_plug_name[0],
-                                                          temp_plug_name[1]))
+                                                              plug_name))
 
-            '''self.scene.pipeline.export_parameter(
-                temp_plug_name[0], temp_plug_name[1],
-                pipeline_parameter=pipeline_parameter,
-                is_optional=optional,
-                weak_link=weak_link)'''  # Uncomment to generate the error
+                if multi_export:
+                    return None
 
-            self.scene.update_pipeline()
+            except ValueError as e:
+                print('\n{}'.format(e))
 
-        # For history
-        history_maker = ["export_plug", ('inputs', pipeline_parameter),
-                         pipeline_parameter, optional, weak_link]
+                if multi_export:
+                    return None
 
-        self.update_history(history_maker, from_undo, from_redo)
+            else:
+                
+                # For history
+                if multi_export:
+                    return temp_plug_name[1]
 
-        self.main_window.statusBar().showMessage(
-            "Plug {0} has been exported.".format(temp_plug_name[1]))
+                else:
+                    self.scene.update_pipeline()
+                    #history_maker = ["export_plug", ('inputs', pipeline_parameter),
+                    #                 pipeline_parameter, optional, weak_link]
+                    history_maker = ["export_plugs",
+                                     plug_name,
+                                     temp_plug_name[0]]                
+                    self.update_history(history_maker, from_undo, from_redo)
+                
+                    if not (self.main_window.pipeline_manager.
+                                  iterationTable.check_box_iterate).isChecked():
+                        (self.main_window.pipeline_manager.
+                         run_pipeline_action).setDisabled(True)
+
+                    self.main_window.statusBar().showMessage(
+                        "Plug {0} has been exported.".format(plug_name))
 
     def _release_grab_link(self, event, ret=False):
         """Method called when a link is released.
@@ -716,57 +796,42 @@ class PipelineEditor(PipelineDevelopperView):
 
         pipeline = self.scene.pipeline
         node = pipeline.nodes[node_name]
-
+        same_name = None
         parameter_list = []
+
         for parameter_name, plug in six.iteritems(node.plugs):
-            if parameter_name in ("nodes_activation", "selection_changed"):
+
+            if parameter_name in ("nodes_activation",
+                                  "selection_changed",
+                                  "output_directory",
+                                  "use_mcr",
+                                  "paths",
+                                  "matlab_cmd",
+                                  "mfile",
+                                  "spm_script_file"):
                 continue
+
             if (((node_name, parameter_name) not in pipeline.do_not_export and
                  ((outputs and plug.output and not plug.links_to) or
                   (inputs and not plug.output and not plug.links_from)) and
                  (optional or not node.get_trait(parameter_name).optional))):
-                try:
-                    pipeline.export_parameter(node_name, parameter_name)
-                    parameter_list.append(parameter_name)
-                except TraitError:
-                    print("Cannot export {0}.{1} plug".format(node_name,
-                                                              parameter_name))
-                except ValueError:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Warning)
-                    title = "populse_mia - Warning: Duplicate plug name"
-                    msgtext = 'The plug {0} already exists, do you want to ' \
-                              'connect to that existing plug ?'.format(
-                        parameter_name)
-                    reply = msg.question(self, title, msgtext,
-                                         QMessageBox.Yes |
-                                         QMessageBox.No)
-                    if reply == QMessageBox.Yes:
-                        self._remove_plug(('inputs', parameter_name))
-                        pipeline.export_parameter(node_name, parameter_name)
-                    else:
-                        new_name, ok = QInputDialog.getText(self,
-                             'Plug name Input Dialog',
-                             'The plug {0} already '
-                             'exists, please choose a new name.'.format(
-                             parameter_name))
-                        if ok:
-                            self._export_plug(pipeline_parameter=new_name,
-                                              optional=True,
-                                              weak_link=False,
-                                              temp_plug_name=(node_name,
-                                                              parameter_name))
-                            parameter_list.append(new_name)
-                    # pipeline.export_parameter(node_name, parameter_name)
 
+                p_name = self._export_plug(parameter_name,
+                                           temp_plug_name=(node_name,
+                                                           parameter_name),
+                                           multi_export=True)
+                parameter_list.append(p_name)
+
+        parameter_list = list(filter(None, parameter_list))
+        self.scene.update_pipeline()
         # For history
         history_maker = ["export_plugs", parameter_list, node_name]
-
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+        
+        if not (self.main_window.pipeline_manager.iterationTable.
+                                                 check_box_iterate).isChecked():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+                                                                           True)
         self.main_window.statusBar().showMessage(
             "Plugs {0} have been exported.".format(str(parameter_list)))
 
