@@ -180,7 +180,7 @@ class PipelineEditor(PipelineDevelopperView):
             res = True
 
         if res:
-            same_name = False
+            allow_existing_plug = False
             check_plug = True
             
             if not pipeline_parameter:
@@ -203,7 +203,7 @@ class PipelineEditor(PipelineDevelopperView):
                                          QMessageBox.No)
 
                     if reply == QMessageBox.Yes:
-                        same_name = True
+                        allow_existing_plug = True
                         check_plug = False
                     
                     elif reply == QMessageBox.No:
@@ -227,7 +227,7 @@ class PipelineEditor(PipelineDevelopperView):
                                 check_plug = False
 
                 else:
-                    same_name = False
+                    allow_existing_plug = False
                     check_plug = False
 
             pipeline_parameter = plug_name
@@ -255,7 +255,7 @@ class PipelineEditor(PipelineDevelopperView):
                                                      pipeline_parameter,
                                                      weak_link=weak_link,
                                                      is_optional=optional,
-                                                     same_name=same_name)
+                                  allow_existing_plug=allow_existing_plug)
 
             except TraitError:
                 print("Cannot export {0}.{1} plug".format(temp_plug_name[0],
@@ -791,7 +791,6 @@ class PipelineEditor(PipelineDevelopperView):
 
         pipeline = self.scene.pipeline
         node = pipeline.nodes[node_name]
-        same_name = None
         parameter_list = []
 
         for parameter_name, plug in six.iteritems(node.plugs):
