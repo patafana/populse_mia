@@ -123,33 +123,29 @@ class PipelineEditor(PipelineDevelopperView):
 
         if not link:
             link = self._current_link
+
         else:
             self._current_link = link
 
         (source_node_name, source_plug_name, source_node,
          source_plug, dest_node_name, dest_plug_name, dest_node,
          dest_plug) = self.scene.pipeline.parse_link(link)
-
         (dest_node_name, dest_parameter, dest_node, dest_plug,
          weak_link) = list(source_plug.links_to)[0]
-
         active = source_plug.activated and dest_plug.activated
-
         self._current_link_def = (source_node, source_plug, dest_node,
                                   dest_plug)
-
         # Calling the original method
         PipelineDevelopperView._del_link(self)
-
         # For history
         history_maker = ["delete_link", (source_node_name, source_plug_name),
                          (dest_node_name, dest_plug_name), active, weak_link]
-
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+        
+        if not (self.main_window.pipeline_manager.iterationTable.
+                                                 check_box_iterate).isChecked():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+                                                                           True)
         self.main_window.statusBar().showMessage(
             'Link {0} has been deleted.'.format(link))
 
@@ -171,7 +167,6 @@ class PipelineEditor(PipelineDevelopperView):
         # Bug: the first parameter (here pipeline_parameter) cannot be None
         # even if we write pipeline_parameter=None in the line above,
         # it will be False...
-
         if temp_plug_name is None:
             temp_plug_name = self._temp_plug_name
         
@@ -251,7 +246,7 @@ class PipelineEditor(PipelineDevelopperView):
                     weak_link = dial.weak.isChecked()
 
                 except UnboundLocalError:
-                    pass
+                    weak_link = False
 
 
             try:
