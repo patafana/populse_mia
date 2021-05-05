@@ -597,7 +597,6 @@ class MainWindow(QMainWindow):
                 entire_path = os.path.abspath(file_name)
                 path, name = os.path.split(entire_path)
                 relative_path = os.path.relpath(file_name)
-
                 self.switch_project(relative_path, name)
                 # We switch the project
 
@@ -921,23 +920,28 @@ class MainWindow(QMainWindow):
 
             # If the file exists
             if os.path.exists(os.path.join(file_path)):
+
                 # If it is a MIA project
-                if os.path.exists(os.path.join(
-                        file_path, "properties", "properties.yml")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "database", "mia.db")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "raw_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "derived_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "downloaded_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "filters")):
+                if (os.path.exists(os.path.join(file_path,
+                                               "properties",
+                                               "properties.yml")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "database",
+                                                       "mia.db")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "raw_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "derived_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "downloaded_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "filters"))):
 
                     # We check if the name of the project directory is the
                     # same in its properties
-
                     with open(os.path.join(file_path, "properties",
                                            "properties.yml"), 'r+') as stream:
 
@@ -956,9 +960,11 @@ class MainWindow(QMainWindow):
                             yaml.dump(properties, stream,
                                       default_flow_style=False,
                                       allow_unicode=True)
+
                     # We check for invalid scans in the project
                     try:
                         temp_database = Project(file_path, False)
+
                     except IOError:
                         msg = QMessageBox()
                         msg.setIcon(QMessageBox.Warning)
@@ -972,6 +978,30 @@ class MainWindow(QMainWindow):
                         msg.buttonClicked.connect(msg.close)
                         msg.exec()
                         return False
+
+                    # We check for valid version of the project
+                    if not (temp_database.
+                            session).get_fields_names(COLLECTION_CURRENT):
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Warning)
+                        msg.setText(
+                            "The project cannot be read by Mia. Please check "
+                            "if the version of the project is compatible with "
+                            "the version of the running mia...")
+                        msg.setWindowTitle("Warning")
+                        msg.setStandardButtons(QMessageBox.Ok)
+                        msg.buttonClicked.connect(msg.close)
+                        msg.exec()
+                        config = Config()
+                        opened_projects = config.get_opened_projects()
+
+                        if file_path in opened_projects:
+                            opened_projects.remove(file_path)
+                            config.set_opened_projects(opened_projects)
+                            config.saveConfig()
+
+                        return False
+
                     problem_list = data_loader.verify_scans(temp_database)
 
                     # Message if invalid files
