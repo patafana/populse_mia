@@ -428,7 +428,6 @@ class PipelineManagerTab(QWidget):
             attributes set coming from Capsul completion engine to be set on
             all outputs of the node
         """
-
         if isinstance(p_value, (list, TraitListObject)):
             inner_trait = trait.handler.inner_traits()[0]
             for elt in p_value:
@@ -495,16 +494,15 @@ class PipelineManagerTab(QWidget):
         # If not, or if the parameter value is not found there, we also have
         # an "auto_inheritance_dict" which automatically maps outputs to
         # inputs. If there is no ambiguity, we can process automatically.
-
         process = node
+
         if isinstance(process, ProcessNode):
             process = process.process
+
         inheritance_dict = getattr(process, 'inheritance_dict', {})
         auto_inheritance_dict = getattr(process, 'auto_inheritance_dict', {})
-
         parent_files = inheritance_dict.get(old_value)
         own_tags = None
-
         # the dicts may have several shapes. Keys are output filenames
         # Values may be
         # - an input filenme: get the tags from it
@@ -518,29 +516,26 @@ class PipelineManagerTab(QWidget):
         if isinstance(parent_files, dict):
             own_tags = parent_files['own_tags']
             parent_files = {None: parent_files['parent']}
+
         elif isinstance(parent_files, str):
             parent_files = {None: parent_files}
 
         if parent_files is None:
             parent_files = auto_inheritance_dict.get(old_value, {})
+
             if isinstance(parent_files, str):
                 parent_files = {None: parent_files}
 
         db_dir = os.path.join(os.path.abspath(os.path.normpath(
             self.project.folder)), '')
-
         field_names = self.project.session.get_fields_names(
             COLLECTION_CURRENT)
-
         all_cvalues = {}
         all_ivalues = {}
 
         # get all tags values for inputs
-
         for param, parent_file in parent_files.items():
-
             database_parent_file = None
-
             relfile = os.path.abspath(os.path.normpath(parent_file))[
                 len(db_dir):]
 
@@ -555,17 +550,16 @@ class PipelineManagerTab(QWidget):
 
             if scan:
                 database_parent_file = scan
-
-                banished_tags = set([TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
+                #banished_tags = set([TAG_TYPE, TAG_EXP_TYPE, TAG_BRICKS,
+                #                TAG_CHECKSUM, TAG_FILENAME])
+                banished_tags = set([TAG_TYPE, TAG_BRICKS,
                                 TAG_CHECKSUM, TAG_FILENAME])
-
                 cvalues = {field: getattr(scan, field)
                            for field in field_names
                            if field not in banished_tags}
                 iscan = self.project.session.get_document(
                     COLLECTION_INITIAL, relfile)
                 ivalues = {field: getattr(iscan, field) for field in cvalues}
-
                 all_cvalues[param] = cvalues
                 all_ivalues[param] = ivalues
 
