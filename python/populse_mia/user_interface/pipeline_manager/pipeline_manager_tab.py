@@ -2047,10 +2047,6 @@ class PipelineManagerTab(QWidget):
 
         :param iteration_list: current list of scans in the iteration table
         """
-        #if self.check_box_iterate.isChecked():
-            #self.run_pipeline_action.setDisabled(False)
-            #self.init_pipeline_action.setDisabled(True)
-        #else:
         self.run_pipeline_action.setDisabled(True)
         self.init_pipeline_action.setDisabled(False)
 
@@ -2066,7 +2062,7 @@ class PipelineManagerTab(QWidget):
                 self.displayNodeParameters('inputs', new_pipeline)
 
             self.iteration_table_scans_list = all_iterations_list
-            self.pipelineEditorTabs.scan_list = all_iterations_list
+            self.pipelineEditorTabs.scan_list = sum(all_iterations_list, [])
         else:
             if has_iteration:
                 # get the pipeline out from the iteration node
@@ -2076,7 +2072,7 @@ class PipelineManagerTab(QWidget):
 
             self.iteration_table_scans_list = []
             self.pipelineEditorTabs.scan_list = self.scan_list
-        #print('update_scans_list:', all_iterations_list)
+        #print('update_scans_list:', sum(all_iterations_list, []))
         if not self.pipelineEditorTabs.scan_list:
             self.pipelineEditorTabs.scan_list = \
                 self.project.session.get_documents_names(COLLECTION_CURRENT)
