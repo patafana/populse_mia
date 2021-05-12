@@ -189,7 +189,8 @@ class AdvancedSearch(QWidget):
         fields = filter.fields
 
         for i in range(0, len(nots)):
-            # self.add_search_bar()
+            if i >= len(self.rows):
+                self.add_search_bar()
             row = self.rows[i]
             if i > 0:
                 row[0].setCurrentText(links[i - 1])
