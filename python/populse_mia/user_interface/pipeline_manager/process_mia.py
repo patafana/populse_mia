@@ -141,8 +141,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     for fvalue, dvalue in zip(fvalues, document):
                       fvalue.append(dvalue if dvalue is not None else '')
                 else:
+                    # ignore this input not in the database
                     for fvalue in fvalues:
-                      fvalue.append('')
+                      fvalue.append(None)
 
             # temporarily block attributes change notification in order to
             # avoid triggering another completion while we are already in this
@@ -256,6 +257,8 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         self.completion_progress_total \
             = self.fallback_engine.completion_progress_total
 
+        #print('complete_parameters', self.process.name, ', attributes:', self.fallback_engine.get_attribute_values().export_to_dict())
+
         # handle database attributes and indexation
         self.complete_attributes_with_database(process_inputs)
         in_process = get_ref(self.process)
@@ -292,13 +295,13 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     node_name = in_process.context_name
 
                 if isinstance(in_process, NipypeProcess):
-                    print('\n. {0} ({1}) node ...'.format(
+                    print('\n. {0} ({1}) nipype node ...'.format(
                    node_name,
                    '.'.join((in_process._nipype_interface.__module__,
                              in_process._nipype_interface.__class__.__name__))))
 
                 else:
-                    print('\n. {0} ({1}) node ...'.format(
+                    print('\n. {0} ({1}) regular node ...'.format(
                     node_name,
                     '.'.join((in_process.__module__,
                               in_process.__class__.__name__))))
@@ -321,7 +324,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             else:
                 node_name = self.process.context_name
             
-            print('\n. {0} ({1}) node ...'.format(
+            print('\n. {0} ({1}) MIA node ...'.format(
                 node_name,
                 '.'.join((self.process.__module__,
                           self.process.__class__.__name__))))
