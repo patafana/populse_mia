@@ -430,11 +430,20 @@ class PipelineManagerTab(QWidget):
         """
         if isinstance(p_value, (list, TraitListObject)):
             inner_trait = trait.handler.inner_traits()[0]
-            for elt in p_value:
+            for i, elt in enumerate(p_value):
+                new_attributes = {}
+                for k, v in attributes.items():
+                    if isinstance(v, list) and v:
+                        if len(v) > i:
+                            new_attributes[k] = v[i]
+                        else:
+                            new_attributes[k] = v[-1]
+                    else:
+                        new_attributes[k] = v
                 self.add_plug_value_to_database(elt, brick_id, node_name,
                                                 plug_name, full_name, node,
                                                 inner_trait, inputs,
-                                                attributes)
+                                                new_attributes)
             return
 
         if (not is_file_trait(trait, allow_dir=True) or
