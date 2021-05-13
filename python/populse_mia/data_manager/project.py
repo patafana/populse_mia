@@ -1113,8 +1113,9 @@ class Project():
 
         for brid, brdesc in bricks.items():
             out_data = brdesc['outputs']
-            for param, output in out_data.items():
-                _update_set(outputs, output)
+            if out_data:
+                for param, output in out_data.items():
+                    _update_set(outputs, output)
 
         return {'bricks': bricks, 'outputs': outputs}
 
