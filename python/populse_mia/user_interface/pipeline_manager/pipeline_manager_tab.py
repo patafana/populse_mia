@@ -770,6 +770,8 @@ class PipelineManagerTab(QWidget):
             print('cleanup brick', brick)
             self.main_window.data_browser.table_data.delete_from_brick(
                 brick)
+        self.project.cleanup_orphan_nonexisting_files()
+        self.main_window.data_browser.table_data.update_table()
 
     def complete_pipeline_parameters(self, pipeline=None):
         """
@@ -944,6 +946,11 @@ class PipelineManagerTab(QWidget):
         """
         self.postprocess_pipeline_execution()
         self.project.cleanup_orphan_bricks()
+        self.project.cleanup_orphan_nonexisting_files()
+        self.main_window.data_browser.table_data.update_table()
+
+        self.run_pipeline_action.setDisabled(True)
+        self.init_pipeline_action.setDisabled(False)
 
     def get_capsul_engine(self):
         """
@@ -1343,6 +1350,8 @@ class PipelineManagerTab(QWidget):
         # get obsolete bricks (done) referenced from current outputs
         print('obsolete bricks:', obsolete)
         self.project.cleanup_orphan_bricks(obsolete)
+        self.project.cleanup_orphan_nonexisting_files()
+        self.main_window.data_browser.table_data.update_table()
 
         self.project.saveModifications()
 

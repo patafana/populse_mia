@@ -1249,9 +1249,12 @@ class Project():
             orphan_files = set()
             for doc in docs:
                 if doc[1] and brid in doc[1]:
-                    if doc[0].startswith('scripts/'):
+                    if (doc[0].startswith('scripts/')
+                        or not os.path.exists(os.path.join(self.folder,
+                                                           doc[0]))):
                         # script files are "weak" and should not prevent
                         # brick deletion.
+                        # non-existing files can be cleared too.
                         orphan_files.add(doc[0])
                         continue
                     used = True
@@ -1267,7 +1270,7 @@ class Project():
 
     def cleanup_orphan_bricks(self, bricks=None):
         """
-        Remove orphan bricks frol the database
+        Remove orphan bricks from the database
         """
         obsolete, orphan_files = self.get_orphan_bricks(bricks)
         print('really orphan:', obsolete)
@@ -1277,6 +1280,44 @@ class Project():
                 self.session.remove_document(COLLECTION_BRICK, brick)
             except ValueError:
                 pass  # malformed database, the brick doesn't exist
+        for doc in orphan_files:
+            print('remove orphan file:', doc)
+            try:
+                self.session.remove_document(COLLECTION_CURRENT, doc)
+                self.session.remove_document(COLLECTION_INITIAL, doc)
+            except ValueError:
+                pass  # malformed database, the file doesn't exist
+            if os.path.exists(os.path.join(self.folder, doc)):
+                os.unlink(os.path.join(self.folder, doc))
+
+    def get_orphan_nonexsiting_files(self):
+        """
+        Get orphan files which do not exist from the database
+        """
+        #filter_query = '{Bricks} == None'
+        #docs = self.session.filter_documents(
+            #COLLECTION_CURRENT, filter_query, fields=[TAG_FILENAME],
+            #as_list=True)
+        docs = self.session.get_documents(
+            COLLECTION_CURRENT, fields=[TAG_FILENAME, TAG_BRICKS],
+            as_list=True)
+        orphan = set()
+        for doc in docs:
+            if doc[1]:
+                bricks = list(self.session.get_documents(
+                    COLLECTION_BRICK, document_ids=doc[1],
+                    fields=[BRICK_ID], as_list=True))
+                if bricks:
+                    continue
+            if not os.path.exists(os.path.join(self.folder, doc[0])):
+                orphan.add(doc[0])
+        return orphan
+
+    def cleanup_orphan_nonexisting_files(self):
+        """
+        Remove orphan files which do not exist from the database
+        """
+        orphan_files = self.get_orphan_nonexsiting_files()
         for doc in orphan_files:
             print('remove orphan file:', doc)
             try:
