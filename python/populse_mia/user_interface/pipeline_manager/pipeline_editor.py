@@ -38,6 +38,7 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 # Capsul imports
 from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
                         capsul_engine, Node)
+from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                             NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
@@ -733,7 +734,10 @@ class PipelineEditor(PipelineDevelopperView):
         PipelineDevelopperView.del_node(self, node_name)
 
         # For history
-        history_maker = ["delete_process", node_name, node.process, links]
+        process = node
+        if isinstance(process, ProcessNode):
+            process = node.process
+        history_maker = ["delete_process", node_name, process, links]
 
         self.update_history(history_maker, from_undo, from_redo)
         if not self.main_window.pipeline_manager.iterationTable \
@@ -744,8 +748,11 @@ class PipelineEditor(PipelineDevelopperView):
             "Node {0} has been deleted.".format(node_name))
 
         for node_name, node in pipeline.nodes.items():
+            process = node
+            if isinstance(process, ProcessNode):
+                process = node.process
             self.main_window.pipeline_manager.displayNodeParameters(
-                node_name, node.process)
+                node_name, process)
 
     def dragEnterEvent(self, event):
         """Event handler when the mouse enters the widget.
@@ -841,6 +848,17 @@ class PipelineEditor(PipelineDevelopperView):
         pkg = sys.modules[package_name]
         for name, instance in sorted(list(pkg.__dict__.items())):
             if name == process_name:
+                if issubclass(instance, Node):
+                    # it's a node
+                    try:
+                        QtGui.QApplication.setOverrideCursor(
+                            QtCore.Qt.WaitCursor)
+                        self.add_named_node(None, instance)
+                        QtGui.QApplication.restoreOverrideCursor()
+                        return
+                    except Exception as e:
+                        print(e)
+                        return
                 try:
                     process = get_process_instance(instance)
                 except Exception as e:

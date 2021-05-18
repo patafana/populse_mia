@@ -1089,7 +1089,7 @@ class PackageLibrary(QTreeWidget):
         :param paths: list of paths to add to the system to import the packages
 
         """
-        
+
         super(PackageLibrary, self).__init__()
 
         self.itemChanged.connect(self.update_checks)
@@ -1756,7 +1756,7 @@ class PackageLibraryDialog(QDialog):
             self.msg.show()
             return
 
-        if to_delete.split(".")[0] in ["nipype", "mia_processes"]:
+        if to_delete.split(".")[0] in ["nipype", "mia_processes", "capsul"]:
             self.msg = QMessageBox()
             self.msg.setIcon(QMessageBox.Critical)
             self.msg.setText("This package can not be deleted.")
