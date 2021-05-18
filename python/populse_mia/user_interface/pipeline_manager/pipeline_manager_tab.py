@@ -49,7 +49,7 @@ from capsul.attributes.completion_engine import ProcessCompletionEngine
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
 from capsul.qt_gui.widgets.pipeline_developper_view import (
-                                                         PipelineDevelopperView)
+    PipelineDevelopperView)
 
 
 # Soma_workflow import
@@ -59,7 +59,8 @@ import soma_workflow.constants as swconstants
 from soma.controller.trait_utils import is_file_trait
 
 # PyQt5 imports
-from PyQt5.QtCore import Qt, QThread, QTimer, Signal
+from PyQt5 import Qt
+from PyQt5.QtCore import QThread, QTimer, Signal
 from PyQt5.QtGui import QCursor, QIcon, QMovie
 from PyQt5.QtWidgets import (QAction, QApplication, QHBoxLayout, QMenu,
                              QMessageBox, QProgressDialog, QPushButton,
@@ -81,16 +82,8 @@ from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.api import TraitListObject, Undefined
 from traits.trait_errors import TraitError
-
-if sys.version_info[0] >= 3:
-    unicode = str
-
-    def values(d):
-        return list(d.values())
-
-else:
-    def values(d):
-        return d.values()
+import traits.api as traits
+import functools
 
 
 # FIXME hack
@@ -288,9 +281,9 @@ class PipelineManagerTab(QWidget):
 
         # Initialize Qt layout
         self.hLayout = QHBoxLayout()
-        self.splitterRight = QSplitter(Qt.Vertical)
-        self.splitter0 = QSplitter(Qt.Vertical)
-        self.splitter1 = QSplitter(Qt.Horizontal)
+        self.splitterRight = QSplitter(Qt.Qt.Vertical)
+        self.splitter0 = QSplitter(Qt.Qt.Vertical)
+        self.splitter1 = QSplitter(Qt.Qt.Horizontal)
 
         self.layout_view()
 
@@ -746,6 +739,88 @@ class PipelineManagerTab(QWidget):
 
     #    return node, node_name
 
+    def ask_iterated_pipeline_plugs(self, pipeline):
+        """
+        Opens a dialog to ask for each pipeline plug, if an iteration should
+        iterate over it, or if it should not be iterated, or if it should be
+        connected to a database filter (input_filter node)
+        """
+
+        def check_db_compat(process, plug):
+            trait = process.trait(plug)
+            return is_file_trait(trait)
+
+        def iter_clicked(param_btns, p, state):
+            if not state and param_btns[p][2] is not None:
+                param_btns[p][2].setChecked(False)
+
+        def db_clicked(param_btns, p, state):
+            if state:
+                param_btns[p][1].setChecked(True)
+
+        dialog = Qt.QDialog()
+        buttonbox = Qt.QDialogButtonBox(Qt.QDialogButtonBox.Ok
+                                        | Qt.QDialogButtonBox.Cancel)
+        layout = Qt.QVBoxLayout()
+        param_box = Qt.QGroupBox('Iterate over parameters:')
+        param_lay = Qt.QGridLayout()
+        param_box.setLayout(param_lay)
+
+        layout.addWidget(param_box)
+        layout.addWidget(buttonbox)
+        dialog.setLayout(layout)
+
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.rejected.connect(dialog.reject)
+
+        param_lay.addWidget(Qt.QLabel('iter. / database:'), 0, 0, 1, 3)
+        param_lay.addWidget(Qt.QLabel('iter.:'), 0, 3, 1, 2)
+        param_lay.setColumnStretch(2, 1)
+        param_lay.setColumnStretch(4, 1)
+        param_lay.setRowStretch(0, 0)
+
+        inputs = pipeline.get_inputs().keys()
+        outputs = pipeline.get_outputs().keys()
+        params = (inputs, outputs)
+        param_btns = [[], []]
+        for i in range(2):
+            for p, plug in enumerate(params[i]):
+                trait = pipeline.trait(plug)
+                print(plug, trait.hidden)
+                it_btn = Qt.QCheckBox()
+                db_btn = None
+                if i == 0:
+                    db_btn = Qt.QCheckBox()
+                    if not check_db_compat(pipeline, plug):
+                        db_btn.setEnabled(False)
+                    c = 2
+                else:
+                    c = 4
+
+                it_btn.toggled.connect(functools.partial(iter_clicked,
+                                                         param_btns[i], p))
+
+                param_lay.addWidget(it_btn, p+1, i*3)
+                if db_btn:
+                    param_lay.addWidget(db_btn, p+1, i*3 + 1)
+                    db_btn.toggled.connect(functools.partial(db_clicked,
+                                                             param_btns[i], p))
+                param_lay.addWidget(Qt.QLabel(plug), p+1, c)
+                param_btns[i].append([plug, it_btn, db_btn])
+                it_btn.setChecked(True)
+        param_lay.setRowStretch(max(len(inputs), len(outputs)) - 1, 1)
+
+        res = dialog.exec_()
+        if res != dialog.Accepted:
+            return None
+
+        iterated_plugs = [param[0] for param in param_btns[0] + param_btns[1]
+                          if param[1].isChecked()]
+        database_plugs = [param[0] for param in param_btns[0] + param_btns[1]
+                          if param[2] is not None and param[2].isChecked()]
+
+        return iterated_plugs, database_plugs
+
     def build_iterated_pipeline(self):
         """
         Build a new pipeline with an iteration node, iterating over the current
@@ -756,11 +831,92 @@ class PipelineManagerTab(QWidget):
         pipeline = self.get_pipeline_or_process()
         engine = self.get_capsul_engine()
         pipeline_name = 'Iteration_pipeline'
+
+        # get interactively iterated plugs and plugs that should be connected
+        # to an input_filter node
+
+        iterated_plugs = self.ask_iterated_pipeline_plugs(pipeline)
+        if iterated_plugs is None:
+            return  # abort
+        iterated_plugs, database_plugs = iterated_plugs
+
+        # input_filer node outputs a single list. Some processes (before
+        # iteration) already take a list as input, which will end up with a
+        # double list (list of list) in the iteration pipeline. To overcome
+        # this, we use a single input for each iteration (list of one element)
+        # before actually building the iterative pipeline. In other words,
+        # we insert Reduce nodes before list inputs which will be
+        # connected to the database inputs
+
+        for plug in database_plugs:
+            trait = pipeline.trait(plug)
+            if isinstance(trait.trait_type, traits.List):
+                node_name = 'un_list_%s' % plug
+
+                if not isinstance(pipeline, Pipeline):
+                    # "pipeline" is actally a single process (or should, if it
+                    # is not a # pipeline). Get it into a pipeine (with a
+                    # single node) to  make the workflow.
+                    new_pipeline = Pipeline()
+                    new_pipeline.set_study_config(pipeline.study_config)
+                    new_pipeline.add_process('main', pipeline)
+                    new_pipeline.autoexport_nodes_parameters(
+                        include_optional=True)
+                    pipeline = new_pipeline
+
+                ftol = pipeline.add_custom_node(
+                    node_name,
+                    'capsul.pipeline.custom_nodes.reduce_node.ReduceNode',
+                    parameters={'input_types': ['File']})
+                ftol.lengths = [1]
+
+                # reconnect all former connection from this plug to their
+                # destination, from the output of the ftol node
+                for link in list(pipeline.pipeline_node.plugs[plug].links_to):
+                    pipeline.add_link(
+                        '%s.outputs->%s.%s' % (node_name, link[0], link[1]))
+
+                # then remove the former pipeline plug, and re-create it by
+                # exporting the input of the ftol node
+                # keep traits order
+                old_traits = list(pipeline.user_traits().keys())
+                pipeline.remove_trait(plug)
+                pipeline.export_parameter(node_name, 'input_0',
+                                          pipeline_parameter=plug)
+                pipeline.reorder_traits(old_traits)
+
+        # now replace the pipeline with an iterative node
         node_name = 'iteration'
         it_pipeline = engine.get_iteration_pipeline(
             pipeline_name, node_name, pipeline,
-            iterative_plugs=None, do_not_export=None,
+            iterative_plugs=iterated_plugs, do_not_export=database_plugs,
             make_optional=None)
+
+        # plugs which should be connected to a database filter: add some
+        # Input_Filter nodes for them, and connect them to the special
+        # database_scans input
+        for plug in database_plugs:
+            try:
+                in_filter = engine.get_process_instance(
+                    'mia_processes.bricks.tools.Input_Filter')
+            except ValueError:
+                print('Input filter not found in library.')
+                break
+            node_name = '%s_filter' % plug
+            it_pipeline.add_process(node_name, in_filter)
+            it_pipeline.add_link('%s.output->iteration.%s' % (node_name, plug))
+
+            # If database_scans is already a pipeline global input, the plug
+            # cannot be exported. A link as to be added between database_scans
+            # and the input of the filter.
+            if 'database_scans' in it_pipeline.user_traits():
+                in_pipeline.add_link('database_scans->%s.input' %node_name)
+            else:
+                old_traits = list(it_pipeline.user_traits().keys())
+                it_pipeline.export_parameter(
+                    node_name, 'input', pipeline_parameter='database_scans')
+                it_pipeline.reorder_traits(['database_scans'] + old_traits)
+
         compl = ProcessCompletionEngine.get_completion_engine(it_pipeline)
         return it_pipeline
 
@@ -838,9 +994,12 @@ class PipelineManagerTab(QWidget):
 
         # This is a 3ct hack to remove a node in the pipeline manager
         if node_name in self.pipelineEditorTabs.get_current_pipeline().nodes:
-            self.nodeController.update_parameters(
-                self.pipelineEditorTabs.get_current_pipeline().nodes[
-                    node_name].process)
+            node = self.pipelineEditorTabs.get_current_pipeline().nodes[
+                node_name]
+            process = node
+            if isinstance(node, ProcessNode):
+                process = node.process
+            self.nodeController.update_parameters(process)
 
         self.run_pipeline_action.setDisabled(True)
 
@@ -896,8 +1055,8 @@ class PipelineManagerTab(QWidget):
     #                self.previewBlock.fitInView(
     #                    rect.x(), rect.y(), rect.width() * 1.2,
     #                                        rect.height() * 1.2,
-    #                    Qt.KeepAspectRatio)
-    #                self.previewBlock.setAlignment(Qt.AlignCenter)
+    #                    Qt.Qt.KeepAspectRatio)
+    #                self.previewBlock.setAlignment(Qt.Qt.AlignCenter)
 
     def finish_execution(self):
         """
@@ -981,7 +1140,7 @@ class PipelineManagerTab(QWidget):
         """Clean previous initialization then initialize the current
         pipeline."""
 
-        QApplication.instance().setOverrideCursor(QCursor(Qt.WaitCursor))
+        QApplication.instance().setOverrideCursor(QCursor(Qt.Qt.WaitCursor))
 
         if self.init_clicked:
 
@@ -1116,8 +1275,22 @@ class PipelineManagerTab(QWidget):
                         node.process.uuid = brick_id
 
                     self.brick_list.append(brick_id)
-                    self.project.session.add_document(COLLECTION_BRICK,
-                                                      brick_id)
+                    try:
+                        self.project.session.add_document(COLLECTION_BRICK,
+                                                          brick_id)
+                    except ValueError:
+                        # id is not unique. It happens in iterations
+                        # FIXME: we need a better way to handle UUIDs in
+                        # iterated processes
+                        brick_id = str(uuid.uuid4())
+                        node.uuid = brick_id
+                        if isinstance(node, ProcessNode):
+                            node.process.uuid = brick_id
+                        self.brick_list[-1] = brick_id
+                        # then try again
+                        self.project.session.add_document(COLLECTION_BRICK,
+                                                          brick_id)
+
 
                     if node_name.split('.')[0] == 'Pipeline':
                         node_name = '.'.join(node_name.split('.')[1:])
@@ -1266,7 +1439,7 @@ class PipelineManagerTab(QWidget):
         self.splitter1.addWidget(self.splitterRight)
         self.splitter1.setSizes([200, 800, 200])
 
-        # self.splitter2 = QSplitter(Qt.Vertical)
+        # self.splitter2 = QSplitter(Qt.Qt.Vertical)
         # self.splitter2.addWidget(self.splitter1)
         # self.splitter2.setSizes([800, 100])
 
@@ -2076,6 +2249,9 @@ class PipelineManagerTab(QWidget):
             if not has_iteration:
                 # move to an iteration pipeline
                 new_pipeline = self.build_iterated_pipeline()
+                if new_pipeline is None:
+                    return  # abort
+
                 c_e.set_pipeline(new_pipeline)
                 self.displayNodeParameters('inputs', new_pipeline)
 
