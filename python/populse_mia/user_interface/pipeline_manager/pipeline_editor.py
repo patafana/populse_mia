@@ -1881,7 +1881,6 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         for i in range(self.count() - 1):
             pipeline = self.widget(i).scene.pipeline
             if pipeline.trait('database_scans'):
-                print('set database_scans:', self.scan_list)
                 try:
                     setattr(pipeline, 'database_scans', self.scan_list)
                 except Exception as e:
