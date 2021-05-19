@@ -763,8 +763,18 @@ class PipelineManagerTab(QWidget):
                                         | Qt.QDialogButtonBox.Cancel)
         layout = Qt.QVBoxLayout()
         param_box = Qt.QGroupBox('Iterate over parameters:')
+        pblayout = Qt.QVBoxLayout()
+        pblayout.setContentsMargins(0, 0, 0, 0)
+        scroll = Qt.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameStyle(scroll.NoFrame)
+        scroll.setViewportMargins(0, 0, 0, 0)
+        pblayout.addWidget(scroll)
         param_lay = Qt.QGridLayout()
-        param_box.setLayout(param_lay)
+        wid = Qt.QWidget()
+        scroll.setWidget(wid)
+        wid.setLayout(param_lay)
+        param_box.setLayout(pblayout)
 
         layout.addWidget(param_box)
         layout.addWidget(buttonbox)
@@ -783,10 +793,14 @@ class PipelineManagerTab(QWidget):
         outputs = pipeline.get_outputs().keys()
         params = (inputs, outputs)
         param_btns = [[], []]
+        forbidden = set(['nodes_activation', 'selection_changed',
+                          'pipeline_steps', 'visible_groups'])
+
         for i in range(2):
             for p, plug in enumerate(params[i]):
+                if plug in forbidden:
+                    continue
                 trait = pipeline.trait(plug)
-                print(plug, trait.hidden)
                 it_btn = Qt.QCheckBox()
                 db_btn = None
                 if i == 0:
@@ -850,6 +864,11 @@ class PipelineManagerTab(QWidget):
 
         for plug in database_plugs:
             trait = pipeline.trait(plug)
+            pipeline.trait(plug).forbid_completion = True
+            # propagate non-completion status (TODO: needs something better)
+            for link in pipeline.pipeline_node.plugs[plug].links_to:
+                link[2].get_trait(link[1]).forbid_completion = True
+
             if isinstance(trait.trait_type, traits.List):
                 node_name = 'un_list_%s' % plug
 
@@ -2250,7 +2269,9 @@ class PipelineManagerTab(QWidget):
                 # move to an iteration pipeline
                 new_pipeline = self.build_iterated_pipeline()
                 if new_pipeline is None:
-                    return  # abort
+                    # abort
+                    self.iterationTable.check_box_iterate.setChecked(False)
+                    return
 
                 c_e.set_pipeline(new_pipeline)
                 self.displayNodeParameters('inputs', new_pipeline)
