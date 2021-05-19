@@ -228,6 +228,7 @@ from capsul.api import get_process_instance
 
 # soma-base imports
 from soma.qt_gui.qt_backend.Qt import QMessageBox
+from soma.qt_gui.qtThread import QtThreadCall
 
 # populse_mia imports
 from populse_mia.user_interface.main_window import MainWindow
@@ -447,6 +448,10 @@ def launch_mia():
     project = Project(None, True)
     main_window = MainWindow(project, deleted_projects=deleted_projects)
     main_window.show()
+
+    # make sure to instantiate the QtThreadCall singleton from the main thread
+    qt_thread_call = QtThreadCall()
+
     app.exec()
 
 

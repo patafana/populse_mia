@@ -57,6 +57,7 @@ import soma_workflow.constants as swconstants
 
 # Soma_base import
 from soma.controller.trait_utils import is_file_trait
+from soma.qt_gui.qtThread import QtThreadCall
 
 # PyQt5 imports
 from PyQt5 import Qt
@@ -865,9 +866,11 @@ class PipelineManagerTab(QWidget):
         for plug in database_plugs:
             trait = pipeline.trait(plug)
             pipeline.trait(plug).forbid_completion = True
-            # propagate non-completion status (TODO: needs something better)
-            for link in pipeline.pipeline_node.plugs[plug].links_to:
-                link[2].get_trait(link[1]).forbid_completion = True
+            if hasattr(pipeline, 'pipeline_node'):
+                # propagate non-completion status
+                # (TODO: needs something better)
+                for link in pipeline.pipeline_node.plugs[plug].links_to:
+                    link[2].get_trait(link[1]).forbid_completion = True
 
             if isinstance(trait.trait_type, traits.List):
                 node_name = 'un_list_%s' % plug
@@ -946,7 +949,8 @@ class PipelineManagerTab(QWidget):
             self.main_window.data_browser.table_data.delete_from_brick(
                 brick)
         self.project.cleanup_orphan_nonexisting_files()
-        self.main_window.data_browser.table_data.update_table()
+        QtThreadCall().push(
+            self.main_window.data_browser.table_data.update_table)
 
     def complete_pipeline_parameters(self, pipeline=None):
         """
@@ -1126,7 +1130,6 @@ class PipelineManagerTab(QWidget):
         self.project.cleanup_orphan_bricks()
         self.project.cleanup_orphan_nonexisting_files()
         self.main_window.data_browser.table_data.update_table()
-
         self.run_pipeline_action.setDisabled(True)
         self.init_pipeline_action.setDisabled(False)
 
@@ -1543,7 +1546,9 @@ class PipelineManagerTab(QWidget):
         print('obsolete bricks:', obsolete)
         self.project.cleanup_orphan_bricks(obsolete)
         self.project.cleanup_orphan_nonexisting_files()
-        self.main_window.data_browser.table_data.update_table()
+
+        QtThreadCall().push(
+            self.main_window.data_browser.table_data.update_table)
 
         self.project.saveModifications()
 
@@ -2270,7 +2275,8 @@ class PipelineManagerTab(QWidget):
                 new_pipeline = self.build_iterated_pipeline()
                 if new_pipeline is None:
                     # abort
-                    self.iterationTable.check_box_iterate.setChecked(False)
+                    self.iterationTable.check_box_iterate.setCheckState(
+                        Qt.Qt.Unchecked)
                     return
 
                 c_e.set_pipeline(new_pipeline)

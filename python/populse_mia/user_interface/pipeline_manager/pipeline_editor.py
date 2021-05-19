@@ -32,7 +32,7 @@ import yaml
 from traits.api import TraitError
 
 # PyQt5 imports
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtGui, QtWidgets, QtCore, Qt
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
@@ -1369,6 +1369,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             self.main_window.pipeline_manager.displayNodeParameters(
                 node_name, process)
 
+        self.update_iteration_checkbox()
+
     def emit_node_clicked(self, node_name, process):
         """Emit a signal when a node is clicked.
 
@@ -1474,7 +1476,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :return: the pipeline of the current editor
         """
 
-        return self.get_current_editor().scene.pipeline
+        editor = self.get_current_editor()
+        if editor is None or editor.scene is None:
+            return None
+        return editor.scene.pipeline
 
     def get_current_tab_name(self):
         """Get the tab name of the editor in the current tab.
@@ -1641,6 +1646,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 if filename:
                     self.setTabText(working_index, os.path.basename(filename))
                     self.update_scans_list()
+
                     return  # success
 
         # if we're still here, something went wrong. clean up.
@@ -1689,6 +1695,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.set_tab_index(self.count() - 2)
 
         self.get_capsul_engine()
+
+        self.update_iteration_checkbox()
 
     def open_filter(self, node_name):
         """Open a filter widget.
@@ -1835,6 +1843,19 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.previousIndex = index
         self.update_current_node()
 
+    def update_iteration_checkbox(self):
+        pipeline = self.get_current_pipeline()
+        if not pipeline or not hasattr(pipeline, 'nodes'):
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.UnChecked)
+        if 'iteration' in pipeline.nodes:
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.Checked)
+        else:
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
+
+
     def update_current_node(self):
         """Update the node parameters"""
         
@@ -1853,6 +1874,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 .check_box_iterate.isChecked():
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(False)
+
+        self.update_iteration_checkbox()
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.
@@ -1887,6 +1910,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                     import traceback
                     traceback.print_exc()
                     # but continue...
+
+        self.update_iteration_checkbox()
 
 
 def find_filename(paths_list, packages_list, file_name):
