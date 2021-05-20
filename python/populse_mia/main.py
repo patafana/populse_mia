@@ -38,6 +38,11 @@ from PyQt5.QtCore import QDir, QLockFile, Qt
 from PyQt5.QtWidgets import (QApplication, QDialog, QPushButton, QLabel,
                              QFileDialog, QVBoxLayout, QHBoxLayout, QLineEdit)
 
+pypath = []
+
+if 'NO_ET' not in os.environ:
+    os.environ['NO_ET'] = "1" # disables any etelemetry check.
+
 # Adding populse_mia path to the sys.path if in developer mode
 if not os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))) in sys.path:           # "developer" mode
@@ -46,22 +51,55 @@ if not os.path.dirname(os.path.dirname(
                      os.path.dirname(
                        os.path.dirname(
                          os.path.dirname(os.path.realpath(__file__)))))
+
+    # Note: The following syntax can also be used:
+    #root_dev_dir = os.path.abspath(os.path.join('__file__',
+    #                                            os.path.pardir,
+    #                                            os.path.pardir,
+    #                                            os.path.pardir,
+    #                                            os.path.pardir))
+
+    branch = ''
+    populse_bdir = ''
+    capsul_bdir = ''
+    soma_bdir = ''
+
+    if not os.path.isdir(os.path.join(root_dev_dir, 'populse_mia')):
+        # different sources layout - try casa_distro mode
+        root_dev_dir = os.path.dirname(
+                     os.path.dirname(
+                       os.path.dirname(
+                         os.path.dirname(os.path.dirname(__file__)))))
+        if os.path.basename(root_dev_dir) == 'populse':
+            root_dev_dir = os.path.dirname(root_dev_dir)
+            populse_bdir = 'populse'
+            soma_bdir = 'soma'
+        print('root_dev_dir:', root_dev_dir)
+        branch = os.path.basename(os.path.dirname(
+                     os.path.dirname(
+                       os.path.dirname(__file__))))
+        print('branch:', branch)
+
     i = 0
     # Adding populse_mia
     print('\n- Mia in "developer" mode')
-    mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
+    mia_dev_dir = os.path.join(root_dev_dir, populse_bdir, 'populse_mia',
+                               branch, 'python')
     print('  . Using populse_mia package from {} ...'.format(mia_dev_dir))
     sys.path.insert(i, mia_dev_dir)
+    pypath.append(mia_dev_dir)
     del mia_dev_dir
     from populse_mia import info
     print(f"    populse_mia version : {info.__version__}")
 
     # Adding capsul
-    if os.path.isdir(os.path.join(root_dev_dir, 'capsul')):
+    if os.path.isdir(os.path.join(root_dev_dir, capsul_bdir, 'capsul')):
         i += 1
-        capsul_dev_dir = os.path.join(root_dev_dir, 'capsul')
+        capsul_dev_dir = os.path.join(root_dev_dir, capsul_bdir, 'capsul',
+                                      branch)
         print('  . Using capsul package from {} ...'.format(capsul_dev_dir))
         sys.path.insert(i, capsul_dev_dir)
+        pypath.append(capsul_dev_dir)
         del capsul_dev_dir
 
     else:
@@ -72,11 +110,13 @@ if not os.path.dirname(os.path.dirname(
         del capsul
 
      # Adding soma_base:
-    if os.path.isdir(os.path.join(root_dev_dir, 'soma-base')):
+    if os.path.isdir(os.path.join(root_dev_dir, soma_bdir, 'soma-base')):
         i += 1
-        soma_b_dev_dir = os.path.join(root_dev_dir, 'soma-base', 'python')
+        soma_b_dev_dir = os.path.join(root_dev_dir, soma_bdir, 'soma-base',
+                                      branch, 'python')
         print('  . Using soma package from {} ...'.format(soma_b_dev_dir))
         sys.path.insert(i, soma_b_dev_dir)
+        pypath.append(soma_b_dev_dir)
         del soma_b_dev_dir
 
     else:
@@ -87,12 +127,14 @@ if not os.path.dirname(os.path.dirname(
         del soma
 
     # Adding soma_workflow:
-    if os.path.isdir(os.path.join(root_dev_dir, 'soma-workflow')):
+    if os.path.isdir(os.path.join(root_dev_dir, soma_bdir, 'soma-workflow')):
         i += 1
-        soma_w_dev_dir = os.path.join(root_dev_dir, 'soma-workflow', 'python')
+        soma_w_dev_dir = os.path.join(root_dev_dir, soma_bdir, 'soma-workflow',
+                                      branch, 'python')
         print('  . Using soma_workflow package from {} '
               '...'.format(soma_w_dev_dir))
         sys.path.insert(i, soma_w_dev_dir)
+        pypath.append(soma_w_dev_dir)
         del soma_w_dev_dir
 
     else:
@@ -103,12 +145,14 @@ if not os.path.dirname(os.path.dirname(
         del soma_workflow
 
     # Adding populse_db:
-    if os.path.isdir(os.path.join(root_dev_dir, 'populse_db')):
+    if os.path.isdir(os.path.join(root_dev_dir, populse_bdir, 'populse_db')):
         i += 1
-        populse_db_dev_dir = os.path.join(root_dev_dir, 'populse_db', 'python')
+        populse_db_dev_dir = os.path.join(root_dev_dir, populse_bdir,
+                                          'populse_db', branch, 'python')
         print('  . Using populse_db package from {} '
               '...'.format(populse_db_dev_dir))
         sys.path.insert(i, populse_db_dev_dir)
+        pypath.append(populse_db_dev_dir)
         del populse_db_dev_dir
 
     else:
@@ -119,14 +163,15 @@ if not os.path.dirname(os.path.dirname(
         del populse_db
 
     # Adding mia_processes:
-    if os.path.isdir(os.path.join(root_dev_dir, 'mia_processes')):
+    if os.path.isdir(os.path.join(root_dev_dir, populse_bdir,
+                                  'mia_processes')):
         i += 1
-        mia_processes_dev_dir = os.path.join(root_dev_dir,
-                                             'mia_processes',
-                                             'python')
+        mia_processes_dev_dir = os.path.join(root_dev_dir, populse_bdir,
+                                             'mia_processes', branch, 'python')
         print('  . Using mia_processes package from {} '
               '...'.format(mia_processes_dev_dir))
         sys.path.insert(i, mia_processes_dev_dir)
+        pypath.append(mia_processes_dev_dir)
         del mia_processes_dev_dir
 
     else:
@@ -145,6 +190,28 @@ if not os.path.dirname(os.path.dirname(
             del mia_processes_dir
             del mia_processes
 
+    # Adding personal libraries (User_processes : by default in Mia, but others
+    # can be added by developers):
+    # FIXME: The same fix type will certainly have to be made in user
+    # mode (for ~/.populse_mia/process' ).
+    mia_proc = os.path.join(root_dev_dir, populse_bdir,
+                                'populse_mia', 'processes')
+    
+    if os.path.isdir(mia_proc):
+        mia_proc_dir = os.listdir(mia_proc)
+
+        if mia_proc_dir:
+            i += 1
+            sys.path.insert(i, mia_proc)
+            pypath.append(mia_proc)
+             
+            for elt in mia_proc_dir:
+                print('  . Using {0} package from {1}...'.format(elt, mia_proc))
+
+        del mia_proc_dir
+        del elt
+
+    del mia_proc
     del root_dev_dir
 
 elif 'CASA_DISTRO' in os.environ:
@@ -161,6 +228,7 @@ from capsul.api import get_process_instance
 
 # soma-base imports
 from soma.qt_gui.qt_backend.Qt import QMessageBox
+from soma.qt_gui.qtThread import QtThreadCall
 
 # populse_mia imports
 from populse_mia.user_interface.main_window import MainWindow
@@ -168,6 +236,7 @@ from populse_mia.data_manager.project import Project
 from populse_mia.software_properties import Config
 # from populse_mia.software_properties import verCmp
 from populse_mia.data_manager.project_properties import SavedProjects
+import capsul.api as capsul_api
 
 main_window = None
 
@@ -223,8 +292,13 @@ subpackages/modules, to construct the mia's pipeline library.
                     if inspect.isclass(v):
 
                         try:
-                            get_process_instance(
-                                '%s.%s' % (module_name, v.__name__))
+                            try:
+                                get_process_instance(
+                                    '%s.%s' % (module_name, v.__name__))
+                            except:
+                                if (v is capsul_api.Node
+                                    or not issubclass(v, capsul_api.Node)):
+                                    raise
                             # updating the tree's dictionary
                             path_list = module_name.split('.')
                             path_list.append(k)
@@ -249,14 +323,19 @@ subpackages/modules, to construct the mia's pipeline library.
                             pass
 
                 # check if there are subpackages, in this case explore them
-                for _, modname, ispkg in pkgutil.iter_modules(pkg.__path__):
+                path = getattr(pkg, '__path__', None)
+                if path is None and hasattr(pkg, '__file__') and os.path.basename(pkg.__file__).startswith('__init__.'):
+                    path = [os.path.dirname(pkg.__file__)]
 
-                    if ispkg:
+
+                if path:
+                    for _, modname, ispkg in pkgutil.iter_modules(path):
+
                         print('\nExploring subpackages of {0}: {1} ...'
                               .format(module_name,
                                       str(module_name + '.' + modname)))
                         self.add_package(str(module_name + '.' + modname),
-                                         class_name)
+                                        class_name)
 
             except ImportError as e:
                 print('\nWhen attempting to add a package and its modules to '
@@ -369,6 +448,10 @@ def launch_mia():
     project = Project(None, True)
     main_window = MainWindow(project, deleted_projects=deleted_projects)
     main_window.show()
+
+    # make sure to instantiate the QtThreadCall singleton from the main thread
+    qt_thread_call = QtThreadCall()
+
     app.exec()
 
 
@@ -620,6 +703,35 @@ def main():
             msg.exec()
             del app
 
+    global pypath
+
+    if DEV_MODE and pypath:
+        config = Config()
+        config.get_capsul_engine()
+        c = config.get_capsul_config()
+        pc = c.setdefault('engine', {}).setdefault(
+            'global', {}).setdefault('capsul.engine.module.python', {})
+        pc['executable'] = sys.executable
+
+        if 'path' in pc:
+            matches=[os.path.join('populse_mia', 'python'),
+                     'capsul',
+                     os.path.join('populse_db', 'python'),
+                     os.path.join('mia_processes', 'python'),
+                     os.path.join('soma-base', 'python'),
+                     os.path.join('soma-workflow', 'python'),
+                     os.path.join('populse_mia', 'processes')]
+
+            for i in pc['path']:
+
+               if i not in pypath and not any(x in i for x in matches):
+                    pypath.append(i)
+
+        pc['path'] = pypath
+        print('\nChanged python conf:', pc)
+        config.update_capsul_config()
+        config.saveConfig()
+
     verify_processes()
     check_python_version()
     launch_mia()
@@ -739,6 +851,9 @@ def verify_processes():
         print('MIA warning {0}: {1}'.format(e.__class__, e))
         print('*' * 37 + '\n')
 
+    from capsul import info as capsul_info
+    capsulVer = capsul_info.__version__
+
     if len(pkg_error) > 0:
         app = QApplication(sys.argv)
         msg = QMessageBox()
@@ -771,7 +886,7 @@ def verify_processes():
 
     if (isinstance(proc_content, dict)) and ('Packages' in proc_content):
         othPckg = [f for f in proc_content['Packages']
-                   if f not in ['mia_processes', 'nipype']]
+                   if f not in ['mia_processes', 'nipype', 'capsul']]
 
     if 'othPckg' in dir():
         # othPckg: a list containing all packages, other than nipype and
@@ -885,7 +1000,7 @@ def verify_processes():
              and ('Packages' not in proc_content)) or
             ((isinstance(proc_content, dict))
              and ('Versions' not in proc_content))):
-        pack2install = ['nipype.interfaces', 'mia_processes']
+        pack2install = ['nipype.interfaces', 'mia_processes', 'capsul']
         old_nipypeVer = None
         old_miaProcVer = None
 
@@ -967,6 +1082,44 @@ def verify_processes():
                  old_miaProcVer = proc_content['Versions']['mia_processes']
                  pack2install.append('mia_processes')
 
+        # during the previous use of mia, capsul was not available or
+        # its version was not known or its version was different from the one
+        # currently available on the station
+        if ((isinstance(proc_content, dict)) and
+            ('Packages' in proc_content) and
+            ('capsul' not in proc_content['Packages'])):
+            old_capsulVer = None
+            pack2install.append('capsul.pipeline.custom_nodes')
+
+            if ((isinstance(proc_content, dict)) and
+                ('Versions' in proc_content) and
+                ('capsul' in proc_content['Versions'])):
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the capsul "
+                      "processes library again in mia ...")
+
+        else:
+
+            if (((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('capsul' not in proc_content['Versions'])) or
+                    ((isinstance(proc_content, dict))
+                    and ('Versions' in proc_content)
+                    and ('capsul' in proc_content['Versions'])
+                    and (proc_content['Versions']['capsul'] is None))):
+                old_capsulVer = None
+                pack2install.append('capsul.pipeline.custom_nodes')
+                print("\nThe process_config.yml file seems to be corrupted! "
+                      "Let's try to fix it by installing the capsul "
+                      "processes library again in mia ...")
+
+            elif ((isinstance(proc_content, dict)) and
+                  ('Versions' in proc_content) and
+                  ('capsul' in proc_content['Versions']) and
+                  (proc_content['Versions']['capsul'] != capsulVer)):
+                 old_capsulVer = proc_content['Versions']['capsul']
+                 pack2install.append('capsul.pipeline.custom_nodes')
+
     final_pckgs = dict()          # final_pckgs: the final dic of dic with the
     final_pckgs["Packages"] = {}  # informations about the installed packages,
     final_pckgs["Versions"] = {}  # their versions, and the path to access them
@@ -1000,6 +1153,19 @@ def verify_processes():
                                                        old_miaProcVer,
                                                        miaProcVer))
 
+        if 'capsul' in pckg:
+            final_pckgs["Versions"]["capsul"] = capsulVer
+
+            if old_capsulVer is None:
+                 print('\n** Installation in mia of the {0} processes library, '
+                  '{1} version ...'.format(pckg, capsulVer ))
+
+            else:
+                print('\n** Upgrading of the {0} processes library, '
+                  'from {1} to {2} version ...'.format(pckg,
+                                                       old_capsulVer,
+                                                       capsulVer))
+
         print('\nExploring {0} ...'.format(pckg))
         pckg_dic = package.add_package(pckg)
         # pckg_dic: a dic of dic representation of a package and its
@@ -1021,6 +1187,11 @@ def verify_processes():
             print('\n** The mia_processes library in mia is '
                   'already using the current installed version ({0}) '
                   'for this station\n'.format(miaProcVer))
+
+        elif not any("capsul" in s for s in pack2install):
+            print('\n** The capsul library in mia is '
+                  'already using the current installed version ({0}) '
+                  'for this station\n'.format(capsulVer))
 
         if (isinstance(proc_content, dict)) and ('Paths' in proc_content):
 
@@ -1049,8 +1220,9 @@ def verify_processes():
 
     else:
         print('\n** mia is already using the current installed version of '
-              'nipype and mia_processes for this station ({0} and {1}, '
-              'respectively)\n'.format(nipypeVer, miaProcVer))
+              'nipype, mia_processes and capsul for this station ({0}, {1} '
+              'and {2}, respectively)\n'.format(nipypeVer, miaProcVer,
+                                                capsulVer))
 
 
 if __name__ == '__main__':

@@ -32,11 +32,13 @@ import yaml
 from traits.api import TraitError
 
 # PyQt5 imports
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtGui, QtWidgets, QtCore, Qt
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 
 # Capsul imports
-from capsul.api import get_process_instance, Process, PipelineNode, Switch
+from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
+                        capsul_engine, Node)
+from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.qt_gui.widgets.pipeline_developper_view import (
                                             NodeGWidget, PipelineDevelopperView)
 from capsul.pipeline.xml import save_xml_pipeline
@@ -98,12 +100,16 @@ class PipelineEditor(PipelineDevelopperView):
                                         show_sub_pipelines=True,
                                         enable_edition=True)
 
+        engine = Config.get_capsul_engine()
+        self.scene.pipeline.set_study_config(engine.study_config)
+
         self.project = project
         self.main_window = main_window
 
         # Undo/Redo
         self.undos = []
         self.redos = []
+        self.userlevel = Config().get_user_level()
 
     def _del_link(self, link=None, from_undo=False, from_redo=False):
         """Delete a link.
@@ -118,39 +124,35 @@ class PipelineEditor(PipelineDevelopperView):
 
         if not link:
             link = self._current_link
+
         else:
             self._current_link = link
 
         (source_node_name, source_plug_name, source_node,
          source_plug, dest_node_name, dest_plug_name, dest_node,
          dest_plug) = self.scene.pipeline.parse_link(link)
-
         (dest_node_name, dest_parameter, dest_node, dest_plug,
          weak_link) = list(source_plug.links_to)[0]
-
         active = source_plug.activated and dest_plug.activated
-
         self._current_link_def = (source_node, source_plug, dest_node,
                                   dest_plug)
-
         # Calling the original method
         PipelineDevelopperView._del_link(self)
-
         # For history
         history_maker = ["delete_link", (source_node_name, source_plug_name),
                          (dest_node_name, dest_plug_name), active, weak_link]
-
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+        
+        if not (self.main_window.pipeline_manager.iterationTable.
+                                                 check_box_iterate).isChecked():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+                                                                           True)
         self.main_window.statusBar().showMessage(
             'Link {0} has been deleted.'.format(link))
 
     def _export_plug(self, pipeline_parameter=False, optional=None,
                      weak_link=None, from_undo=False, from_redo=False,
-                     temp_plug_name=None):
+                     temp_plug_name=None, multi_export=False):
         """Export a plug to a pipeline global input or output.
 
         :param pipeline_parameter: name of the pipeline input/output
@@ -160,58 +162,137 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: True if this method is called from a redo action
         :param temp_plug_name: tuple containing (the name of the node, the
            name of the plug) to export
+        :param multi_export: True if this method is called in export plugs case
         """
 
         # Bug: the first parameter (here pipeline_parameter) cannot be None
         # even if we write pipeline_parameter=None in the line above,
         # it will be False...
-
         if temp_plug_name is None:
-            dial = self._PlugEdit()
-            dial.name_line.setText(self._temp_plug_name[1])
-            dial.optional.setChecked(self._temp_plug.optional)
             temp_plug_name = self._temp_plug_name
-
+        
+        if not pipeline_parameter:
+            dial = self._PlugEdit()
+            dial.name_line.setText(temp_plug_name[1])
+            dial.optional.setChecked(self._temp_plug.optional)
             res = dial.exec_()
+
         else:
             res = True
 
         if res:
+            allow_existing_plug = False
+            check_plug = True
+            
             if not pipeline_parameter:
-                pipeline_parameter = str(dial.name_line.text())
+                plug_name = str(dial.name_line.text())
+
+            else:
+                plug_name = pipeline_parameter
+
+            while check_plug is True:
+            
+                if plug_name in self.scene.pipeline.pipeline_node.plugs:
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    title = "populse_mia - Warning: Duplicate pipeline plug"
+                    msgtext = ('The "{0}" pipeline plug already exists, do '
+                               'you want to connect to this existing '
+                               'plug ?'.format(plug_name))
+                    reply = msg.question(self, title, msgtext,
+                                         QMessageBox.Yes |
+                                         QMessageBox.No)
+
+                    if reply == QMessageBox.Yes:
+                        allow_existing_plug = True
+                        check_plug = False
+                    
+                    elif reply == QMessageBox.No:
+                        new_name, ok = QInputDialog.getText(self,
+                                                            'Plug name Input '
+                                                            'Dialog',
+                                                            'The plug {0} '
+                                                            'already exists, '
+                                                            'please choose a '
+                                                            'new name.'.format(
+                                                                     plug_name))
+
+                        if (ok and
+                               new_name and
+                               not new_name.isspace() and
+                               plug_name != new_name):
+                            plug_name = new_name
+
+                            if (not plug_name in
+                                       self.scene.pipeline.pipeline_node.plugs):
+                                check_plug = False
+
+                else:
+                    allow_existing_plug = False
+                    check_plug = False
+
+            pipeline_parameter = plug_name
 
             if optional is None:
-                optional = dial.optional.isChecked()
+
+                try:
+                    optional = dial.optional.isChecked()
+
+                except UnboundLocalError:
+                    pass
 
             if weak_link is None:
-                weak_link = dial.weak.isChecked()
+
+                try:
+                    weak_link = dial.weak.isChecked()
+
+                except UnboundLocalError:
+                    weak_link = False
+
 
             try:
-                self.scene.pipeline.export_parameter(
-                    temp_plug_name[0], temp_plug_name[1],
-                    pipeline_parameter=pipeline_parameter,
-                    is_optional=optional,
-                    weak_link=weak_link)
+                self.scene.pipeline.export_parameter(temp_plug_name[0],
+                                                     temp_plug_name[1],
+                                                     pipeline_parameter,
+                                                     weak_link=weak_link,
+                                                     is_optional=optional,
+                                  allow_existing_plug=allow_existing_plug)
+
             except TraitError:
                 print("Cannot export {0}.{1} plug".format(temp_plug_name[0],
-                                                          temp_plug_name[1]))
+                                                              plug_name))
 
-            '''self.scene.pipeline.export_parameter(
-                temp_plug_name[0], temp_plug_name[1],
-                pipeline_parameter=pipeline_parameter,
-                is_optional=optional,
-                weak_link=weak_link)'''  # Uncomment to generate the error
+                if multi_export:
+                    return None
 
-            self.scene.update_pipeline()
+            except ValueError as e:
+                print('\n{}'.format(e))
 
-        # For history
-        history_maker = ["export_plug", ('inputs', pipeline_parameter),
-                         pipeline_parameter, optional, weak_link]
+                if multi_export:
+                    return None
 
-        self.update_history(history_maker, from_undo, from_redo)
+            else:
+                
+                # For history
+                if multi_export:
+                    return temp_plug_name[1]
 
-        self.main_window.statusBar().showMessage(
-            "Plug {0} has been exported.".format(temp_plug_name[1]))
+                else:
+                    self.scene.update_pipeline()
+                    #history_maker = ["export_plug", ('inputs', pipeline_parameter),
+                    #                 pipeline_parameter, optional, weak_link]
+                    history_maker = ["export_plugs",
+                                     plug_name,
+                                     temp_plug_name[0]]                
+                    self.update_history(history_maker, from_undo, from_redo)
+                
+                    if not (self.main_window.pipeline_manager.
+                                  iterationTable.check_box_iterate).isChecked():
+                        (self.main_window.pipeline_manager.
+                         run_pipeline_action).setDisabled(True)
+
+                    self.main_window.statusBar().showMessage(
+                        "Plug {0} has been exported.".format(plug_name))
 
     def _release_grab_link(self, event, ret=False):
         """Method called when a link is released.
@@ -653,7 +734,10 @@ class PipelineEditor(PipelineDevelopperView):
         PipelineDevelopperView.del_node(self, node_name)
 
         # For history
-        history_maker = ["delete_process", node_name, node.process, links]
+        process = node
+        if isinstance(process, ProcessNode):
+            process = node.process
+        history_maker = ["delete_process", node_name, process, links]
 
         self.update_history(history_maker, from_undo, from_redo)
         if not self.main_window.pipeline_manager.iterationTable \
@@ -664,8 +748,11 @@ class PipelineEditor(PipelineDevelopperView):
             "Node {0} has been deleted.".format(node_name))
 
         for node_name, node in pipeline.nodes.items():
+            process = node
+            if isinstance(process, ProcessNode):
+                process = node.process
             self.main_window.pipeline_manager.displayNodeParameters(
-                node_name, node.process)
+                node_name, process)
 
     def dragEnterEvent(self, event):
         """Event handler when the mouse enters the widget.
@@ -711,57 +798,41 @@ class PipelineEditor(PipelineDevelopperView):
 
         pipeline = self.scene.pipeline
         node = pipeline.nodes[node_name]
-
         parameter_list = []
+
         for parameter_name, plug in six.iteritems(node.plugs):
-            if parameter_name in ("nodes_activation", "selection_changed"):
+
+            if parameter_name in ("nodes_activation",
+                                  "selection_changed",
+                                  "output_directory",
+                                  "use_mcr",
+                                  "paths",
+                                  "matlab_cmd",
+                                  "mfile",
+                                  "spm_script_file"):
                 continue
+
             if (((node_name, parameter_name) not in pipeline.do_not_export and
                  ((outputs and plug.output and not plug.links_to) or
                   (inputs and not plug.output and not plug.links_from)) and
                  (optional or not node.get_trait(parameter_name).optional))):
-                try:
-                    pipeline.export_parameter(node_name, parameter_name)
-                    parameter_list.append(parameter_name)
-                except TraitError:
-                    print("Cannot export {0}.{1} plug".format(node_name,
-                                                              parameter_name))
-                except ValueError:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Warning)
-                    title = "populse_mia - Warning: Duplicate plug name"
-                    msgtext = 'The plug {0} already exists, do you want to ' \
-                              'connect to that existing plug ?'.format(
-                        parameter_name)
-                    reply = msg.question(self, title, msgtext,
-                                         QMessageBox.Yes |
-                                         QMessageBox.No)
-                    if reply == QMessageBox.Yes:
-                        self._remove_plug(('inputs', parameter_name))
-                        pipeline.export_parameter(node_name, parameter_name)
-                    else:
-                        new_name, ok = QInputDialog.getText(self,
-                             'Plug name Input Dialog',
-                             'The plug {0} already '
-                             'exists, please choose a new name.'.format(
-                             parameter_name))
-                        if ok:
-                            self._export_plug(pipeline_parameter=new_name,
-                                              optional=True,
-                                              weak_link=False,
-                                              temp_plug_name=(node_name,
-                                                              parameter_name))
-                            parameter_list.append(new_name)
-                    # pipeline.export_parameter(node_name, parameter_name)
 
+                p_name = self._export_plug(parameter_name,
+                                           temp_plug_name=(node_name,
+                                                           parameter_name),
+                                           multi_export=True)
+                parameter_list.append(p_name)
+
+        parameter_list = list(filter(None, parameter_list))
+        self.scene.update_pipeline()
         # For history
         history_maker = ["export_plugs", parameter_list, node_name]
-
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+        
+        if not (self.main_window.pipeline_manager.iterationTable.
+                                                 check_box_iterate).isChecked():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+                                                                           True)
         self.main_window.statusBar().showMessage(
             "Plugs {0} have been exported.".format(str(parameter_list)))
 
@@ -777,6 +848,17 @@ class PipelineEditor(PipelineDevelopperView):
         pkg = sys.modules[package_name]
         for name, instance in sorted(list(pkg.__dict__.items())):
             if name == process_name:
+                if issubclass(instance, Node):
+                    # it's a node
+                    try:
+                        QtGui.QApplication.setOverrideCursor(
+                            QtCore.Qt.WaitCursor)
+                        self.add_named_node(None, instance)
+                        QtGui.QApplication.restoreOverrideCursor()
+                        return
+                    except Exception as e:
+                        print(e)
+                        return
                 try:
                     process = get_process_instance(instance)
                 except Exception as e:
@@ -1146,7 +1228,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
     """
 
     pipeline_saved = QtCore.pyqtSignal(str)
-    node_clicked = QtCore.pyqtSignal(str, Process)
+    node_clicked = QtCore.pyqtSignal(str, Node)
+    process_clicked = QtCore.pyqtSignal(str, Process)
     switch_clicked = QtCore.pyqtSignal(str, Switch)
 
     def __init__(self, project, scan_list, main_window):
@@ -1200,6 +1283,9 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.tabBarClicked.connect(self.check_modifications)
         self.currentChanged.connect(self.update_current_node)
         self.previousIndex = 0
+
+        # init capsul engine config
+        self.get_capsul_engine()
 
     def check_modifications(self, current_index):
         """Check if the nodes of the current pipeline have been modified.
@@ -1276,9 +1362,14 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             self.undos[p_e] = []
             self.redos[p_e] = []
 
+            self.get_capsul_engine()
+
         for node_name, node in self.get_current_pipeline().nodes.items():
+            process = getattr(node, 'process', node)
             self.main_window.pipeline_manager.displayNodeParameters(
-                node_name, node.process)
+                node_name, process)
+
+        self.update_iteration_checkbox()
 
     def emit_node_clicked(self, node_name, process):
         """Emit a signal when a node is clicked.
@@ -1287,7 +1378,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :param process: process of the corresponding node
         """
 
-        self.node_clicked.emit(node_name, process)
+        if isinstance(process, Process):
+            self.process_clicked.emit(node_name, process)
+        else:
+            self.node_clicked.emit(node_name, process)
 
     def emit_pipeline_saved(self, filename):
         """Emit a signal when a pipeline is saved.
@@ -1326,6 +1420,38 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 pipeline_parameter='database_scans')
         self.get_current_editor().scene.update_pipeline()
 
+    def get_capsul_engine(self):
+        """
+        Get a CapsulEngine object from the edited pipeline, and set it up from
+        MIA config object
+        """
+
+        # save completion attributes for the current pipeline (other pipelines
+        # will lose their values)
+        pipeline = self.get_current_pipeline()
+        completion = getattr(pipeline, 'completion_engine', None)
+        if completion:
+            att_values = completion.get_attribute_values().export_to_dict()
+
+        engine = Config.get_capsul_engine()
+
+        study_config = engine.study_config
+        study_config.input_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'raw_data')
+        study_config.output_directory = os.path.join(
+            os.path.abspath(self.project.folder), 'data', 'derived_data')
+
+        # restore completion attributes
+        from capsul.attributes.completion_engine import ProcessCompletionEngine
+
+        if completion:
+            completion \
+                = ProcessCompletionEngine.get_completion_engine(pipeline)
+            if completion:
+                completion.get_attribute_values().import_from_dict(att_values)
+
+        return engine
+
     def get_current_editor(self):
         """Get the instance of the current editor.
 
@@ -1350,7 +1476,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         :return: the pipeline of the current editor
         """
 
-        return self.get_current_editor().scene.pipeline
+        editor = self.get_current_editor()
+        if editor is None or editor.scene is None:
+            return None
+        return editor.scene.pipeline
 
     def get_current_tab_name(self):
         """Get the tab name of the editor in the current tab.
@@ -1496,6 +1625,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 new_tab_opened = True
             # get only the file name to load
             filename = self.get_current_editor().load_pipeline('', False)
+            self.get_capsul_engine()
 
         if filename:
             # Check if this pipeline is already open
@@ -1512,9 +1642,11 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 editor = self.get_editor_by_index(working_index)
                 # actually load the pipeline
                 filename = editor.load_pipeline(filename)
+                self.get_capsul_engine()
                 if filename:
                     self.setTabText(working_index, os.path.basename(filename))
                     self.update_scans_list()
+
                     return  # success
 
         # if we're still here, something went wrong. clean up.
@@ -1561,6 +1693,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         self.insertTab(self.count() - 1, p_e, name)
         self.set_tab_index(self.count() - 2)
+
+        self.get_capsul_engine()
+
+        self.update_iteration_checkbox()
 
     def open_filter(self, node_name):
         """Open a filter widget.
@@ -1707,6 +1843,19 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         self.previousIndex = index
         self.update_current_node()
 
+    def update_iteration_checkbox(self):
+        pipeline = self.get_current_pipeline()
+        if not pipeline or not hasattr(pipeline, 'nodes'):
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.UnChecked)
+        if 'iteration' in pipeline.nodes:
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.Checked)
+        else:
+            self.main_window.pipeline_manager.iterationTable \
+                .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
+
+
     def update_current_node(self):
         """Update the node parameters"""
         
@@ -1725,6 +1874,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 .check_box_iterate.isChecked():
             self.main_window.pipeline_manager.run_pipeline_action\
                 .setDisabled(False)
+
+        self.update_iteration_checkbox()
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.
@@ -1752,12 +1903,15 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
 
         for i in range(self.count() - 1):
             pipeline = self.widget(i).scene.pipeline
-            if hasattr(pipeline, "nodes"):
-                for node_name, node in pipeline.nodes.items():
-                    if node_name == "":
-                        for plug_name, plug in node.plugs.items():
-                            if plug_name == "database_scans":
-                                node.set_plug_value(plug_name, self.scan_list)
+            if pipeline.trait('database_scans'):
+                try:
+                    setattr(pipeline, 'database_scans', self.scan_list)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    # but continue...
+
+        self.update_iteration_checkbox()
 
 
 def find_filename(paths_list, packages_list, file_name):
@@ -1807,8 +1961,8 @@ def get_path(name, dictionary, prev_paths=None, pckg=None):
 
         if pckg is not None:
             prev_paths.append(pckg)
-            dictionary = dictionary[pckg]
-        
+            dictionary = dictionary.get(pckg, {})
+
     # new_paths is a list containing the packages to the desired module
     new_paths = prev_paths.copy()
     for idx, (key, value) in enumerate(dictionary.items()):

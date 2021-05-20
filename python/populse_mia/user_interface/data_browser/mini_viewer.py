@@ -14,13 +14,14 @@ Contains:
 # for details.
 ##########################################################################
 
-import os
-from functools import partial
 import nibabel as nib
-# from scipy.ndimage import rotate  # to work with NumPy arrays
 import numpy as np  # a N-dimensional array object
-from skimage.transform import resize
+import os
 import skimage as sk
+import traceback
+from functools import partial
+# from scipy.ndimage import rotate  # to work with NumPy arrays
+from skimage.transform import resize
 
 # PyQt5 imports
 from PyQt5.QtCore import Qt
@@ -472,24 +473,20 @@ class MiniViewer(QWidget):
         # Depending on the dimension, reading the image data and
         # changing the cursors maximum
         if len(self.img[idx].shape) == 3:
-            #self.im_2D.insert(
-            #    idx, self.img[idx].get_fdata()[:, :, sl3D].copy())
             self.im_2D.insert(
                 idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(0)
             self.slider_5D[idx].setMaximum(0)
+            
         if len(self.img[idx].shape) == 4:
-            #self.im_2D.insert(
-            #    idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D].copy())
             self.im_2D.insert(
                 idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D, sl4D].copy())
             self.slider_3D[idx].setMaximum(self.img[idx].shape[2] - 1)
             self.slider_4D[idx].setMaximum(self.img[idx].shape[3] - 1)
             self.slider_5D[idx].setMaximum(0)
+            
         if len(self.img[idx].shape) == 5:
-           # self.im_2D.insert(
-           #     idx, self.img[idx].get_fdata()[:, :, sl3D, sl4D, sl5D].copy())
             self.im_2D.insert(
                 idx, np.asarray(self.img[idx].dataobj)[:, :, sl3D,
                                                        sl4D, sl5D].copy())
@@ -561,7 +558,7 @@ class MiniViewer(QWidget):
             self.do_nothing = [False] * len(file_paths)
 
             self.file_paths = file_paths
-            self.max_scans = 4
+            #self.max_scans = 4
 
             self.setMinimumHeight(220)
 
@@ -578,15 +575,39 @@ class MiniViewer(QWidget):
 
             # Reading the images from the file paths
             for idx, file_path in enumerate(self.file_paths.copy()):
+
                 try:
-                    self.img.insert(idx, nib.load(file_path))
-                except nib.filebasedimages.ImageFileError:
-                    print("Error while trying to display the image " +
-                          file_path)
+                    #self.img.insert(idx, nib.load(file_path))
+                    chk = nib.load(file_path)
+                    
+                except nib.filebasedimages.ImageFileError as e:
+                    print("Error while trying to display the {} image ...!\n"
+                          "Traceback:".format(os.path.abspath(file_path)))
+                    print(''.join(traceback.format_tb(e.__traceback__)), end='')
+                    print('{0}: {1}\n'.format(e.__class__.__name__, e))
                     self.file_paths.remove(file_path)
-                except FileNotFoundError:
-                    print("File " + file_path + " not existing")
+                    chk = False
+            
+                except FileNotFoundError as e:
+                    print("File " + os.path.abspath(file_path) +
+                          " is not existing ...")
                     self.file_paths.remove(file_path)
+                    chk = False
+
+                if chk is not False:
+                    
+                    try:
+                        np.asarray(chk.dataobj)
+
+                    except Exception as e:
+                        print("\nError while trying to display the {} image ...!\n"
+                              "Traceback:".format(os.path.abspath(file_path)))
+                        print(''.join(traceback.format_tb(e.__traceback__)), end='')
+                        print('{0}: {1}\n'.format(e.__class__.__name__, e))
+                        self.file_paths.remove(file_path)
+
+                    else:
+                        self.img.insert(idx, chk)
 
             # If we are in the "cursors" display mode
             if self.check_box_slices.checkState() == Qt.Unchecked:

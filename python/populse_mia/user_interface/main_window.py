@@ -370,7 +370,8 @@ class MainWindow(QMainWindow):
     def create_view_window(self):
         """Create the main window view."""
         sources_images_dir = Config().getSourceImageDir()
-        app_icon = QIcon(os.path.join(sources_images_dir, 'Logo_populse_mia_LR.jpeg'))
+        app_icon = QIcon(os.path.join(sources_images_dir,
+                                      'Logo_populse_mia_LR.jpeg'))
         self.setWindowIcon(app_icon)
         background_color = self.config.getBackgroundColor()
         text_color = self.config.getTextColor()
@@ -397,31 +398,55 @@ class MainWindow(QMainWindow):
 
         else:
             can_switch = True
+
         if can_switch:
             # Opens a pop-up when the 'New project' action is clicked and
             # updates the recent projects
-            self.exPopup = PopUpNewProject()
 
-            if self.exPopup.exec():
+            try:
+                self.exPopup = PopUpNewProject()
 
-                self.project.session.unsave_modifications()
-                self.remove_raw_files_useless()  # We remove the useless
-                # files from the old project
+            except Exception as e:
+                print('\ncreate_project_pop_up: ', e)
+                self.msg = QMessageBox()
+                self.msg.setIcon(QMessageBox.Critical)
+                self.msg.setText("Invalid projects folder path")
+                self.msg.setInformativeText(
+                "The projects folder path in MIA preferences is invalid!")
+                self.msg.setWindowTitle("Error")
+                yes_button = self.msg.addButton("Open MIA preferences",
+                                                QMessageBox.YesRole)
+                ok_button = self.msg.addButton(QMessageBox.Ok)
+                self.msg.exec()
 
-                self.exPopup.get_filename(self.exPopup.selectedFiles())
-                file_name = self.exPopup.relative_path
+                if self.msg.clickedButton() == yes_button:
+                    self.software_preferences_pop_up()
+                    self.msg.close()
 
-                # Removing the old project from the list of currently opened
-                # projects
-                config = Config()
-                opened_projects = config.get_opened_projects()
-                opened_projects.remove(self.project.folder)
-                config.set_opened_projects(opened_projects)
-                config.saveConfig()
+                else:
+                    self.msg.close()
 
-                self.project = Project(self.exPopup.relative_path, True)
+            else:
 
-                self.update_project(file_name)  # project updated everywhere
+                if self.exPopup.exec():
+
+                    self.exPopup.get_filename(self.exPopup.selectedFiles())
+                    file_name = self.exPopup.relative_path
+
+                    # Removing the old project from the list of currently opened
+                    # projects
+                    config = Config()
+                    opened_projects = config.get_opened_projects()
+                    opened_projects.remove(self.project.folder)
+                    config.set_opened_projects(opened_projects)
+                    config.saveConfig()
+
+                    self.remove_raw_files_useless()  # We remove the useless
+                    # files from the old project
+
+                    self.project = Project(self.exPopup.relative_path, True)
+
+                    self.update_project(file_name)  # project updated everywhere
 
     def create_tabs(self):
         """Create the tabs and initializes the DataBrowser and PipelineManager
@@ -451,9 +476,32 @@ class MainWindow(QMainWindow):
 
     def delete_project(self):
         """Open a pop-up to open a project and updates the recent projects."""
-        self.exPopup = PopUpDeleteProject(self)
-        self.exPopup.exec()
 
+        try:
+            self.exPopup = PopUpDeleteProject(self)
+
+        except Exception as e:
+            print('\ndelete_project: ', e)
+            self.msg = QMessageBox()
+            self.msg.setIcon(QMessageBox.Critical)
+            self.msg.setText("Invalid projects folder path")
+            self.msg.setInformativeText(
+                "The projects folder path in MIA preferences is invalid!")
+            self.msg.setWindowTitle("Error")
+            yes_button = self.msg.addButton("Open MIA preferences",
+                                            QMessageBox.YesRole)
+            ok_button = self.msg.addButton(QMessageBox.Ok)
+            self.msg.exec()
+
+            if self.msg.clickedButton() == yes_button:
+                self.software_preferences_pop_up()
+                self.msg.close()
+
+            else:
+                self.msg.close()
+
+        else:
+            self.exPopup.exec()
 
     @staticmethod
     def documentation():
@@ -566,14 +614,39 @@ class MainWindow(QMainWindow):
 
         # We can open a new project
         if can_switch:
-            self.exPopup = PopUpOpenProject()
-            if self.exPopup.exec():
-                file_name = self.exPopup.selectedFiles()
-                self.exPopup.get_filename(file_name)
-                file_name = self.exPopup.relative_path
-                self.data_browser.data_sent = False
-                self.switch_project(file_name, self.exPopup.name)
-                # We switch the project
+
+            try:
+                self.exPopup = PopUpOpenProject()
+
+            except Exception as e:
+                print('\nopen_project_pop_up: ', e)
+                self.msg = QMessageBox()
+                self.msg.setIcon(QMessageBox.Critical)
+                self.msg.setText("Invalid projects folder path")
+                self.msg.setInformativeText(
+                "The projects folder path in MIA preferences is invalid!")
+                self.msg.setWindowTitle("Error")
+                yes_button = self.msg.addButton("Open MIA preferences",
+                                                QMessageBox.YesRole)
+                ok_button = self.msg.addButton(QMessageBox.Ok)
+                self.msg.exec()
+
+                if self.msg.clickedButton() == yes_button:
+                    self.software_preferences_pop_up()
+                    self.msg.close()
+
+                else:
+                    self.msg.close()
+
+            else:
+            
+                if self.exPopup.exec():
+                    file_name = self.exPopup.selectedFiles()
+                    self.exPopup.get_filename(file_name)
+                    file_name = self.exPopup.relative_path
+                    self.data_browser.data_sent = False
+                    self.switch_project(file_name, self.exPopup.name)
+                    # We switch the project
 
     def open_recent_project(self):
         """Open a recent project."""
@@ -598,7 +671,6 @@ class MainWindow(QMainWindow):
                 entire_path = os.path.abspath(file_name)
                 path, name = os.path.split(entire_path)
                 relative_path = os.path.relpath(file_name)
-
                 self.switch_project(relative_path, name)
                 # We switch the project
 
@@ -639,16 +711,23 @@ class MainWindow(QMainWindow):
             self.pipeline_manager.redo()
 
     def remove_raw_files_useless(self):
-        """Remove the useless raw files of the current project"""
+        """Remove the useless raw files of the current project, close the
+        database connection. The project is not valid any longer after this
+        call."""
+
+        folder = self.project.folder
 
         # If it's unnamed project, we can remove the whole project
         if self.project.isTempProject:
+            # close database, and files
+            self.project.session = None
             self.project.database.__exit__(None, None, None)
-            shutil.rmtree(self.project.folder)
+            self.project.database = None
+            shutil.rmtree(folder)
         else:
             for filename in glob.glob(
                     os.path.join(os.path.abspath(
-                        self.project.folder), 'data', 'raw_data', '*')):
+                        folder), 'data', 'raw_data', '*')):
                 scan = os.path.basename(filename)
                 # The file is removed only if it's not a scan in the project,
                 # and if it's not a logExport
@@ -688,7 +767,12 @@ class MainWindow(QMainWindow):
                         is None and "logExport" not in scan):
                     os.remove(filename)
                     self.project.unsavedModifications = True
+
+            # close database, and files
+            self.project.session = None
             self.project.database.__exit__(None, None, None)
+            self.project.database = None
+        self.project = None
 
     def save(self):
         """Save either the current project or the current pipeline"""
@@ -721,140 +805,184 @@ class MainWindow(QMainWindow):
 
     def save_project_as(self):
         """Open a pop-up to save the current project as"""
-        self.exPopup = PopUpSaveProjectAs()
+        try:
+            self.exPopup = PopUpSaveProjectAs()
 
-        if self.test:
-            self.exPopup.exec = lambda x=0: True
-            self.exPopup.validate = True
-            self.exPopup.new_project.text = lambda x=0: 'something'
-            self.exPopup.return_value()
+        except Exception as e:
+            print('\nsave_project_as: ', e)
+            self.msg = QMessageBox()
+            self.msg.setIcon(QMessageBox.Critical)
+            self.msg.setText("Invalid projects folder path")
+            self.msg.setInformativeText(
+                "The projects folder path in MIA preferences is invalid!")
+            self.msg.setWindowTitle("Error")
+            yes_button = self.msg.addButton("Open MIA preferences",
+                                            QMessageBox.YesRole)
+            ok_button = self.msg.addButton(QMessageBox.Ok)
+            self.msg.exec()
 
-        self.exPopup.exec()
-        if self.exPopup.validate:
-            old_folder_rel = self.project.folder
-            old_folder = os.path.abspath(old_folder_rel)
+            if self.msg.clickedButton() == yes_button:
+                self.software_preferences_pop_up()
+                self.msg.close()
 
-            as_folder_rel = self.exPopup.relative_path
-            as_folder = os.path.abspath(as_folder_rel)
+            else:
+                self.msg.close()
 
-            if as_folder_rel == old_folder_rel :
+        else:
+
+            if self.test:
+                self.exPopup.exec = lambda x=0: True
+                self.exPopup.validate = True
+                self.exPopup.new_project.text = lambda x=0: 'something'
+                self.exPopup.return_value()
+
+            self.exPopup.exec()
+
+            if self.exPopup.validate:
+                old_folder_rel = self.project.folder
+                old_folder = os.path.abspath(old_folder_rel)
+
+                as_folder_rel = self.exPopup.relative_path
+                as_folder = os.path.abspath(as_folder_rel)
+
+                if as_folder_rel == old_folder_rel :
+                    self.project.saveModifications()
+                    return True
+
+                database_path = os.path.join(as_folder, 'database')
+                properties_path = os.path.join(as_folder, 'properties')
+                filters_path = os.path.join(as_folder, 'filters')
+                data_path = os.path.join(as_folder, 'data')
+
+                raw_data_path = os.path.join(data_path, 'raw_data')
+                derived_data_path = os.path.join(data_path, 'derived_data')
+                downloaded_data_path = os.path.join(data_path,
+                                                    'downloaded_data')
+
+                # List of projects updated
+                if not self.test:
+                    self.saved_projects_list = (self.
+                                                saved_projects).addSavedProject(
+                                                                  as_folder_rel)
+                self.update_recent_projects_actions()
+
+                if os.path.exists(as_folder_rel):
+                    #Prevent by a carefull message
+                    #see PopUpSaveProjectAs/return_value
+                    #in admin mode only
+                    shutil.rmtree(as_folder_rel)
+
+                if not os.path.exists(as_folder_rel):
+                    os.makedirs(as_folder_rel)
+                    os.mkdir(data_path)
+                    os.mkdir(raw_data_path)
+                    os.mkdir(derived_data_path)
+                    os.mkdir(downloaded_data_path)
+                    os.mkdir(filters_path)
+
+                # Data files copied
+                if os.path.exists(os.path.join(old_folder_rel, 'data')):
+
+                    for filename in glob.glob(os.path.join(old_folder,
+                                                           'data',
+                                                           'raw_data',
+                                                           '*')):
+                        shutil.copy(filename, os.path.join(data_path,
+                                                           'raw_data'))
+
+                    for filename in glob.glob(os.path.join(old_folder,
+                                                           'data',
+                                                           'derived_data',
+                                                           '*')):
+                        shutil.copy(filename, os.path.join(data_path,
+                                                           'derived_data'))
+
+                    for filename in glob.glob(os.path.join(old_folder,
+                                                           'data',
+                                                           'downloaded_data',
+                                                           '*')):
+                        shutil.copy(filename, os.path.join(data_path,
+                                                           'downloaded_data'))
+
+                if os.path.exists(os.path.join(old_folder_rel, 'filters')):
+                    
+                    for filename in glob.glob(os.path.join(old_folder, 
+                                                           'filters', '*')):
+                        shutil.copy(filename, os.path.join(filters_path))
+
+                # First we register the Database before commiting the last
+                # pending modifications
+                shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
+                            os.path.join(old_folder, 'database',
+                                         'mia_before_commit.db'))
+
+                # We commit the last pending modifications
                 self.project.saveModifications()
-                return True
 
-            database_path = os.path.join(as_folder, 'database')
-            properties_path = os.path.join(as_folder, 'properties')
-            filters_path = os.path.join(as_folder, 'filters')
-            data_path = os.path.join(as_folder, 'data')
+                os.mkdir(properties_path)
+                shutil.copy(os.path.join(old_folder, 'properties',
+                                         'properties.yml'),
+                            properties_path)
 
-            raw_data_path = os.path.join(data_path, 'raw_data')
-            derived_data_path = os.path.join(data_path, 'derived_data')
-            downloaded_data_path = os.path.join(data_path, 'downloaded_data')
+                # We copy the Database with all the modifications commited in
+                # the new project
+                os.mkdir(database_path)
+                shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
+                            database_path)
 
-            # List of projects updated
-            if not self.test:
-                self.saved_projects_list = self.saved_projects.addSavedProject(
-                    as_folder_rel)
-            self.update_recent_projects_actions()
+                reset_old_db = not self.project.isTempProject
 
-            if os.path.exists(as_folder_rel):
-                #Prevent by a carefull message
-                #see PopUpSaveProjectAs/return_value
-                #in admin mode only
-                shutil.rmtree(as_folder_rel)
+                # Removing the old project from the list of
+                # currently opened projects
+                config = Config()
+                opened_projects = config.get_opened_projects()
 
-            if not os.path.exists(as_folder_rel):
-                os.makedirs(as_folder_rel)
-                os.mkdir(data_path)
-                os.mkdir(raw_data_path)
-                os.mkdir(derived_data_path)
-                os.mkdir(downloaded_data_path)
-                os.mkdir(filters_path)
+                if self.project.folder in opened_projects:
+                    opened_projects.remove(self.project.folder)
+                config.set_opened_projects(opened_projects)
+                config.saveConfig()
 
-            # Data files copied
-            if os.path.exists(os.path.join(old_folder_rel, 'data')):
-                for filename in glob.glob(os.path.join(old_folder, 
-                                          'data', 'raw_data', '*')):
-                    shutil.copy(filename, os.path.join(data_path, 'raw_data'))
-                for filename in glob.glob(os.path.join(old_folder, 
-                                                'data', 'derived_data', '*')):
-                    shutil.copy(filename, os.path.join(data_path, 
-                                                       'derived_data'))
-                for filename in glob.glob(os.path.join(old_folder, 
-                                             'data', 'downloaded_data', '*')):
-                    shutil.copy(filename, os.path.join(data_path, 
-                                                       'downloaded_data'))
+                # We remove the useless files from the old project
+                self.remove_raw_files_useless()
 
-            if os.path.exists(os.path.join(old_folder_rel, 'filters')):
-                for filename in glob.glob(os.path.join(old_folder, 
-                                                       'filters', '*')):
-                    shutil.copy(filename, os.path.join(filters_path))
+                if reset_old_db:
+                    # We remove the Database with all the modifications saved in
+                    # the old project
+                    os.remove(os.path.join(old_folder, 'database', 'mia.db'))
 
-            # First we register the Database before commiting the last
-            # pending modifications
-            shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
-                        os.path.join(old_folder, 'database', 
-                                                 'mia_before_commit.db'))
+                    # We reput the Database without the last modifications
+                    # in the old project
+                    shutil.copy(os.path.join(old_folder, 'database',
+                                             'mia_before_commit.db'),
+                                os.path.join(old_folder, 'database', 'mia.db'))
 
-            # We commit the last pending modifications
-            self.project.saveModifications()
+                    os.remove(os.path.join(old_folder, 'database',
+                                                   'mia_before_commit.db'))
 
-            os.mkdir(properties_path)
-            shutil.copy(os.path.join(old_folder, 'properties', 
-                                                  'properties.yml'),
-                        properties_path)
 
-            # We copy the Database with all the modifications commited in
-            # the new project
-            os.mkdir(database_path)
-            shutil.copy(os.path.join(old_folder, 'database', 'mia.db'),
-                        database_path)
+                # project updated everywhere
+                self.project = Project(as_folder_rel, False)
+                self.project.setName(os.path.basename(as_folder_rel))
+                self.project.setDate(datetime.now().strftime('%d/%m/%Y '
+                                                             '%H:%M:%S'))
+                self.project.saveModifications()
 
-            # We remove the Database with all the modifications saved in
-            # the old project
-            os.remove(os.path.join(old_folder, 'database', 'mia.db'))
+                self.update_project(as_folder_rel, call_update_table=False)
+                # project updated everywhere
 
-            # We reput the Database without the last modifications
-            # in the old project
-            shutil.copy(os.path.join(old_folder, 'database',
-                                                 'mia_before_commit.db'),
-                        os.path.join(old_folder, 'database', 'mia.db'))
-
-            os.remove(os.path.join(old_folder, 'database',
-                                               'mia_before_commit.db'))
-
-            self.remove_raw_files_useless()
-            # We remove the useless files from the old project
-
-            # Removing the old project from the list of
-            # currently opened projects
-            config = Config()
-            opened_projects = config.get_opened_projects()
-            if old_folder_rel in opened_projects:
-                opened_projects.remove(old_folder_rel)
-            config.set_opened_projects(opened_projects)
-            config.saveConfig()
-
-            # project updated everywhere
-            self.project = Project(as_folder_rel, False)
-            self.project.setName(os.path.basename(as_folder_rel))
-            self.project.setDate(datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
-            self.project.saveModifications()
-
-            self.update_project(as_folder_rel, call_update_table=False)
-            # project updated everywhere
-
-            # If some files have been set in the pipeline editors,
-            # display a warning message
-            if self.pipeline_manager.pipelineEditorTabs.has_pipeline_nodes():
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setText("This action moves the current database. "
-                            "All pipelines will need to be initialized "
-                            "again before they can run.")
-                msg.setWindowTitle("Warning")
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.buttonClicked.connect(msg.close)
-                msg.exec()
+                # If some files have been set in the pipeline editors,
+                # display a warning message
+                if (self.pipeline_manager.
+                                       pipelineEditorTabs).has_pipeline_nodes():
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setText("This action moves the current database. "
+                                "All pipelines will need to be initialized "
+                                "again before they can run.")
+                    msg.setWindowTitle("Warning")
+                    msg.setStandardButtons(QMessageBox.Ok)
+                    msg.buttonClicked.connect(msg.close)
+                    msg.exec()
 
     def saveChoice(self):
         """Check if the project needs to be 'saved as' or just 'saved'."""
@@ -906,23 +1034,28 @@ class MainWindow(QMainWindow):
 
             # If the file exists
             if os.path.exists(os.path.join(file_path)):
+
                 # If it is a MIA project
-                if os.path.exists(os.path.join(
-                        file_path, "properties", "properties.yml")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "database", "mia.db")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "raw_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "derived_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "data", "downloaded_data")) \
-                    and os.path.exists(os.path.join(
-                        file_path, "filters")):
+                if (os.path.exists(os.path.join(file_path,
+                                               "properties",
+                                               "properties.yml")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "database",
+                                                       "mia.db")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "raw_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "derived_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "data",
+                                                       "downloaded_data")) and
+                           os.path.exists(os.path.join(file_path,
+                                                       "filters"))):
 
                     # We check if the name of the project directory is the
                     # same in its properties
-
                     with open(os.path.join(file_path, "properties",
                                            "properties.yml"), 'r+') as stream:
 
@@ -941,9 +1074,11 @@ class MainWindow(QMainWindow):
                             yaml.dump(properties, stream,
                                       default_flow_style=False,
                                       allow_unicode=True)
+
                     # We check for invalid scans in the project
                     try:
                         temp_database = Project(file_path, False)
+
                     except IOError:
                         msg = QMessageBox()
                         msg.setIcon(QMessageBox.Warning)
@@ -957,6 +1092,30 @@ class MainWindow(QMainWindow):
                         msg.buttonClicked.connect(msg.close)
                         msg.exec()
                         return False
+
+                    # We check for valid version of the project
+                    if not (temp_database.
+                            session).get_fields_names(COLLECTION_CURRENT):
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Warning)
+                        msg.setText(
+                            "The project cannot be read by Mia. Please check "
+                            "if the version of the project is compatible with "
+                            "the version of the running mia...")
+                        msg.setWindowTitle("Warning")
+                        msg.setStandardButtons(QMessageBox.Ok)
+                        msg.buttonClicked.connect(msg.close)
+                        msg.exec()
+                        config = Config()
+                        opened_projects = config.get_opened_projects()
+
+                        if file_path in opened_projects:
+                            opened_projects.remove(file_path)
+                            config.set_opened_projects(opened_projects)
+                            config.saveConfig()
+
+                        return False
+
                     problem_list = data_loader.verify_scans(temp_database)
 
                     # Message if invalid files
@@ -975,10 +1134,6 @@ class MainWindow(QMainWindow):
                         msg.buttonClicked.connect(msg.close)
                         msg.exec()
 
-                    self.project.session.unsave_modifications()
-                    self.remove_raw_files_useless()
-                    # We remove the useless files from the old project
-
                     # project removed from the opened projects list
                     config = Config()
                     opened_projects = config.get_opened_projects()
@@ -986,6 +1141,10 @@ class MainWindow(QMainWindow):
                         opened_projects.remove(self.project.folder)
                     config.set_opened_projects(opened_projects)
                     config.saveConfig()
+
+                    # We remove the useless files from the old project
+                    self.remove_raw_files_useless()
+
                     self.project = temp_database  # New Database
 
                     self.update_project(file_path)
