@@ -6,8 +6,8 @@ import subprocess
 import sys
 
 # Current version
-version_major = 1
-version_minor = 4
+version_major = 2
+version_minor = 0
 version_micro = 0
 version_extra = "dev" # leave empty for release
 
@@ -101,11 +101,11 @@ REQUIRES = [
     'jinja2 == 2.8.1',
     'lark-parser >= 0.7.0',
     'matplotlib',
-    'mia-processes >= 1.3.0',
+    'mia-processes >= 2.0.0',
     'nibabel',
     'nipype',
     'pillow',
-    'populse-db',
+    'populse-db >= 2.0.0',
     'pyqt5 == 5.14.0',
     'python-dateutil',
     'pyyaml',
