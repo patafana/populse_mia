@@ -2271,8 +2271,10 @@ class PipelineManagerTab(QWidget):
         self.init_pipeline_action.setDisabled(False)
 
         c_e = self.pipelineEditorTabs.get_current_editor()
-        pipeline = c_e.scene.pipeline
-        has_iteration = ('iteration' in pipeline.nodes)
+        pipeline = self.pipelineEditorTabs.get_current_pipeline()
+        has_iteration = False
+        if pipeline and hasattr(pipeline, 'nodes'):
+            has_iteration = ('iteration' in pipeline.nodes)
 
         if self.iterationTable.check_box_iterate.isChecked():
             if not has_iteration:
