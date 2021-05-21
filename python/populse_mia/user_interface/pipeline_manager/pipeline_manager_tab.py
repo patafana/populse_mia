@@ -464,7 +464,9 @@ class PipelineManagerTab(QWidget):
         # If the file name is already in the database,
         # no exception is raised
         # but the user is warned
+        already_in_db = False
         if self.project.session.get_document(COLLECTION_CURRENT, p_value):
+            already_in_db = True
             print("Path {0} already in database.".format(p_value))
         else:
             self.project.session.add_document(COLLECTION_CURRENT, p_value)
@@ -621,7 +623,10 @@ class PipelineManagerTab(QWidget):
                     inheritance_dict[old_value] = value
                     all_cvalues = {param: all_cvalues[param]}
                     all_ivalues = {param: all_ivalues[param]}
-                else:
+                elif not attributes and not already_in_db:
+                    # (if there are attrbutes from completion, use them
+                    # without asking)
+                    print('no attributes for:', node_name, plug_name, full_name, p_value)
                     pop_up = PopUpInheritanceDict(
                       parent_files, full_name, plug_name,
                       self.iterationTable.check_box_iterate.isChecked())
