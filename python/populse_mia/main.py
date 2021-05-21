@@ -251,6 +251,7 @@ in a recursive way.
             - add_package
 
     """
+    _already_loaded = set()
 
     def __init__(self):
         """Initialise the packages instance attribute."""
@@ -291,6 +292,11 @@ subpackages/modules, to construct the mia's pipeline library.
                     # checking each class in the package
                     if inspect.isclass(v):
 
+                        if v in self._already_loaded:
+                            continue
+
+                        self._already_loaded.add(v)
+
                         try:
                             try:
                                 get_process_instance(
@@ -330,6 +336,8 @@ subpackages/modules, to construct the mia's pipeline library.
 
                 if path:
                     for _, modname, ispkg in pkgutil.iter_modules(path):
+                        if modname == '__main__':
+                            continue  # skip main
 
                         print('\nExploring subpackages of {0}: {1} ...'
                               .format(module_name,
@@ -337,7 +345,7 @@ subpackages/modules, to construct the mia's pipeline library.
                         self.add_package(str(module_name + '.' + modname),
                                         class_name)
 
-            except ImportError as e:
+            except Exception as e:
                 print('\nWhen attempting to add a package and its modules to '
                       'the package tree, the following exception was caught:')
                 print('{0}'.format(e))
@@ -1000,9 +1008,11 @@ def verify_processes():
              and ('Packages' not in proc_content)) or
             ((isinstance(proc_content, dict))
              and ('Versions' not in proc_content))):
-        pack2install = ['nipype.interfaces', 'mia_processes', 'capsul']
+        pack2install = ['nipype.interfaces', 'mia_processes',
+                        'capsul.pipeline.custom_nodes']
         old_nipypeVer = None
         old_miaProcVer = None
+        old_capsulVer = None
 
     else:
 
