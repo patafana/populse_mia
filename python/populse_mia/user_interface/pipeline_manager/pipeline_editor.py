@@ -1847,7 +1847,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         pipeline = self.get_current_pipeline()
         if not pipeline or not hasattr(pipeline, 'nodes'):
             self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.setCheckState(Qt.Qt.UnChecked)
+                .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
         if 'iteration' in pipeline.nodes:
             self.main_window.pipeline_manager.iterationTable \
                 .check_box_iterate.setCheckState(Qt.Qt.Checked)
