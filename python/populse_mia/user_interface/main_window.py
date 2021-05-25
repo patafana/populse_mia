@@ -714,7 +714,6 @@ class MainWindow(QMainWindow):
         """Remove the useless raw files of the current project, close the
         database connection. The project is not valid any longer after this
         call."""
-
         folder = self.project.folder
 
         # If it's unnamed project, we can remove the whole project
@@ -724,7 +723,9 @@ class MainWindow(QMainWindow):
             self.project.database.__exit__(None, None, None)
             self.project.database = None
             shutil.rmtree(folder)
+
         else:
+
             for filename in glob.glob(
                     os.path.join(os.path.abspath(
                         folder), 'data', 'raw_data', '*')):
@@ -735,15 +736,22 @@ class MainWindow(QMainWindow):
                 # data folder
                 file_name, file_extension = os.path.splitext(scan)
                 file_in_database = False
+
                 for database_scan in self.project.session.get_documents_names(
                         COLLECTION_CURRENT):
+
                     if file_name in database_scan:
                         file_in_database = True
+
                 if "logExport" in scan:
                     file_in_database = True
-                if not file_in_database:
-                    os.rename(filename, filename.replace("raw_data",
-                                                         "derived_data"))
+
+                #I don't understand why files from raw_data are automatically
+                #transferred to derived_data. I comment on this feature in the
+                #next 3 lines. We can uncomment if this action makes sense ...   
+                #if not file_in_database:
+                #    os.rename(filename, filename.replace("raw_data",
+                #                                         "derived_data"))
             # for filename in glob.glob(
             #         os.path.join(os.path.relpath(
             #             self.project.folder), 'data', 'derived_data', '*')):
@@ -759,19 +767,25 @@ class MainWindow(QMainWindow):
                     os.path.abspath(self.project.folder), 'data',
                     'downloaded_data', '*')):
                 scan = os.path.basename(filename)
+
                 # The file is removed only if it's not a scan in the project,
                 # and if it's not a logExport
                 if (self.project.session.get_document(
                         COLLECTION_CURRENT, os.path.join(
                             "data", "downloaded_data", scan))
                         is None and "logExport" not in scan):
-                    os.remove(filename)
+                    #I don't understand why files in downloaded_data are
+                    #automatically deleted. I comment on this feature in the
+                    #following line. We can uncomment if this action
+                    #makes sense...
+                    #os.remove(filename)
                     self.project.unsavedModifications = True
 
             # close database, and files
             self.project.session = None
             self.project.database.__exit__(None, None, None)
             self.project.database = None
+
         self.project = None
 
     def save(self):
