@@ -251,7 +251,17 @@ in a recursive way.
             - add_package
 
     """
-    _already_loaded = set()
+    _already_loaded = set([
+        # these classes should not appear in available processes
+        'mia_processes.process_matlab.ProcessMatlab',
+        'populse_mia.user_interface.pipeline_manager.process_mia.ProcessMIA',
+        'capsul.process.process.Process',
+        'capsul.process.process.NipypeProcess',
+        'capsul.process.process.FileCopyProcess',
+        'capsul.pipeline.pipeline_nodes.ProcessNode',
+        'capsul.process.pipeline_nodes.PipelineNode',
+        'capsul.process.pipeline_nodes.Node',
+    ])
 
     def __init__(self):
         """Initialise the packages instance attribute."""
@@ -274,13 +284,16 @@ subpackages/modules, to construct the mia's pipeline library.
 
         """
 
-        if module_name:
+        # (filter out test modules)
+        if module_name and 'test' not in module_name.split('.') \
+                and 'tests' not in module_name.split('.'):
 
             # reloading the package
             if module_name in sys.modules.keys():
                 del sys.modules[module_name]
 
             try:
+
                 __import__(module_name)
                 pkg = sys.modules[module_name]
 
@@ -292,10 +305,19 @@ subpackages/modules, to construct the mia's pipeline library.
                     # checking each class in the package
                     if inspect.isclass(v):
 
-                        if v in self._already_loaded:
+                        if v in PackagesInstall._already_loaded:
+                            continue
+                        if hasattr(v, '__module__'):
+                            vname = '%s.%s' % (v.__module__, v.__name__)
+                        elif hashattr(v, '__package__'):
+                            vname = '%s.%s' % (v.__package__, v.__name__)
+                        else:
+                            print('no module nor package for', v)
+                            vname = v.__name__
+                        if vname in PackagesInstall._already_loaded:
                             continue
 
-                        self._already_loaded.add(v)
+                        PackagesInstall._already_loaded.add(vname)
 
                         try:
                             try:
@@ -837,6 +859,7 @@ def verify_processes():
     # check if nipype and mia_processes are available on the station
     # if not available inform the user to install them
     print('\nChecking the installed versions of nipype and mia_processes ...')
+    print('processes config file:', proc_config)
     pkg_error = []
 
     try:
@@ -1009,7 +1032,7 @@ def verify_processes():
             ((isinstance(proc_content, dict))
              and ('Versions' not in proc_content))):
         pack2install = ['nipype.interfaces', 'mia_processes',
-                        'capsul.pipeline.custom_nodes']
+                        'capsul.pipeline']
         old_nipypeVer = None
         old_miaProcVer = None
         old_capsulVer = None
@@ -1099,7 +1122,7 @@ def verify_processes():
             ('Packages' in proc_content) and
             ('capsul' not in proc_content['Packages'])):
             old_capsulVer = None
-            pack2install.append('capsul.pipeline.custom_nodes')
+            pack2install.append('capsul.pipeline')
 
             if ((isinstance(proc_content, dict)) and
                 ('Versions' in proc_content) and
@@ -1118,7 +1141,7 @@ def verify_processes():
                     and ('capsul' in proc_content['Versions'])
                     and (proc_content['Versions']['capsul'] is None))):
                 old_capsulVer = None
-                pack2install.append('capsul.pipeline.custom_nodes')
+                pack2install.append('capsul.pipeline')
                 print("\nThe process_config.yml file seems to be corrupted! "
                       "Let's try to fix it by installing the capsul "
                       "processes library again in mia ...")
@@ -1128,7 +1151,7 @@ def verify_processes():
                   ('capsul' in proc_content['Versions']) and
                   (proc_content['Versions']['capsul'] != capsulVer)):
                  old_capsulVer = proc_content['Versions']['capsul']
-                 pack2install.append('capsul.pipeline.custom_nodes')
+                 pack2install.append('capsul.pipeline')
 
     final_pckgs = dict()          # final_pckgs: the final dic of dic with the
     final_pckgs["Packages"] = {}  # informations about the installed packages,
