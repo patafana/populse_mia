@@ -798,12 +798,13 @@ class PipelineManagerTab(QWidget):
         inputs = pipeline.get_inputs().keys()
         outputs = pipeline.get_outputs().keys()
         params = (inputs, outputs)
-        param_btns = [[], []]
+        param_btns = [[], []]  # inputs, outputs
         forbidden = set(['nodes_activation', 'selection_changed',
                           'pipeline_steps', 'visible_groups'])
 
         for i in range(2):
-            for p, plug in enumerate(params[i]):
+            p = 0
+            for plug in params[i]:
                 if plug in forbidden:
                     continue
                 trait = pipeline.trait(plug)
@@ -828,6 +829,7 @@ class PipelineManagerTab(QWidget):
                 param_lay.addWidget(Qt.QLabel(plug), p+1, c)
                 param_btns[i].append([plug, it_btn, db_btn])
                 it_btn.setChecked(True)
+                p += 1
         param_lay.setRowStretch(max(len(inputs), len(outputs)) - 1, 1)
 
         res = dialog.exec_()
@@ -937,7 +939,7 @@ class PipelineManagerTab(QWidget):
             # cannot be exported. A link as to be added between database_scans
             # and the input of the filter.
             if 'database_scans' in it_pipeline.user_traits():
-                in_pipeline.add_link('database_scans->%s.input' %node_name)
+                it_pipeline.add_link('database_scans->%s.input' %node_name)
             else:
                 old_traits = list(it_pipeline.user_traits().keys())
                 it_pipeline.export_parameter(
