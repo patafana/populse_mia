@@ -8,7 +8,8 @@ from __future__ import absolute_import
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
-from anatomist.simpleviewer.anasimpleviewer import AnaSimpleViewer
+from populse_mia.user_interface.data_viewer.anasimpleviewer2 import AnaSimpleViewer
+from populse_mia.user_interface.data_viewer import resources
 from populse_mia.user_interface.data_browser.data_browser \
     import TableDataBrowser
 from populse_mia.data_manager.project import TAG_FILENAME, COLLECTION_CURRENT
@@ -30,11 +31,13 @@ class MiaViewer(Qt.QWidget, DataViewer):
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
         awidget = self.anaviewer.awidget
-        toolbar = findChild(awidget, 'toolBar')
-        open_action = findChild(awidget, 'fileOpenAction')
-        db_action = Qt.QAction(open_action.icon(), 'filter', awidget)
-        toolbar.insertAction(open_action, db_action)
-        db_action.triggered.connect(self.filter_documents)
+
+        #Filter action Icon (find images from the browser)
+        filter_action = findChild(awidget, 'filterAction')
+        filter_action.triggered.connect(self.filter_documents)
+        #Filter action in file menubar (same action)
+        filter_action2 = findChild(awidget, 'filterAction2')
+        filter_action2.triggered.connect(self.filter_documents)
 
         layout = Qt.QVBoxLayout()
         self.setLayout(layout)
@@ -104,7 +107,3 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                                      value))
                 result_names.append(value)
             self.display_files(result_names)
-
-
-
-
