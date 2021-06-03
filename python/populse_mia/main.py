@@ -35,6 +35,7 @@ from packaging import version
 
 # PyQt5 imports
 from PyQt5.QtCore import QDir, QLockFile, Qt
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QApplication, QDialog, QPushButton, QLabel,
                              QFileDialog, QVBoxLayout, QHBoxLayout, QLineEdit)
 
@@ -455,6 +456,10 @@ def launch_mia():
         return deleted_projects
 
     global main_window
+
+    # useful for WebEngine
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
+
     app = QApplication(sys.argv)
     QApplication.setOverrideCursor(Qt.WaitCursor)
     sys.excepthook = _my_excepthook
