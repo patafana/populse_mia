@@ -1586,7 +1586,7 @@ class PipelineManagerTab(QWidget):
                 node_name = to_redo[1]
                 class_process = to_redo[2]
                 links = to_redo[3]
-                c_e.add_process(
+                c_e.add_named_process(
                     class_process, node_name, from_redo=True, links=links)
 
             elif action == "add_process":
@@ -1934,7 +1934,7 @@ class PipelineManagerTab(QWidget):
                 node_name = to_undo[1]
                 class_name = to_undo[2]
                 links = to_undo[3]
-                c_e.add_process(
+                c_e.add_named_process(
                     class_name, node_name, from_undo=True, links=links)
 
             elif action == "export_plug":
