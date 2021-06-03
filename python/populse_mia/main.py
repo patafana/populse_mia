@@ -259,8 +259,8 @@ in a recursive way.
         'capsul.process.process.NipypeProcess',
         'capsul.process.process.FileCopyProcess',
         'capsul.pipeline.pipeline_nodes.ProcessNode',
-        'capsul.process.pipeline_nodes.PipelineNode',
-        'capsul.process.pipeline_nodes.Node',
+        'capsul.pipeline.pipeline_nodes.PipelineNode',
+        'capsul.pipeline.pipeline_nodes.Node',
     ])
 
     def __init__(self):
