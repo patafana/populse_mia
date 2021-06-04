@@ -862,6 +862,11 @@ class PipelineManagerTab(QWidget):
             return  # abort
         iterated_plugs, database_plugs = iterated_plugs
 
+        # if the pipeline is an unconnected inner node, fix it
+        if pipeline.parent_pipeline:
+            pipeline.parent_pipeline = None
+            pipeline.update_nodes_and_plugs_activation()
+
         # input_filer node outputs a single list. Some processes (before
         # iteration) already take a list as input, which will end up with a
         # double list (list of list) in the iteration pipeline. To overcome
