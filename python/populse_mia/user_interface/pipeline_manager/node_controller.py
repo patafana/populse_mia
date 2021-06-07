@@ -320,8 +320,6 @@ class FilterWidget(QWidget):
                 fields.addItem("All visualized tags")
 
 
-# NodeController class is no longer used in V2
-'''
 class NodeController(QWidget):
     """
     Allow to change the input and output values of a pipeline node
@@ -747,7 +745,7 @@ class NodeController(QWidget):
             res = []
 
         self.update_plug_value("in", plug_name, pipeline, value_type, res)
-'''
+
 
 # FIXME temporary: another implementation of NodeController using Capsul
 # AttributedProcessWidget widget

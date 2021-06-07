@@ -1856,11 +1856,23 @@ class PopUpPreferences(QDialog):
         h_box_user_mode.addWidget(self.user_mode_label)
         h_box_user_mode.addStretch(1)
 
+        self.control_checkbox = QCheckBox('', self)
+        self.control_label = QLabel("Version 1 controller")
+
+        if config.isControlV1() == True:
+            self.control_checkbox.setChecked(1)
+
+        h_box_control_label = QtWidgets.QHBoxLayout()
+        h_box_control_label.addWidget(self.control_checkbox)
+        h_box_control_label.addWidget(self.control_label)
+        h_box_control_label.addStretch(1)
+
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
         v_box_global.addWidget(self.change_psswd)
         v_box_global.addWidget(self.edit_config)
+        v_box_global.addLayout(h_box_control_label)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2514,6 +2526,13 @@ class PopUpPreferences(QDialog):
             config.setAutoSave(True)
         else:
             config.setAutoSave(False)
+
+        #Version 1 controller
+        if self.control_checkbox.isChecked():
+            config.setControlV1(True)
+
+        else:
+            config.setControlV1(False)
 
         # Projects folder
         projects_folder = self.projects_save_path_line_edit.text()

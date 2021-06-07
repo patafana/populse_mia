@@ -33,7 +33,7 @@ from populse_mia.software_properties import Config
 from populse_mia.user_interface.pipeline_manager.iteration_table import (
                                                                  IterationTable)
 from populse_mia.user_interface.pipeline_manager.node_controller import (
-                                           CapsulNodeController) #, NodeController)
+                                           CapsulNodeController, NodeController)
 from populse_mia.user_interface.pipeline_manager.pipeline_editor import (
                                                              PipelineEditorTabs)
 from populse_mia.user_interface.pipeline_manager.process_library import (
@@ -85,10 +85,6 @@ from traits.api import TraitListObject, Undefined
 from traits.trait_errors import TraitError
 import traits.api as traits
 import functools
-
-
-# FIXME hack
-NodeController = CapsulNodeController
 
 
 class PipelineManagerTab(QWidget):
@@ -156,6 +152,12 @@ class PipelineManagerTab(QWidget):
 
         config = Config()
 
+        if not config.isControlV1():
+            Node_Controller = CapsulNodeController
+
+        else:
+            Node_Controller = NodeController
+        
         # Necessary for using MIA bricks
         ProcessMIA.project = project
         self.project = project
@@ -200,7 +202,7 @@ class PipelineManagerTab(QWidget):
             self.displayNodeParameters)
         self.pipelineEditorTabs.pipeline_saved.connect(
             self.updateProcessLibrary)
-        self.nodeController = NodeController(
+        self.nodeController = Node_Controller(
             self.project, self.scan_list, self, self.main_window)
         self.nodeController.visibles_tags = \
             self.project.session.get_shown_tags()
@@ -1057,6 +1059,18 @@ class PipelineManagerTab(QWidget):
         :return:
         """
 
+        config = Config()
+
+        if not config.isControlV1():
+            Node_Controller = CapsulNodeController
+
+        else:
+            Node_Controller = NodeController
+            
+        self.nodeController = Node_Controller(
+            self.project, self.scan_list, self, self.main_window)
+        self.nodeController.visibles_tags = \
+            self.project.session.get_shown_tags()
         self.nodeController.display_parameters(
             node_name, process,
             self.pipelineEditorTabs.get_current_pipeline())

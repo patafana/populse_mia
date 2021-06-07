@@ -146,11 +146,14 @@ class Config:
         - getPathToProjectsDBFile: returns the already-saved projects's path
           (currently commented)
         - isAutoSave: checks if auto-save mode is activated
+        - isControlV1: checks if the selected display of the controller is of 
+          V1 type
         - loadConfig: reads the config in the config.yml file
         - saveConfig: saves the config to the config.yml file
         - set_admin_hash: set the password hash
         - setAutoSave: sets the auto-save mode
         - setBackgroundColor: sets the background color
+        - setControlV1: Set controller display mode (True if V1)
         - set_capsul_config: set CAPSUL configuration dict into MIA config
         - setChainCursors: set the "chain cursors" checkbox of the mini viewer
         - set_mainwindow_maximized: set the maximized (fullscreen) flag
@@ -710,8 +713,15 @@ class Config:
         :return: boolean
 
         """
-        # used only in tests and when the background/text color is changed
         return self.config.get("auto_save", False)
+
+    def isControlV1(self):
+        """Get if the display of the controller is of V1 type.
+
+        :return: boolean
+
+        """
+        return self.config.get("control_V1", False)
 
     def loadConfig(self):
         """Read the config in the config.yml file.
@@ -1001,6 +1011,15 @@ class Config:
         :param: chain_cursors: Boolean
         """
         self.config["chain_cursors"] = chain_cursors
+        # Then save the modification
+        self.saveConfig()
+
+    def setControlV1(self, controlV1):
+        """Set controller display mode (True if V1).
+
+        :param: controlV1: boolean
+        """
+        self.config["control_V1"] = controlV1
         # Then save the modification
         self.saveConfig()
 
