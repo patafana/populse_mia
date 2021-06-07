@@ -5,6 +5,7 @@ MIA data viewer implementation based on `Anatomist <http://brainvisa.info/anatom
 
 from __future__ import print_function
 from __future__ import absolute_import
+import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
@@ -39,6 +40,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         filter_action2 = findChild(awidget, 'filterAction2')
         filter_action2.triggered.connect(self.filter_documents)
 
+
         layout = Qt.QVBoxLayout()
         self.setLayout(layout)
         self.anaviewer.awidget.setSizePolicy(Qt.QSizePolicy.Expanding,
@@ -48,6 +50,19 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.project = None
         self.documents = []
         self.displayed = []
+
+    def setGridLayout(self):
+        a = ana.Anatomist('-b')
+        #a.deleteObjects(self.awindows)
+        print('length displayed', len(self.displayed))
+        print('2', self.displayed)
+        print('3', len(self.documents))
+        print('4', self.documents)
+        #a.removeObjects(self.displayed, self.anaviewer.awidget, False)
+        self.anaviewer.loadObject(self.displayed[0], grid=True)
+        #for i in range(len(self.awindows)):
+            #self.viewgridlay.removeWidget(self.awindows[i].getInternalRep())
+        #self.anaviewer.createTotalWindow(["Coronal", "Axial", "Sagittal", "3D"], True)
 
     def display_files(self, files):
         self.displayed += files
@@ -78,7 +93,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         layout.addWidget(table_data)
         hlay = Qt.QHBoxLayout()
         layout.addLayout(hlay)
-        ok = Qt.QPushButton('Display')
+        ok = Qt.QPushButton('Import')
         hlay.addWidget(ok)
         ok.clicked.connect(dialog.accept)
         ok.setDefault(True)

@@ -179,6 +179,7 @@ class AnaSimpleViewer(Qt.QObject):
             self.enableVolumeRendering)
         findChild(awin, 'viewOpen_Anatomist_main_window').triggered.connect(
             self.open_anatomist_main_window)
+        findChild(awin, 'actionprint_view').triggered.connect(self.deleteTotalWindow)
         # manually entered coords
         le = findChild(awin, 'coordXEdit')
         le.setValidator(Qt.QDoubleValidator(le))
@@ -213,15 +214,18 @@ class AnaSimpleViewer(Qt.QObject):
         # called when the user clicks on a window
         a.onCursorNotifier.add(self.clickHandler)
 
-        # vieww: parent widget for anatomist windows
-        vieww = findChild(awin, 'windows')
-        self.viewgridlay = Qt.QGridLayout(vieww)
+        # viewWindow: parent widget for anatomist windows
+        self.viewWindow = findChild(awin, 'windows')
+
+        self.viewgridlay = Qt.QHBoxLayout(self.viewWindow)
         self.fdialog = None
         self.awindows = []
         self.aobjects = []
         self.fusion2d = []
         self.volrender = None
         self.control_3d_type = 'LeftSimple3DControl'
+        self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
+
 
     def init_global_handlers(self):
         '''
@@ -259,6 +263,8 @@ class AnaSimpleViewer(Qt.QObject):
             a.setGraphParams(label_attribute='label')
 
             AnaSimpleViewer._global_handlers_initialized = True
+
+    def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
     def clickHandler(self, eventName, params):
         '''Callback for linked cursor. In volume rendering mode, it will sync
@@ -346,22 +352,28 @@ class AnaSimpleViewer(Qt.QObject):
         w = a.createWindow(wintype, no_decoration=True, options={'hidden': 1})
         w.setAcceptDrops(False)
         # insert in grid layout
+
         x = 0
         y = 0
+        i = 0
         if not hasattr(self, '_winlayouts'):
             self._winlayouts = [[0, 0], [0, 0]]
         else:
             freeslot = False
             for y in (0, 1):
                 for x in (0, 1):
+                    i = i+1
                     if not self._winlayouts[x][y]:
                         freeslot = True
                         break
                 if freeslot:
                     break
+
         # in Qt4, the widget must not have a parent before calling
         # layout.addWidget
-        self.viewgridlay.addWidget(w.getInternalRep(), x, y)
+        #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
+        self.viewgridlay.addWidget(w.getInternalRep()) #(vertical alignment)
+        #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
         self._winlayouts[x][y] = 1
         # keep it in anasimpleviewer list of windows
         self.awindows.append(w)
@@ -375,6 +387,7 @@ class AnaSimpleViewer(Qt.QObject):
             # (there should be a better way to do so...)
             if wintype == 'Axial':
                 w.muteAxial()
+                print('MUTEAXIAL', w.muteAxial)
             elif wintype == 'Coronal':
                 w.muteCoronal()
             elif wintype == 'Sagittal':
@@ -383,7 +396,19 @@ class AnaSimpleViewer(Qt.QObject):
                 w.muteOblique()
         # set a black background
         a.execute('WindowConfig', windows=[w],
-                  light={'background': [0., 0., 0., 1.]})
+                  light={'background': [0., 0., 0., 1.]}, view_size=(500,600))
+
+
+    def createTotalWindow(self, views):
+        counter=0
+        for i in views:
+            self.createWindow(str(i))
+            self.viewButtons[counter].setChecked(True)
+            counter +=1
+
+    def deleteTotalWindow (self):
+        a = ana.Anatomist('-b')
+        self.awindows.clear()
 
     def loadObject(self, fname):
         '''Load an object and display it in all anasimpleviewer windows
@@ -435,13 +460,16 @@ class AnaSimpleViewer(Qt.QObject):
             return
         # create the 4 windows if they don't exist
         if len(self.awindows) == 0:
+            self.createTotalWindow(["Axial", "Sagittal","Coronal","3D"])
+            '''
             self.createWindow('Coronal')
             self.createWindow('Axial')
             self.createWindow('Sagittal')
-            self.createWindow('3D')
+            '''
+            #self.createWindow('3D')
             # set a cool angle of view for 3D
-            a.execute('Camera', windows=[self.awindows[-1]],
-                      view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
+            #a.execute('Camera', windows=[self.awindows[-1]],
+                      #view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
         # view obj in these views
         self.addObject(obj)
         # set the cursot at the center of the object (actually, overcome a bug

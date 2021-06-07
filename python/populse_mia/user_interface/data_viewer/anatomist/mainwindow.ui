@@ -20,14 +20,23 @@
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
-        <verstretch>5</verstretch>
+        <verstretch>8</verstretch>
        </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>200</height>
+       </size>
       </property>
       <property name="baseSize">
        <size>
         <width>0</width>
         <height>0</height>
        </size>
+      </property>
+      <property name="acceptDrops">
+       <bool>true</bool>
       </property>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
@@ -358,8 +367,8 @@
    </property>
    <property name="iconSize">
     <size>
-     <width>15</width>
-     <height>15</height>
+     <width>23</width>
+     <height>20</height>
     </size>
    </property>
    <attribute name="toolBarArea">
@@ -373,8 +382,10 @@
    <addaction name="editRemoveAction"/>
    <addaction name="editDeleteAction"/>
    <addaction name="actionprint_view"/>
-   <addaction name="actionOneview"/>
-   <addaction name="actionGriddview"/>
+   <addaction name="actionAxial"/>
+   <addaction name="actionSagittal"/>
+   <addaction name="actionCoronal"/>
+   <addaction name="action3D"/>
   </widget>
   <action name="filterAction2">
    <property name="text">
@@ -397,30 +408,6 @@
    </property>
    <property name="text">
     <string>Enable volume rendering</string>
-   </property>
-  </action>
-  <action name="actionGriddview">
-   <property name="icon">
-    <iconset resource="IconResources.qrc">
-     <normaloff>:/visualization.png</normaloff>:/visualization.png</iconset>
-   </property>
-   <property name="text">
-    <string>Griddview</string>
-   </property>
-   <property name="toolTip">
-    <string>Display windows in a grid</string>
-   </property>
-  </action>
-  <action name="actionOneview">
-   <property name="icon">
-    <iconset resource="IconResources.qrc">
-     <normaloff>:/square-of-rounded-corners.png</normaloff>:/square-of-rounded-corners.png</iconset>
-   </property>
-   <property name="text">
-    <string>Oneview</string>
-   </property>
-   <property name="toolTip">
-    <string>Display one window</string>
    </property>
   </action>
   <action name="fileOpenAction">
@@ -503,13 +490,73 @@
   <action name="filterAction">
    <property name="icon">
     <iconset resource="IconResources.qrc">
-     <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+     <normaloff>:/folder.png</normaloff>:/folder.png</iconset>
    </property>
    <property name="text">
     <string>filter</string>
    </property>
    <property name="toolTip">
     <string>filter from Browser</string>
+   </property>
+  </action>
+  <action name="actionAxial">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/RE_ Icons/ax-01.png</normaloff>:/RE_ Icons/ax-01.png</iconset>
+   </property>
+   <property name="text">
+    <string>Axial</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Axial view</string>
+   </property>
+  </action>
+  <action name="actionSagittal">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/RE_ Icons/sag-01.png</normaloff>:/RE_ Icons/sag-01.png</iconset>
+   </property>
+   <property name="text">
+    <string>Sagittal</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Sagittal view</string>
+   </property>
+  </action>
+  <action name="actionCoronal">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/RE_ Icons/coro-01.png</normaloff>:/RE_ Icons/coro-01.png</iconset>
+   </property>
+   <property name="text">
+    <string>Coronal</string>
+   </property>
+   <property name="toolTip">
+    <string>Show coronal view</string>
+   </property>
+  </action>
+  <action name="action3D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/RE_ Icons/dimension-01.png</normaloff>:/RE_ Icons/dimension-01.png</iconset>
+   </property>
+   <property name="text">
+    <string>3D</string>
+   </property>
+   <property name="toolTip">
+    <string>Show view in 3D</string>
    </property>
   </action>
  </widget>

@@ -39,6 +39,10 @@ class DataViewerTab(Qt.QWidget):
         self.viewers_combo.activated.connect(self.viewer_activated)
         lay.addStretch(1)
 
+        self.viewers_combo.addItem('New_viewer')
+        self.viewers_combo.activated.connect(self.viewer_activated)
+        lay.addStretch(1)
+
         self.layout = lay
         self.viewer_name = None
         self.viewer = None
@@ -63,7 +67,9 @@ class DataViewerTab(Qt.QWidget):
         try:
             viewer_module = importlib.import_module(
                 '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
+            #print('HELOOOOOOOOO', viewer_module)
             viewer = viewer_module.MiaViewer()
+            #print("helllo bis ", viewer)
         except ImportError:
             print('viewer %s is not available or not working.' % viewer_name)
             return
@@ -77,8 +83,3 @@ class DataViewerTab(Qt.QWidget):
     def set_documents(self, project, documents):
         if self.viewer:
             self.viewer.set_documents(project, documents)
-
-
-
-
-
