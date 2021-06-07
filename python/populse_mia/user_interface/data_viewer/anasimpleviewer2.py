@@ -179,7 +179,7 @@ class AnaSimpleViewer(Qt.QObject):
             self.enableVolumeRendering)
         findChild(awin, 'viewOpen_Anatomist_main_window').triggered.connect(
             self.open_anatomist_main_window)
-        findChild(awin, 'actionprint_view').triggered.connect(self.deleteTotalWindow)
+        findChild(awin, 'actionprint_view').triggered.connect(self.getViewsToDisplay)
         # manually entered coords
         le = findChild(awin, 'coordXEdit')
         le.setValidator(Qt.QDoubleValidator(le))
@@ -226,6 +226,10 @@ class AnaSimpleViewer(Qt.QObject):
         self.control_3d_type = 'LeftSimple3DControl'
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
 
+        findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
+        findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
+        findChild(awin, 'actionCoronal').triggered.connect(self.newDisplay)
+        findChild(awin, 'action3D').triggered.connect(self.newDisplay)
 
     def init_global_handlers(self):
         '''
@@ -372,11 +376,13 @@ class AnaSimpleViewer(Qt.QObject):
         # in Qt4, the widget must not have a parent before calling
         # layout.addWidget
         #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
-        self.viewgridlay.addWidget(w.getInternalRep()) #(vertical alignment)
+        self.viewgridlay.addWidget(w.getInternalRep())
         #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
         self._winlayouts[x][y] = 1
         # keep it in anasimpleviewer list of windows
         self.awindows.append(w)
+        print('/////////////////////////////////')
+        print(len(self.awindows))
         # set custom control
         if wintype == '3D':
             a.execute('SetControl', windows=[w], control=self.control_3d_type)
@@ -400,15 +406,43 @@ class AnaSimpleViewer(Qt.QObject):
 
 
     def createTotalWindow(self, views):
-        counter=0
         for i in views:
             self.createWindow(str(i))
-            self.viewButtons[counter].setChecked(True)
-            counter +=1
+            if (i=='3D'):
+                # set a cool angle of view for 3D
+                a = ana.Anatomist('-b')
+                a.execute('Camera', windows=[self.awindows[-1]],
+                          view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
+        if (len(views)==4):
+            counter=0
+            for i in views:
+                self.viewButtons[counter].setChecked(True)
+                counter +=1
 
     def deleteTotalWindow (self):
-        a = ana.Anatomist('-b')
         self.awindows.clear()
+        for i in reversed(range(self.viewgridlay.count())):
+            self.viewgridlay.itemAt(i).widget().deleteLater()
+
+    def getViewsToDisplay (self):
+        views = []
+        if self.viewButtons[0].isChecked():
+            views.append('Axial')
+        if self.viewButtons[1].isChecked():
+            views.append('Sagittal')
+        if self.viewButtons[2].isChecked():
+            views.append('Coronal')
+        if self.viewButtons[3].isChecked():
+            views.append('3D')
+        return(views)
+
+    def newDisplay(self):
+        self.deleteTotalWindow()
+        views = self.getViewsToDisplay()
+        self.createTotalWindow(views)
+        self.registerObject(self.aobjects[0], views)
+        #for i in range(len(self.aobjects)):
+        #    self.addObject(self.aobjects[i])
 
     def loadObject(self, fname):
         '''Load an object and display it in all anasimpleviewer windows
@@ -441,7 +475,7 @@ class AnaSimpleViewer(Qt.QObject):
             # set back recursive execution to its previous state
             p.allowExecWhileIdle(False)
 
-    def registerObject(self, obj):
+    def registerObject(self, obj, views=None):
         '''Register an object in anasimpleviewer objects list, and display it
         '''
         a = ana.Anatomist('-b')
@@ -460,16 +494,10 @@ class AnaSimpleViewer(Qt.QObject):
             return
         # create the 4 windows if they don't exist
         if len(self.awindows) == 0:
-            self.createTotalWindow(["Axial", "Sagittal","Coronal","3D"])
-            '''
-            self.createWindow('Coronal')
-            self.createWindow('Axial')
-            self.createWindow('Sagittal')
-            '''
-            #self.createWindow('3D')
-            # set a cool angle of view for 3D
-            #a.execute('Camera', windows=[self.awindows[-1]],
-                      #view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
+            if (views==None):
+                self.createTotalWindow(["Axial", "Sagittal","Coronal","3D"])
+            else:
+                self.createTotalWindow(views)
         # view obj in these views
         self.addObject(obj)
         # set the cursot at the center of the object (actually, overcome a bug
@@ -682,6 +710,9 @@ class AnaSimpleViewer(Qt.QObject):
     def addObject(self, obj):
         '''Display an object in all windows
         '''
+        print("//////////////////////////////")
+        print(obj)
+        print(len(self.awindows))
         a = ana.Anatomist('-b')
         opts = {}
         if obj.objectType == 'VOLUME':
