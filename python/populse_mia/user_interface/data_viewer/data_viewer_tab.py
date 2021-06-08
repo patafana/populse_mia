@@ -35,11 +35,11 @@ class DataViewerTab(Qt.QWidget):
         hlay.addWidget(self.viewers_combo)
         hlay.addStretch(1)
 
-        self.viewers_combo.addItem('Anatomist')
+        self.viewers_combo.addItem('Mia_viewer')
         self.viewers_combo.activated.connect(self.viewer_activated)
         lay.addStretch(1)
 
-        self.viewers_combo.addItem('New_viewer')
+        self.viewers_combo.addItem('Anatomist')
         self.viewers_combo.activated.connect(self.viewer_activated)
         lay.addStretch(1)
 
@@ -57,7 +57,6 @@ class DataViewerTab(Qt.QWidget):
 
     def viewer_activated(self, index):
         viewer_name = self.viewers_combo.itemText(index).lower()
-
         self.activate_viewer(viewer_name)
 
     def activate_viewer(self, viewer_name):
@@ -67,9 +66,7 @@ class DataViewerTab(Qt.QWidget):
         try:
             viewer_module = importlib.import_module(
                 '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
-            #print('HELOOOOOOOOO', viewer_module)
             viewer = viewer_module.MiaViewer()
-            #print("helllo bis ", viewer)
         except ImportError:
             print('viewer %s is not available or not working.' % viewer_name)
             return

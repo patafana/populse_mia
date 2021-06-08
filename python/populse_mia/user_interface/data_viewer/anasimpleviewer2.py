@@ -157,7 +157,7 @@ class AnaSimpleViewer(Qt.QObject):
 
         uifile = 'mainwindow.ui'
         cwd = os.getcwd()
-        mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/anatomist')
+        mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/mia_viewer')
         os.chdir(mainwindowdir)
         awin = loadUi(os.path.join(mainwindowdir, uifile))
         os.chdir(cwd)
@@ -225,6 +225,7 @@ class AnaSimpleViewer(Qt.QObject):
         self.volrender = None
         self.control_3d_type = 'LeftSimple3DControl'
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
+        self.displayedObjects = []
 
         findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
@@ -381,8 +382,6 @@ class AnaSimpleViewer(Qt.QObject):
         self._winlayouts[x][y] = 1
         # keep it in anasimpleviewer list of windows
         self.awindows.append(w)
-        print('/////////////////////////////////')
-        print(len(self.awindows))
         # set custom control
         if wintype == '3D':
             a.execute('SetControl', windows=[w], control=self.control_3d_type)
@@ -421,6 +420,7 @@ class AnaSimpleViewer(Qt.QObject):
 
     def deleteTotalWindow (self):
         self.awindows.clear()
+        self.fusion2d.clear()
         for i in reversed(range(self.viewgridlay.count())):
             self.viewgridlay.itemAt(i).widget().deleteLater()
 
@@ -436,13 +436,77 @@ class AnaSimpleViewer(Qt.QObject):
             views.append('3D')
         return(views)
 
+    def viewReferential (self, object):
+        a = ana.Anatomist('-b')
+        bb = object.boundingbox()
+        position = (aims.Point3df(bb[1][:3]) - bb[0][:3]) / 2.
+        wrefs = [w.getReferential() for w in self.awindows]
+        srefs = set([r.uuid() for r in wrefs])
+        if len(srefs) != 1:
+            # not all windows in the same ref
+            if aims.StandardReferentials.mniTemplateReferentialID() in srefs:
+                wref_id = aims.StandardReferentials.mniTemplateReferentialID()
+                wref = [r for r in wrefs if r.uuid() == wref_id][0]
+            elif aims.StandardReferentials.acPcReferentialID() in srefs:
+                wref = a.centralReferential()
+            elif aims.StandardReferentials.commonScannerBasedReferentialID() \
+                    in srefs:
+                wref_id = \
+                    aims.StandardReferentials.commonScannerBasedReferentialID()
+                wref = [r for r in wrefs if r.uuid() == wref_id][0]
+            else:
+                wref = wrefs[0]
+            for w in self.awindows:
+                w.setReferential(wref)
+        else:
+            wref = wrefs[0]
+
+        t = a.getTransformation(object.getReferential(), wref)
+        if not t and object.getReferential() != wref:
+            # try to find a scanner-based ref and connect it to MNI
+            sbref = [r for r in a.getReferentials()
+                     if r.uuid() == aims.StandardReferentials.
+                     commonScannerBasedReferentialID()]
+            if sbref:
+                sbref = sbref[0]
+                t2 = a.getTransformation(object.getReferential(), sbref)
+                if t2:
+                    a.execute(
+                        'LoadTransformation', origin=sbref,
+                        destination=a.mniTemplateRef,
+                        matrix=[0, 0, 0,
+                                1, 0, 0,
+                                0, 1, 0,
+                                0, 0, 1])
+                else:
+                    # otherwise we will assume the object is in the central
+                    # referential.
+                    a.execute(
+                        'LoadTransformation', origin=object.getReferential(),
+                        destination=a.centralRef,
+                        matrix=[0, 0, 0,
+                                1, 0, 0,
+                                0, 1, 0,
+                                0, 0, 1])
+                t = a.getTransformation(object.getReferential(),
+                                        self.awindows[0].getReferential())
+        if t:
+            position = t.transform(position)
+        a.execute('LinkedCursor', window=self.awindows[0], position=position)
+        for w in self.awindows:
+            w.focusView()
+
     def newDisplay(self):
         self.deleteTotalWindow()
         views = self.getViewsToDisplay()
+        self.getViewsToDisplay()
         self.createTotalWindow(views)
-        self.registerObject(self.aobjects[0], views)
-        #for i in range(len(self.aobjects)):
-        #    self.addObject(self.aobjects[i])
+        #self.addObject(self.aobjects[0])
+        #self.viewReferential(self.aobjects[0])
+        #self.registerObject(self.aobjects[0], views)
+        for i in range(len(self.displayedObjects)):
+            self.addObject(self.displayedObjects[i])
+            self.viewReferential(self.displayedObjects[i])
 
     def loadObject(self, fname):
         '''Load an object and display it in all anasimpleviewer windows
@@ -483,6 +547,7 @@ class AnaSimpleViewer(Qt.QObject):
                             'objectslist').addItem(obj.name)
         # keep it in the global list
         self.aobjects.append(obj)
+        self.displayedObjects.append(obj)
         if obj.objectType == 'VOLUME':
             # volume are checked for possible adequate colormaps
             hints = colormaphints.checkVolume(
@@ -502,62 +567,7 @@ class AnaSimpleViewer(Qt.QObject):
         self.addObject(obj)
         # set the cursot at the center of the object (actually, overcome a bug
         # in anatomist...)
-        position = (aims.Point3df(bb[1][:3]) - bb[0][:3]) / 2.
-        wrefs = [w.getReferential() for w in self.awindows]
-        srefs = set([r.uuid() for r in wrefs])
-        if len(srefs) != 1:
-            # not all windows in the same ref
-            if aims.StandardReferentials.mniTemplateReferentialID() in srefs:
-                wref_id = aims.StandardReferentials.mniTemplateReferentialID()
-                wref = [r for r in wrefs if r.uuid() == wref_id][0]
-            elif aims.StandardReferentials.acPcReferentialID() in srefs:
-                wref = a.centralReferential()
-            elif aims.StandardReferentials.commonScannerBasedReferentialID() \
-                    in srefs:
-                wref_id = \
-                    aims.StandardReferentials.commonScannerBasedReferentialID()
-                wref = [r for r in wrefs if r.uuid() == wref_id][0]
-            else:
-                wref = wrefs[0]
-            for w in self.awindows:
-                w.setReferential(wref)
-        else:
-            wref = wrefs[0]
-
-        t = a.getTransformation(obj.getReferential(), wref)
-        if not t and obj.getReferential() != wref:
-            # try to find a scanner-based ref and connect it to MNI
-            sbref = [r for r in a.getReferentials()
-                     if r.uuid() == aims.StandardReferentials.
-                     commonScannerBasedReferentialID()]
-            if sbref:
-                sbref = sbref[0]
-                t2 = a.getTransformation(obj.getReferential(), sbref)
-                if t2:
-                    a.execute(
-                        'LoadTransformation', origin=sbref,
-                        destination=a.mniTemplateRef,
-                        matrix=[0, 0, 0,
-                                1, 0, 0,
-                                0, 1, 0,
-                                0, 0, 1])
-                else:
-                    # otherwise we will assume the object is in the central
-                    # referential.
-                    a.execute(
-                        'LoadTransformation', origin=obj.getReferential(),
-                        destination=a.centralRef,
-                        matrix=[0, 0, 0,
-                                1, 0, 0,
-                                0, 1, 0,
-                                0, 0, 1])
-                t = a.getTransformation(obj.getReferential(),
-                                        self.awindows[0].getReferential())
-        if t:
-            position = t.transform(position)
-        a.execute('LinkedCursor', window=self.awindows[0], position=position)
-        for w in self.awindows:
-            w.focusView()
+        self.viewReferential(obj)
 
     def _displayVolume(self, obj, opts={}):
         '''Display a volume or a Fusion2D in all windows.
@@ -707,14 +717,22 @@ class AnaSimpleViewer(Qt.QObject):
         a.removeObjects([obj, mesh2d], self.awindows)
         del self.meshes2d[obj.getInternalRep()]
 
+    """
+    def disableButtons(self):
+        print('should be disabledddddddddddddd')
+        items = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').selectedItems()
+        if (str(items[0]) not in self.displayedObjects):
+                Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editRemoveAction').setEnabled(False)
+    """
+
     def addObject(self, obj):
         '''Display an object in all windows
         '''
-        print("//////////////////////////////")
-        print(obj)
-        print(len(self.awindows))
         a = ana.Anatomist('-b')
+        if (obj not in self.displayedObjects):
+            self.displayedObjects.append(obj)
         opts = {}
+        #Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').itemSelectionChanged.connect(self.disableButtons)
         if obj.objectType == 'VOLUME':
             # volumes have a specific function since several volumes have to be
             # fusionned, and a volume rendering may occur
@@ -725,12 +743,14 @@ class AnaSimpleViewer(Qt.QObject):
             return
         elif obj.objectType == 'GRAPH':
             opts['add_graph_nodes'] = 1
+
         a.addObjects(obj, self.awindows, **opts)
 
     def removeObject(self, obj):
         '''Hides an object from views
         '''
         a = ana.Anatomist('-b')
+        self.displayedObjects.remove(obj)
         if obj.objectType == 'VOLUME':
             self.removeVolume(obj)
         elif obj.objectType == 'SURFACE':
@@ -767,6 +787,7 @@ class AnaSimpleViewer(Qt.QObject):
         for o in olist.selectedItems():
             sobjs.append(six.text_type(o.text()).strip('\0'))
         return [o for o in self.aobjects if o.name in sobjs]
+
 
     def editAdd(self):
         '''Display selected objects'''

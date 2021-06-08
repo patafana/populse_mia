@@ -5,12 +5,10 @@ MIA data viewer implementation based on `Anatomist <http://brainvisa.info/anatom
 
 from __future__ import print_function
 from __future__ import absolute_import
-import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
-from populse_mia.user_interface.data_viewer.anasimpleviewer2 import AnaSimpleViewer
-from populse_mia.user_interface.data_viewer import resources
+from anatomist.simpleviewer.anasimpleviewer import AnaSimpleViewer
 from populse_mia.user_interface.data_browser.data_browser \
     import TableDataBrowser
 from populse_mia.data_manager.project import TAG_FILENAME, COLLECTION_CURRENT
@@ -32,14 +30,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
         awidget = self.anaviewer.awidget
-
-        #Filter action Icon (find images from the browser)
-        filter_action = findChild(awidget, 'filterAction')
-        filter_action.triggered.connect(self.filter_documents)
-        #Filter action in file menubar (same action)
-        filter_action2 = findChild(awidget, 'filterAction2')
-        filter_action2.triggered.connect(self.filter_documents)
-
+        toolbar = findChild(awidget, 'toolBar')
+        open_action = findChild(awidget, 'fileOpenAction')
+        db_action = Qt.QAction(open_action.icon(), 'filter', awidget)
+        toolbar.insertAction(open_action, db_action)
+        db_action.triggered.connect(self.filter_documents)
 
         layout = Qt.QVBoxLayout()
         self.setLayout(layout)
@@ -50,19 +45,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.project = None
         self.documents = []
         self.displayed = []
-
-    def setGridLayout(self):
-        a = ana.Anatomist('-b')
-        #a.deleteObjects(self.awindows)
-        print('length displayed', len(self.displayed))
-        print('2', self.displayed)
-        print('3', len(self.documents))
-        print('4', self.documents)
-        #a.removeObjects(self.displayed, self.anaviewer.awidget, False)
-        self.anaviewer.loadObject(self.displayed[0], grid=True)
-        #for i in range(len(self.awindows)):
-            #self.viewgridlay.removeWidget(self.awindows[i].getInternalRep())
-        #self.anaviewer.createTotalWindow(["Coronal", "Axial", "Sagittal", "3D"], True)
 
     def display_files(self, files):
         self.displayed += files
@@ -93,7 +75,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         layout.addWidget(table_data)
         hlay = Qt.QHBoxLayout()
         layout.addLayout(hlay)
-        ok = Qt.QPushButton('Import')
+        ok = Qt.QPushButton('Display')
         hlay.addWidget(ok)
         ok.clicked.connect(dialog.accept)
         ok.setDefault(True)
