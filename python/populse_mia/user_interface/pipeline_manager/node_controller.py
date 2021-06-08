@@ -746,6 +746,13 @@ class NodeController(QWidget):
 
         self.update_plug_value("in", plug_name, pipeline, value_type, res)
 
+    def release_process(self):
+        """
+        remove notification from process
+        """
+        # only implemented in CapsulNodeController
+        pass
+
 
 # FIXME temporary: another implementation of NodeController using Capsul
 # AttributedProcessWidget widget
@@ -783,6 +790,9 @@ class CapsulNodeController(QWidget):
         v_box_final.addLayout(hlayout)
         # this cannot be done in __del__ since the C++ part will be already
         # destroyed by then
+        # However this signal seems never to be emitted, and I don't understand
+        # why. So release_process() has to be callesd manually from the
+        # pipeline manager. Sigh.
         self.destroyed.connect(self.release_process)
 
     def display_parameters(self, node_name, process, pipeline):
@@ -848,7 +858,12 @@ class CapsulNodeController(QWidget):
         """
         remove notification from process
         """
-        self.process.on_trait_change(self.parameters_changed, remove=True)
+        if hasattr(self, 'process'):
+            self.process.on_trait_change(self.parameters_changed, remove=True)
+        try:
+            self.value_changed.disconnect()
+        except TypeError:
+            pass  # it was not connected: OK
 
     def update_parameters(self, process=None):
         """Update the parameters values.

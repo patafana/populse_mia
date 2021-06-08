@@ -1066,7 +1066,13 @@ class PipelineManagerTab(QWidget):
 
         else:
             Node_Controller = NodeController
-            
+
+        # this should be done automatically upon destruction of the former
+        # node controller, however it is not. The destroyed signal never fires.
+        # Moreover the destructor is called later, at an unexpected time, when
+        # the C++ object is already destroyed (and thus cannot be disconnected)
+        if self.nodeController:
+            self.nodeController.release_process()
         self.nodeController = Node_Controller(
             self.project, self.scan_list, self, self.main_window)
         self.nodeController.visibles_tags = \
