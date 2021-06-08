@@ -281,7 +281,7 @@ class MiniViewer(QWidget):
         """
         fieldValue = QLineEdit()
         fieldValue.setEnabled(False)
-        fieldValue.setFixedWidth(50)
+        fieldValue.setFixedWidth(65)
         fieldValue.setAlignment(Qt.AlignCenter)
         fieldValue.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         font = QFont()
