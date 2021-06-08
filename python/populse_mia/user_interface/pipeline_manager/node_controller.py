@@ -781,10 +781,9 @@ class CapsulNodeController(QWidget):
         hlayout.addWidget(label_node_name)
         hlayout.addWidget(self.line_edit_node_name)
         v_box_final.addLayout(hlayout)
-
-    def __del__(self):
-        # remove callback
-        self.release_process()
+        # this cannot be done in __del__ since the C++ part will be already
+        # destroyed by then
+        self.destroyed.connect(self.release_process)
 
     def display_parameters(self, node_name, process, pipeline):
         """Display the parameters of the selected node.
