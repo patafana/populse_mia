@@ -232,6 +232,8 @@ class AnaSimpleViewer(Qt.QObject):
         findChild(awin, 'actionCoronal').triggered.connect(self.newDisplay)
         findChild(awin, 'action3D').triggered.connect(self.newDisplay)
 
+        #Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').itemSelectionChanged.connect(self.disableButtons)
+        findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
     def init_global_handlers(self):
         '''
         Set some global controls / settings in Anatomist application object
@@ -717,13 +719,23 @@ class AnaSimpleViewer(Qt.QObject):
         a.removeObjects([obj, mesh2d], self.awindows)
         del self.meshes2d[obj.getInternalRep()]
 
-    """
+
     def disableButtons(self):
-        print('should be disabledddddddddddddd')
-        items = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').selectedItems()
-        if (str(items[0]) not in self.displayedObjects):
+        displayedObNames = []
+        for i in range (len(self.displayedObjects)):
+            displayedObNames.append(self.displayedObjects[i].name)
+        item = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').selectedItems()
+        #There is always only one selected object
+        if self.displayedObjects == [] or item == []:
+            Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
+        else:
+            if (item[0].text() in displayedObNames):
+                print('TRUE')
+                Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(False)
+                Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editRemoveAction').setEnabled(True)
+            else:
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editRemoveAction').setEnabled(False)
-    """
+                Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
 
     def addObject(self, obj):
         '''Display an object in all windows
@@ -731,8 +743,8 @@ class AnaSimpleViewer(Qt.QObject):
         a = ana.Anatomist('-b')
         if (obj not in self.displayedObjects):
             self.displayedObjects.append(obj)
+        self.disableButtons()
         opts = {}
-        #Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').itemSelectionChanged.connect(self.disableButtons)
         if obj.objectType == 'VOLUME':
             # volumes have a specific function since several volumes have to be
             # fusionned, and a volume rendering may occur
@@ -751,6 +763,7 @@ class AnaSimpleViewer(Qt.QObject):
         '''
         a = ana.Anatomist('-b')
         self.displayedObjects.remove(obj)
+        self.disableButtons()
         if obj.objectType == 'VOLUME':
             self.removeVolume(obj)
         elif obj.objectType == 'SURFACE':
