@@ -113,6 +113,8 @@ class Config:
           Runtime
         - get_max_projects: returns the maximum number of projects displayed in
           the "Saved projects" menu
+        - get_max_thumbnails:  get max thumbnails number at the data browser
+          bottom
         - get_mia_path: returns the software's install path
         - get_mri_conv_path: sets the MRIManager.jar path
         - getNbAllSlicesMax: returns the maximum number of slices to display in
@@ -158,6 +160,8 @@ class Config:
         - setChainCursors: set the "chain cursors" checkbox of the mini viewer
         - set_mainwindow_maximized: set the maximized (fullscreen) flag
         - set_mainwindow_size: set main window size
+        - set_max_thumbnails: set max thumbnails number at the data browser
+          bottom
         - set_fsl_config: set the path of the FSL config file
         - set_matlab_path: set the path of Matlab's executable
         - set_matlab_standalone_path: set the path of Matlab Compiler Runtime
@@ -457,6 +461,19 @@ class Config:
         """
         try:
             return int(self.config["max_projects"])
+
+        except KeyError as e:
+            return 5
+
+    def get_max_thumbnails(self):
+        """Get the max thumbnails number at the data browser bottom.
+
+        :return: Integer
+
+        """
+        try:
+            return int(self.config["max_thumbnails"])
+
         except KeyError as e:
             return 5
 
@@ -884,6 +901,16 @@ class Config:
 
         """
         self.config["max_projects"] = nb_max_projects
+        # Then save the modification
+        self.saveConfig()
+
+    def set_max_thumbnails(self, nb_max_thumbnails):
+        """Set max thumbnails number at the data browser bottom.
+
+        :param: nb_max_thumbnails: Integer
+
+        """
+        self.config["max_thumbnails"] = nb_max_thumbnails
         # Then save the modification
         self.saveConfig()
 

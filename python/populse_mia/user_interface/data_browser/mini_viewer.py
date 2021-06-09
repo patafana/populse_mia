@@ -107,12 +107,12 @@ class MiniViewer(QWidget):
         # The MiniViewer is set hidden to give more space to the data_browser
         self.setHidden(True)
 
-        # When multiple selection, limiting the number of thumbnails to
-        # max_scans
-        self.max_scans = 4
-
         # Config that allows to read the software preferences
         self.config = Config()
+
+        # When multiple selection, limiting the number of thumbnails to
+        # max_scans
+        self.max_scans = self.config.get_max_thumbnails()
 
         # Initializing some components of the MiniViewer
         self.labels = QWidget()
@@ -558,12 +558,9 @@ class MiniViewer(QWidget):
             self.do_nothing = [False] * len(file_paths)
 
             self.file_paths = file_paths
-            #self.max_scans = 4
-
+            self.max_scans = self.config.get_max_thumbnails()
             self.setMinimumHeight(220)
-
             self.clearLayouts()
-
             self.frame = QFrame(self)
             self.frame_final = QFrame(self)
 
