@@ -231,9 +231,8 @@ class AnaSimpleViewer(Qt.QObject):
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
         findChild(awin, 'actionCoronal').triggered.connect(self.newDisplay)
         findChild(awin, 'action3D').triggered.connect(self.newDisplay)
-
-        #Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').itemSelectionChanged.connect(self.disableButtons)
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
+
     def init_global_handlers(self):
         '''
         Set some global controls / settings in Anatomist application object
