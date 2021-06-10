@@ -2402,38 +2402,68 @@ class PopUpPreferences(QDialog):
 
     def edit_config_file(self):
         config = Config()
-        edit = QDialog()
-        edit.txt = QPlainTextEdit()
+        self.editConf = QDialog()
+        self.editConf.setWindowTitle(os.path.join(config.get_config_path(),
+                                         'config.yml'))
+        self.editConf.txt = QPlainTextEdit()
         stream = yaml.dump(config.config, default_flow_style=False,
                       allow_unicode=True)
-        edit.txt.insertPlainText(str(stream))
-        textWidth = edit.txt.width() + 100
-        textHeight = edit.txt.height() + 200
-
-        edit.txt.setMinimumSize(textWidth, textHeight)
-        edit.txt.resize(textWidth, textHeight)
+        self.editConf.txt.insertPlainText(str(stream))
+        textWidth = self.editConf.txt.width() + 100
+        textHeight = self.editConf.txt.height() + 200
+        self.editConf.txt.setMinimumSize(textWidth, textHeight)
+        self.editConf.txt.resize(textWidth, textHeight)
 
         buttonBox = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
 
+        self.findChar_line_edit = QLineEdit()
+        findChar_button = QPushButton("Find")
+        h_box_find = QtWidgets.QHBoxLayout()
+        h_box_find.addWidget(self.findChar_line_edit)
+        h_box_find.addWidget(findChar_button)
+        findChar_button.clicked.connect(self.findChar)
+
         layout = QFormLayout()
-        layout.addWidget(QLabel("config.yml"))
-        layout.addWidget(edit.txt)
+        layout.addWidget(self.editConf.txt)
+        layout.addRow(h_box_find)
         layout.addWidget(buttonBox)
-        buttonBox.accepted.connect(edit.accept)
-        buttonBox.rejected.connect(edit.reject)
-        edit.setLayout(layout)
-        event = edit.exec()
+        buttonBox.accepted.connect(self.editConf.accept)
+        buttonBox.rejected.connect(self.editConf.reject)
+        self.editConf.setLayout(layout)
+        event = self.editConf.exec()
         if not event:
-            edit.close()
+            self.editConf.close()
         else:
-            stream = edit.txt.toPlainText()
+            stream = self.editConf.txt.toPlainText()
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 config.config = yaml.load(stream, Loader=yaml.FullLoader)
             else:
                 config.config = yaml.load(stream)
             config.saveConfig()
             self.close()
+
+    def findChar(self):
+        """Highlights characters in red when using the Find button'
+        when editing configuration.
+
+        """
+        pattern = self.findChar_line_edit.text()
+        if pattern == '':
+            return
+        cursor = self.editConf.txt.textCursor()
+        format = QtGui.QTextCharFormat()
+        format.setBackground(QtGui.QBrush(QtGui.QColor("red")))
+        regex = QtCore.QRegExp(pattern)
+        pos = 0
+        index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
+
+        while (index != -1):
+            cursor.setPosition(index)
+            cursor.movePosition(QtGui.QTextCursor.EndOfWord, 1)
+            cursor.mergeCharFormat(format)
+            pos = index + regex.matchedLength()
+            index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
 
     def edit_capsul_config(self):
         from capsul.api import capsul_engine
