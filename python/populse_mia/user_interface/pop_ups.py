@@ -1854,10 +1854,18 @@ class PopUpPreferences(QDialog):
 
         h_box_user_mode = QtWidgets.QHBoxLayout()
         h_box_user_mode.addWidget(self.user_mode_checkbox)
-        # h_box_user_mode.addWidget(self.user_mode_trap)
         h_box_user_mode.addWidget(self.user_mode_label)
         h_box_user_mode.addStretch(1)
 
+        h_box_change_psswd = QtWidgets.QHBoxLayout()
+        h_box_change_psswd.addWidget(self.change_psswd)
+        h_box_change_psswd.addStretch(1)
+
+        h_box_edit_config = QtWidgets.QHBoxLayout()
+        h_box_edit_config.addWidget(self.edit_config)
+        h_box_edit_config.addStretch(1)
+
+        
         ## Version 1 controller
         self.control_checkbox = QCheckBox('', self)
         self.control_label = QLabel("Version 1 controller")
@@ -1871,8 +1879,8 @@ class PopUpPreferences(QDialog):
         h_box_control.addStretch(1)
 
         ## Max thumbnails number at the data browser bottom
-        self.max_thumbnails_label = QLabel(
-            'Max thumbnails number at the data browser bottom:')
+        self.max_thumbnails_label = QLabel('Number of thumbnails '
+                                           'in Data Browser:')
         self.max_thumbnails_box = QtWidgets.QSpinBox()
         self.max_thumbnails_box.setMinimum(1)
         self.max_thumbnails_box.setMaximum(15)
@@ -1887,8 +1895,8 @@ class PopUpPreferences(QDialog):
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
-        v_box_global.addWidget(self.change_psswd)
-        v_box_global.addWidget(self.edit_config)
+        v_box_global.addLayout(h_box_change_psswd)
+        v_box_global.addLayout(h_box_edit_config)
         v_box_global.addLayout(h_box_control)
         v_box_global.addWidget(self.max_thumbnails_label)
         v_box_global.addLayout(h_box_max_thumbnails)
