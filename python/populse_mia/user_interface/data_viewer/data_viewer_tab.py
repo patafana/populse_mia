@@ -12,6 +12,7 @@ from soma.qt_gui.qt_backend import Qt
 import anatomist.direct.api as ana
 import importlib
 import os
+import traceback
 
 
 class DataViewerTab(Qt.QWidget):
@@ -78,21 +79,27 @@ class DataViewerTab(Qt.QWidget):
     def activate_viewer(self, viewer_name):
         if self.viewer_name == viewer_name:
             return
-        print('activate viewer:', viewer_name)
+
+        print('- activate viewer:', viewer_name)
+
         try:
             viewer_module = importlib.import_module(
                 '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
             print("vIEWER MODULE")
             print(viewer_module)
             viewer = viewer_module.MiaViewer()
-            print("THEN")
-            print(viewer)
-        except ImportError:
-            print('viewer %s is not available or not working.' % viewer_name)
+
+        except Exception as e:
+            print('\n{0} viewer is not available or not working '
+                  '...!\nTraceback:'.format(viewer_name))
+            print(''.join(traceback.format_tb(e.__traceback__)), end='')
+            print('{0}: {1}\n'.format(e.__class__.__name__, e))
             return
+
         if self.viewer is not None:
             self.viewer.deleteLater()
             del self.viewer
+
         self.viewer_name = viewer_name
         self.viewer = viewer
         self.layout.insertWidget(1, viewer)
