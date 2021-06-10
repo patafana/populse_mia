@@ -2404,7 +2404,7 @@ class PopUpPreferences(QDialog):
         config = Config()
         self.editConf = QDialog()
         self.editConf.setWindowTitle(os.path.join(config.get_config_path(),
-                                         'config.yml'))
+                                                  'config.yml'))
         self.editConf.txt = QPlainTextEdit()
         stream = yaml.dump(config.config, default_flow_style=False,
                       allow_unicode=True)
@@ -2432,14 +2432,19 @@ class PopUpPreferences(QDialog):
         buttonBox.rejected.connect(self.editConf.reject)
         self.editConf.setLayout(layout)
         event = self.editConf.exec()
+
         if not event:
             self.editConf.close()
+
         else:
             stream = self.editConf.txt.toPlainText()
+
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 config.config = yaml.load(stream, Loader=yaml.FullLoader)
+
             else:
                 config.config = yaml.load(stream)
+
             config.saveConfig()
             self.close()
 
@@ -2448,12 +2453,19 @@ class PopUpPreferences(QDialog):
         when editing configuration.
 
         """
+        cursor = self.editConf.txt.textCursor()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.setCharFormat(QtGui.QTextCharFormat())
+        cursor.clearSelection()
+        self.editConf.txt.setTextCursor(cursor)
         pattern = self.findChar_line_edit.text()
+
         if pattern == '':
             return
+
         cursor = self.editConf.txt.textCursor()
         format = QtGui.QTextCharFormat()
-        format.setBackground(QtGui.QBrush(QtGui.QColor("red")))
+        format.setBackground(QtGui.QBrush(QtGui.QColor(255, 0, 0, 50)))
         regex = QtCore.QRegExp(pattern)
         pos = 0
         index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
