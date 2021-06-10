@@ -377,7 +377,7 @@ class AnaSimpleViewer(Qt.QObject):
 
         # in Qt4, the widget must not have a parent before calling
         # layout.addWidget
-        #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
+        #self.viewgridlay.addWidget(w.getInternalRep(), x, y)
         self.viewgridlay.addWidget(w.getInternalRep())
         #self.viewgridlay.addWidget(w.getInternalRep(), 0, i)
         self._winlayouts[x][y] = 1
@@ -500,11 +500,7 @@ class AnaSimpleViewer(Qt.QObject):
     def newDisplay(self):
         self.deleteTotalWindow()
         views = self.getViewsToDisplay()
-        self.getViewsToDisplay()
         self.createTotalWindow(views)
-        #self.addObject(self.aobjects[0])
-        #self.viewReferential(self.aobjects[0])
-        #self.registerObject(self.aobjects[0], views)
         for i in range(len(self.displayedObjects)):
             self.addObject(self.displayedObjects[i])
             self.viewReferential(self.displayedObjects[i])
@@ -761,7 +757,8 @@ class AnaSimpleViewer(Qt.QObject):
         '''Hides an object from views
         '''
         a = ana.Anatomist('-b')
-        self.displayedObjects.remove(obj)
+        if obj in self.displayedObjects:
+            self.displayedObjects.remove(obj)
         self.disableButtons()
         if obj.objectType == 'VOLUME':
             self.removeVolume(obj)
