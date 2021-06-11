@@ -37,16 +37,10 @@ class DataViewerTab(Qt.QWidget):
         hlay.addStretch(1)
 
         self.viewers_combo.addItem('Mia_viewer')
-        #self.viewers_combo.activated.connect(self.viewer_activatedbis)
-        lay.addStretch(1)
-
         self.viewers_combo.addItem('Anatomist')
-        #self.viewers_combo.activated.connect(self.viewer_activated)
-        lay.addStretch(1)
 
         stacks = Qt.QStackedLayout()
         lay.addLayout(stacks)
-        lay.addStretch(2)
 
         #Try import both viewers
         try:
@@ -82,8 +76,7 @@ class DataViewerTab(Qt.QWidget):
     def change_viewer(self):
         index = self.viewers_combo.currentIndex()
         self.viewer_activated(index)
-        self.viewer.project = self.project
-        self.viewer.documents = self.docs
+        self.set_documents(self.project, self.docs)
 
     def current_viewer(self):
         if self.viewer_name is None:
