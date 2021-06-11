@@ -2401,6 +2401,7 @@ class PopUpPreferences(QDialog):
                 self.change_admin_psswd("The new passwords are not the same.")
 
     def edit_config_file(self):
+        """Create a window to view, edit the mia configuration file."""
         config = Config()
         self.editConf = QDialog()
         self.editConf.setWindowTitle(os.path.join(config.get_config_path(),
@@ -2472,7 +2473,10 @@ class PopUpPreferences(QDialog):
 
         while (index != -1):
             cursor.setPosition(index)
-            cursor.movePosition(QtGui.QTextCursor.EndOfWord, 1)
+
+            for _ in pattern:
+                cursor.movePosition(QtGui.QTextCursor.Right, 1)
+
             cursor.mergeCharFormat(format)
             pos = index + regex.matchedLength()
             index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
