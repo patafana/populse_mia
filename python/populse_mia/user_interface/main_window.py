@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
                     self.msg.close()
 
             else:
-            
+
                 if self.exPopup.exec():
                     file_name = self.exPopup.selectedFiles()
                     self.exPopup.get_filename(file_name)
@@ -673,6 +673,9 @@ class MainWindow(QMainWindow):
                 relative_path = os.path.relpath(file_name)
                 self.switch_project(relative_path, name)
                 # We switch the project
+                documents = self.project.session.get_documents_names(
+                    COLLECTION_CURRENT)
+                self.data_viewer.set_documents(self.project, documents)
 
     def package_library_pop_up(self):
         """Open the package library pop-up"""
@@ -905,8 +908,8 @@ class MainWindow(QMainWindow):
                                                            'downloaded_data'))
 
                 if os.path.exists(os.path.join(old_folder_rel, 'filters')):
-                    
-                    for filename in glob.glob(os.path.join(old_folder, 
+
+                    for filename in glob.glob(os.path.join(old_folder,
                                                            'filters', '*')):
                         shutil.copy(filename, os.path.join(filters_path))
 
