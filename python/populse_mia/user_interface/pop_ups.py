@@ -1815,9 +1815,10 @@ class PopUpPreferences(QDialog):
         self.tab_tools.setObjectName("tab_tools")
         self.tab_widget.addTab(self.tab_tools, _translate("Dialog", "Tools"))
 
-        # Groupbox "Global preferences"
+        ## Groupbox "Global preferences"
         self.groupbox_global = QtWidgets.QGroupBox("Global preferences")
 
+        ## Auto save
         self.save_checkbox = QCheckBox('', self)
         self.save_label = QLabel("Auto save")
 
@@ -1829,6 +1830,7 @@ class PopUpPreferences(QDialog):
         h_box_auto_save.addWidget(self.save_label)
         h_box_auto_save.addStretch(1)
 
+        ## Admin mode + Change password + Edit config
         self.user_mode_checkbox = QCheckBox('', self)
         self.user_mode_checkbox.clicked.connect(self.user_mode_switch)
         self.user_mode_label = QLabel("Admin mode")
@@ -1852,22 +1854,59 @@ class PopUpPreferences(QDialog):
 
         h_box_user_mode = QtWidgets.QHBoxLayout()
         h_box_user_mode.addWidget(self.user_mode_checkbox)
-        # h_box_user_mode.addWidget(self.user_mode_trap)
         h_box_user_mode.addWidget(self.user_mode_label)
         h_box_user_mode.addStretch(1)
 
+        h_box_change_psswd = QtWidgets.QHBoxLayout()
+        h_box_change_psswd.addWidget(self.change_psswd)
+        h_box_change_psswd.addStretch(1)
+
+        h_box_edit_config = QtWidgets.QHBoxLayout()
+        h_box_edit_config.addWidget(self.edit_config)
+        h_box_edit_config.addStretch(1)
+
+        
+        ## Version 1 controller
+        self.control_checkbox = QCheckBox('', self)
+        self.control_label = QLabel("Version 1 controller")
+
+        if config.isControlV1() == True:
+            self.control_checkbox.setChecked(1)
+
+        h_box_control = QtWidgets.QHBoxLayout()
+        h_box_control.addWidget(self.control_checkbox)
+        h_box_control.addWidget(self.control_label)
+        h_box_control.addStretch(1)
+
+        ## Max thumbnails number at the data browser bottom
+        self.max_thumbnails_label = QLabel('Number of thumbnails '
+                                           'in Data Browser:')
+        self.max_thumbnails_box = QtWidgets.QSpinBox()
+        self.max_thumbnails_box.setMinimum(1)
+        self.max_thumbnails_box.setMaximum(15)
+        self.max_thumbnails_box.setValue(config.get_max_thumbnails())
+        self.max_thumbnails_box.setSingleStep(1)
+
+        h_box_max_thumbnails = QtWidgets.QHBoxLayout()
+        h_box_max_thumbnails.addWidget(self.max_thumbnails_box)
+        h_box_max_thumbnails.addStretch(1)
+
+        ## Draws graphic objects
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
         v_box_global.addLayout(h_box_user_mode)
-        v_box_global.addWidget(self.change_psswd)
-        v_box_global.addWidget(self.edit_config)
+        v_box_global.addLayout(h_box_change_psswd)
+        v_box_global.addLayout(h_box_edit_config)
+        v_box_global.addLayout(h_box_control)
+        v_box_global.addWidget(self.max_thumbnails_label)
+        v_box_global.addLayout(h_box_max_thumbnails)
 
         self.groupbox_global.setLayout(v_box_global)
 
-        # Groupbox "Projects preferences"
+        ### Groupbox "Projects preferences"
         self.groupbox_projects = QtWidgets.QGroupBox("Projects preferences")
 
-        # Projects folder label/line edit
+        ### Projects folder label/line edit
         self.projects_save_path_label = QLabel("Projects folder:")
         self.projects_save_path_line_edit = QLineEdit(
             config.get_projects_save_path())
@@ -1875,7 +1914,7 @@ class PopUpPreferences(QDialog):
         self.projects_save_path_browse.clicked.connect(
             self.browse_projects_save_path)
 
-        # Max projects in "Saved projects"
+        ### Max projects in "Saved projects"
         self.max_projects_label = QLabel(
             'Number of projects in "Saved projects":')
         self.max_projects_box = QtWidgets.QSpinBox()
@@ -1885,7 +1924,7 @@ class PopUpPreferences(QDialog):
         # self.max_projects_box.setDecimals(0)
         self.max_projects_box.setSingleStep(1)
 
-        # Projects preferences layouts
+        ### Draws graphic objects
         h_box_projects_save = QtWidgets.QHBoxLayout()
         h_box_projects_save.addWidget(self.projects_save_path_line_edit)
         h_box_projects_save.addWidget(self.projects_save_path_browse)
@@ -1908,17 +1947,17 @@ class PopUpPreferences(QDialog):
 
         self.groupbox_projects.setLayout(projects_layout)
 
-        # Groupbox "POPULSE third party preferences"
+        #### Groupbox "POPULSE third party preferences"
         self.groupbox_populse = QtWidgets.QGroupBox(
             "POPULSE third party preference")
 
-        # MRI File Manager folder label/line edit
+        #### MRI File Manager folder label/line edit
         self.mri_conv_path_label = QLabel("Absolute path to MRIManager.jar:")
         self.mri_conv_path_line_edit = QLineEdit(config.get_mri_conv_path())
         self.mri_conv_path_browse = QPushButton("Browse")
         self.mri_conv_path_browse.clicked.connect(self.browse_mri_conv_path)
 
-        # MRI File Manager layouts
+        #### Draws graphic objects
         h_box_mri_conv = QtWidgets.QHBoxLayout()
         h_box_mri_conv.addWidget(self.mri_conv_path_line_edit)
         h_box_mri_conv.addWidget(self.mri_conv_path_browse)
@@ -2362,39 +2401,85 @@ class PopUpPreferences(QDialog):
                 self.change_admin_psswd("The new passwords are not the same.")
 
     def edit_config_file(self):
+        """Create a window to view, edit the mia configuration file."""
         config = Config()
-        edit = QDialog()
-        edit.txt = QPlainTextEdit()
+        self.editConf = QDialog()
+        self.editConf.setWindowTitle(os.path.join(config.get_config_path(),
+                                                  'config.yml'))
+        self.editConf.txt = QPlainTextEdit()
         stream = yaml.dump(config.config, default_flow_style=False,
                       allow_unicode=True)
-        edit.txt.insertPlainText(str(stream))
-        textWidth = edit.txt.width() + 100
-        textHeight = edit.txt.height() + 200
-
-        edit.txt.setMinimumSize(textWidth, textHeight)
-        edit.txt.resize(textWidth, textHeight)
+        self.editConf.txt.insertPlainText(str(stream))
+        textWidth = self.editConf.txt.width() + 100
+        textHeight = self.editConf.txt.height() + 200
+        self.editConf.txt.setMinimumSize(textWidth, textHeight)
+        self.editConf.txt.resize(textWidth, textHeight)
 
         buttonBox = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
 
+        self.findChar_line_edit = QLineEdit()
+        findChar_button = QPushButton("Find")
+        h_box_find = QtWidgets.QHBoxLayout()
+        h_box_find.addWidget(self.findChar_line_edit)
+        h_box_find.addWidget(findChar_button)
+        findChar_button.clicked.connect(self.findChar)
+
         layout = QFormLayout()
-        layout.addWidget(QLabel("config.yml"))
-        layout.addWidget(edit.txt)
+        layout.addWidget(self.editConf.txt)
+        layout.addRow(h_box_find)
         layout.addWidget(buttonBox)
-        buttonBox.accepted.connect(edit.accept)
-        buttonBox.rejected.connect(edit.reject)
-        edit.setLayout(layout)
-        event = edit.exec()
+        buttonBox.accepted.connect(self.editConf.accept)
+        buttonBox.rejected.connect(self.editConf.reject)
+        self.editConf.setLayout(layout)
+        event = self.editConf.exec()
+
         if not event:
-            edit.close()
+            self.editConf.close()
+
         else:
-            stream = edit.txt.toPlainText()
+            stream = self.editConf.txt.toPlainText()
+
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 config.config = yaml.load(stream, Loader=yaml.FullLoader)
+
             else:
                 config.config = yaml.load(stream)
+
             config.saveConfig()
             self.close()
+
+    def findChar(self):
+        """Highlights characters in red when using the Find button'
+        when editing configuration.
+
+        """
+        cursor = self.editConf.txt.textCursor()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.setCharFormat(QtGui.QTextCharFormat())
+        cursor.clearSelection()
+        self.editConf.txt.setTextCursor(cursor)
+        pattern = self.findChar_line_edit.text()
+
+        if pattern == '':
+            return
+
+        cursor = self.editConf.txt.textCursor()
+        format = QtGui.QTextCharFormat()
+        format.setBackground(QtGui.QBrush(QtGui.QColor(255, 0, 0, 50)))
+        regex = QtCore.QRegExp(pattern)
+        pos = 0
+        index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
+
+        while (index != -1):
+            cursor.setPosition(index)
+
+            for _ in pattern:
+                cursor.movePosition(QtGui.QTextCursor.Right, 1)
+
+            cursor.mergeCharFormat(format)
+            pos = index + regex.matchedLength()
+            index = regex.indexIn(self.editConf.txt.toPlainText(), pos)
 
     def edit_capsul_config(self):
         from capsul.api import capsul_engine
@@ -2514,6 +2599,17 @@ class PopUpPreferences(QDialog):
             config.setAutoSave(True)
         else:
             config.setAutoSave(False)
+
+        # Version 1 controller
+        if self.control_checkbox.isChecked():
+            config.setControlV1(True)
+
+        else:
+            config.setControlV1(False)
+
+        # Max thumbnails number at the data browser bottom
+        max_thumbnails = min(max(self.max_thumbnails_box.value(), 1), 15)
+        config.set_max_thumbnails(max_thumbnails)
 
         # Projects folder
         projects_folder = self.projects_save_path_line_edit.text()

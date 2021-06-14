@@ -113,6 +113,8 @@ class Config:
           Runtime
         - get_max_projects: returns the maximum number of projects displayed in
           the "Saved projects" menu
+        - get_max_thumbnails:  get max thumbnails number at the data browser
+          bottom
         - get_mia_path: returns the software's install path
         - get_mri_conv_path: sets the MRIManager.jar path
         - getNbAllSlicesMax: returns the maximum number of slices to display in
@@ -146,15 +148,20 @@ class Config:
         - getPathToProjectsDBFile: returns the already-saved projects's path
           (currently commented)
         - isAutoSave: checks if auto-save mode is activated
+        - isControlV1: checks if the selected display of the controller is of 
+          V1 type
         - loadConfig: reads the config in the config.yml file
         - saveConfig: saves the config to the config.yml file
         - set_admin_hash: set the password hash
         - setAutoSave: sets the auto-save mode
         - setBackgroundColor: sets the background color
+        - setControlV1: Set controller display mode (True if V1)
         - set_capsul_config: set CAPSUL configuration dict into MIA config
         - setChainCursors: set the "chain cursors" checkbox of the mini viewer
         - set_mainwindow_maximized: set the maximized (fullscreen) flag
         - set_mainwindow_size: set main window size
+        - set_max_thumbnails: set max thumbnails number at the data browser
+          bottom
         - set_fsl_config: set the path of the FSL config file
         - set_matlab_path: set the path of Matlab's executable
         - set_matlab_standalone_path: set the path of Matlab Compiler Runtime
@@ -454,6 +461,19 @@ class Config:
         """
         try:
             return int(self.config["max_projects"])
+
+        except KeyError as e:
+            return 5
+
+    def get_max_thumbnails(self):
+        """Get the max thumbnails number at the data browser bottom.
+
+        :return: Integer
+
+        """
+        try:
+            return int(self.config["max_thumbnails"])
+
         except KeyError as e:
             return 5
 
@@ -710,8 +730,15 @@ class Config:
         :return: boolean
 
         """
-        # used only in tests and when the background/text color is changed
         return self.config.get("auto_save", False)
+
+    def isControlV1(self):
+        """Get if the display of the controller is of V1 type.
+
+        :return: boolean
+
+        """
+        return self.config.get("control_V1", False)
 
     def loadConfig(self):
         """Read the config in the config.yml file.
@@ -877,6 +904,16 @@ class Config:
         # Then save the modification
         self.saveConfig()
 
+    def set_max_thumbnails(self, nb_max_thumbnails):
+        """Set max thumbnails number at the data browser bottom.
+
+        :param: nb_max_thumbnails: Integer
+
+        """
+        self.config["max_thumbnails"] = nb_max_thumbnails
+        # Then save the modification
+        self.saveConfig()
+
     def set_mri_conv_path(self, path):
         """Set the MRIManager.jar path.
 
@@ -1001,6 +1038,15 @@ class Config:
         :param: chain_cursors: Boolean
         """
         self.config["chain_cursors"] = chain_cursors
+        # Then save the modification
+        self.saveConfig()
+
+    def setControlV1(self, controlV1):
+        """Set controller display mode (True if V1).
+
+        :param: controlV1: boolean
+        """
+        self.config["control_V1"] = controlV1
         # Then save the modification
         self.saveConfig()
 

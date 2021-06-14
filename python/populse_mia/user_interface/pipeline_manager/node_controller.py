@@ -54,6 +54,7 @@ from populse_mia.data_manager.filter import Filter
 from populse_mia.user_interface.pipeline_manager.process_mia import ProcessMIA
 from populse_mia.software_properties import Config
 from . import type_editors
+import sip
 
 if sys.version_info[0] >= 3:
     unicode = str
@@ -320,8 +321,6 @@ class FilterWidget(QWidget):
                 fields.addItem("All visualized tags")
 
 
-# NodeController class is no longer used in V2
-'''
 class NodeController(QWidget):
     """
     Allow to change the input and output values of a pipeline node
@@ -747,7 +746,13 @@ class NodeController(QWidget):
             res = []
 
         self.update_plug_value("in", plug_name, pipeline, value_type, res)
-'''
+
+    def release_process(self):
+        """
+        remove notification from process
+        """
+        # only implemented in CapsulNodeController
+        pass
 
 # FIXME temporary: another implementation of NodeController using Capsul
 # AttributedProcessWidget widget
@@ -783,10 +788,6 @@ class CapsulNodeController(QWidget):
         hlayout.addWidget(label_node_name)
         hlayout.addWidget(self.line_edit_node_name)
         v_box_final.addLayout(hlayout)
-
-    def __del__(self):
-        # remove callback
-        self.release_process()
 
     def display_parameters(self, node_name, process, pipeline):
         """Display the parameters of the selected node.
@@ -847,11 +848,29 @@ class CapsulNodeController(QWidget):
         self.layout().addWidget(self.process_widget)
         self.process.on_trait_change(self.parameters_changed)
 
+        # this cannot be done in __del__ since the C++ part will be already
+        # destroyed by then
+        # However this signal seems never to be emitted, and I don't understand
+        # why. So release_process() has to be callesd manually from the
+        # pipeline manager. Sigh.
+        self.destroyed.connect(partial(self.static_release, process,
+                                       self.parameters_changed))
+
+    @staticmethod
+    def static_release(process, param_changed):
+        process.on_trait_change(param_changed, remove=True)
+
     def release_process(self):
         """
         remove notification from process
         """
-        self.process.on_trait_change(self.parameters_changed, remove=True)
+        if hasattr(self, 'process'):
+            self.process.on_trait_change(self.parameters_changed, remove=True)
+        try:
+            if not sip.isdeleted(self):
+                self.value_changed.disconnect()
+        except TypeError:
+            pass  # it was not connected: OK
 
     def update_parameters(self, process=None):
         """Update the parameters values.

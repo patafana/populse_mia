@@ -33,7 +33,7 @@ from populse_mia.software_properties import Config
 from populse_mia.user_interface.pipeline_manager.iteration_table import (
                                                                  IterationTable)
 from populse_mia.user_interface.pipeline_manager.node_controller import (
-                                           CapsulNodeController) #, NodeController)
+                                           CapsulNodeController, NodeController)
 from populse_mia.user_interface.pipeline_manager.pipeline_editor import (
                                                              PipelineEditorTabs)
 from populse_mia.user_interface.pipeline_manager.process_library import (
@@ -85,10 +85,6 @@ from traits.api import TraitListObject, Undefined
 from traits.trait_errors import TraitError
 import traits.api as traits
 import functools
-
-
-# FIXME hack
-NodeController = CapsulNodeController
 
 
 class PipelineManagerTab(QWidget):
@@ -156,6 +152,12 @@ class PipelineManagerTab(QWidget):
 
         config = Config()
 
+        if not config.isControlV1():
+            Node_Controller = CapsulNodeController
+
+        else:
+            Node_Controller = NodeController
+        
         # Necessary for using MIA bricks
         ProcessMIA.project = project
         self.project = project
@@ -200,7 +202,7 @@ class PipelineManagerTab(QWidget):
             self.displayNodeParameters)
         self.pipelineEditorTabs.pipeline_saved.connect(
             self.updateProcessLibrary)
-        self.nodeController = NodeController(
+        self.nodeController = Node_Controller(
             self.project, self.scan_list, self, self.main_window)
         self.nodeController.visibles_tags = \
             self.project.session.get_shown_tags()
@@ -798,12 +800,13 @@ class PipelineManagerTab(QWidget):
         inputs = pipeline.get_inputs().keys()
         outputs = pipeline.get_outputs().keys()
         params = (inputs, outputs)
-        param_btns = [[], []]
+        param_btns = [[], []]  # inputs, outputs
         forbidden = set(['nodes_activation', 'selection_changed',
                           'pipeline_steps', 'visible_groups'])
 
         for i in range(2):
-            for p, plug in enumerate(params[i]):
+            p = 0
+            for plug in params[i]:
                 if plug in forbidden:
                     continue
                 trait = pipeline.trait(plug)
@@ -828,6 +831,7 @@ class PipelineManagerTab(QWidget):
                 param_lay.addWidget(Qt.QLabel(plug), p+1, c)
                 param_btns[i].append([plug, it_btn, db_btn])
                 it_btn.setChecked(True)
+                p += 1
         param_lay.setRowStretch(max(len(inputs), len(outputs)) - 1, 1)
 
         res = dialog.exec_()
@@ -859,6 +863,13 @@ class PipelineManagerTab(QWidget):
         if iterated_plugs is None:
             return  # abort
         iterated_plugs, database_plugs = iterated_plugs
+
+        # if the pipeline is an unconnected inner node, fix it
+        if hasattr(pipeline, 'parent_pipeline') and pipeline.parent_pipeline:
+            pipeline.parent_pipeline = None
+            if hasattr(pipeline, 'update_nodes_and_plugs_activation'):
+                # only if it is a pipeline - a single node does not have it
+                pipeline.update_nodes_and_plugs_activation()
 
         # input_filer node outputs a single list. Some processes (before
         # iteration) already take a list as input, which will end up with a
@@ -937,7 +948,7 @@ class PipelineManagerTab(QWidget):
             # cannot be exported. A link as to be added between database_scans
             # and the input of the filter.
             if 'database_scans' in it_pipeline.user_traits():
-                in_pipeline.add_link('database_scans->%s.input' %node_name)
+                it_pipeline.add_link('database_scans->%s.input' %node_name)
             else:
                 old_traits = list(it_pipeline.user_traits().keys())
                 it_pipeline.export_parameter(
@@ -1048,6 +1059,18 @@ class PipelineManagerTab(QWidget):
         :return:
         """
 
+        config = Config()
+
+        if not config.isControlV1():
+            Node_Controller = CapsulNodeController
+
+        else:
+            Node_Controller = NodeController
+
+        self.nodeController = Node_Controller(
+            self.project, self.scan_list, self, self.main_window)
+        self.nodeController.visibles_tags = \
+            self.project.session.get_shown_tags()
         self.nodeController.display_parameters(
             node_name, process,
             self.pipelineEditorTabs.get_current_pipeline())
@@ -1586,7 +1609,7 @@ class PipelineManagerTab(QWidget):
                 node_name = to_redo[1]
                 class_process = to_redo[2]
                 links = to_redo[3]
-                c_e.add_process(
+                c_e.add_named_process(
                     class_process, node_name, from_redo=True, links=links)
 
             elif action == "add_process":
@@ -1934,7 +1957,7 @@ class PipelineManagerTab(QWidget):
                 node_name = to_undo[1]
                 class_name = to_undo[2]
                 links = to_undo[3]
-                c_e.add_process(
+                c_e.add_named_process(
                     class_name, node_name, from_undo=True, links=links)
 
             elif action == "export_plug":
@@ -2271,8 +2294,10 @@ class PipelineManagerTab(QWidget):
         self.init_pipeline_action.setDisabled(False)
 
         c_e = self.pipelineEditorTabs.get_current_editor()
-        pipeline = c_e.scene.pipeline
-        has_iteration = ('iteration' in pipeline.nodes)
+        pipeline = self.pipelineEditorTabs.get_current_pipeline()
+        has_iteration = False
+        if pipeline and hasattr(pipeline, 'nodes'):
+            has_iteration = ('iteration' in pipeline.nodes)
 
         if self.iterationTable.check_box_iterate.isChecked():
             if not has_iteration:

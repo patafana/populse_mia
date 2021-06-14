@@ -27,6 +27,7 @@ from capsul.attributes.completion_engine_factory import (
                                           BuiltinProcessCompletionEngineFactory)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
+from capsul.pipeline.process_iteration import ProcessIteration
 
 # nipype imports
 from nipype.interfaces.base import File, traits_extension, InputMultiObject
@@ -337,7 +338,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         :meth: `ProcessMIA.list_outputs` method, which fills in output
         parameters from input values, and sets the internal `inheritance_dict`
         used after completion for data indexation in MIA.
-        '''        
+        '''
         self.set_parameters(process_inputs)
         verbose = False
         node = self.process
@@ -451,6 +452,14 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
             engine_factory = BuiltinProcessCompletionEngineFactory()
 
         fallback = engine_factory.get_completion_engine(process, name=name)
+
+        # iteration
+        in_process = process
+        if isinstance(process, ProcessNode):
+            in_process = process.process
+        if isinstance(in_process, ProcessIteration):
+            # iteration nodes must follow their own way
+            return fallback
 
         return MIAProcessCompletionEngine(process, name, fallback)
 
