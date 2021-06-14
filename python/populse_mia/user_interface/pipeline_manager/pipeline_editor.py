@@ -66,7 +66,7 @@ class PipelineEditor(PipelineDevelopperView):
         - _release_grab_link: method called when a link is released
         - _remove_plug: removes a plug
         - add_link: add a link between two nodes
-        - add_process: adds a process to the pipeline
+        - add_named_process: adds a process to the pipeline
         - check_modifications: checks if the nodes of the pipeline have been
            modified
         - del_node: deletes a node
@@ -74,7 +74,6 @@ class PipelineEditor(PipelineDevelopperView):
         - dragMoveEvent: event handler when the mouse moves in the widget
         - dropEvent: event handler when something is dropped in the widget
         - export_node_plugs: exports all the plugs of a node
-        - find_process: finds the dropped process in the system's paths
         - get_current_filename: returns the relative path the pipeline was
            last saved to. Empty if never saved.
         - save_pipeline: saves the pipeline
@@ -403,8 +402,8 @@ class PipelineEditor(PipelineDevelopperView):
         self.main_window.statusBar().showMessage(
             'Link {0} has been added.'.format(link))
 
-    def add_process(self, class_process, node_name=None,
-                    from_undo=False, from_redo=False, links=[]):
+    def add_named_process(self, class_process, node_name=None,
+                          from_undo=False, from_redo=False, links=[]):
         """Add a process to the pipeline.
 
         :param class_process: process class's name (str)
@@ -417,66 +416,11 @@ class PipelineEditor(PipelineDevelopperView):
         :param links: list of links (using when undo/redo)
         """
         
-        pipeline = self.scene.pipeline
-
-        if class_process is False:
-            proc_name_gui = self.ProcessModuleInput()
-            proc_name_gui.resize(800, proc_name_gui.sizeHint().height())
-            res = proc_name_gui.exec_()
-
-            if res:
-                class_process = six.text_type(proc_name_gui.proc_line.text())
-                class_process = class_process.strip()
-                node_name = str(proc_name_gui.name_line.text())
-
-                if node_name.isspace():
-                    node_name = ''
-
-                node_name = re.sub(r"\s+", "_", node_name, flags=re.UNICODE)
-
-                if node_name == '' and class_process:
-                    node_name = class_process.split('.')[-1].lower()
-
-                i=1
-                node_name_list = [node_name, node_name + str(i)]
-
-                while node_name_list[-1] in pipeline.nodes and i < 100:
-                    i += 1
-                    node_name_list[-1] = node_name_list[0] + str(i)
-
-                node_name = node_name_list[-1]
-
-        if not node_name and class_process:
-            class_name = class_process.__name__
-            i = 1
-            node_name = class_name.lower() + str(i)
-
-            while node_name in pipeline.nodes and i < 100:
-                i += 1
-                node_name = class_name.lower() + str(i)
-
-            process_to_use = class_process()
-
-        else:
-            process_to_use = class_process
-
-        try:
-            process = get_process_instance(
-                process_to_use)
-            
-        except Exception as e:
-            print(e)
-            return
+        process = super(PipelineEditor, self).add_named_process(
+            class_process, node_name)
 
         if hasattr(process, 'use_project') and process.use_project:
             process.project = self.project
-
-        pipeline.add_process(node_name, process)
-
-        # Capsul update
-        node = pipeline.nodes[node_name]
-        gnode = self.scene.add_node(node_name, node)
-        gnode.setPos(self.mapToScene(self.mapFromGlobal(self.click_pos)))
 
         # If the process is added from a undo, all the links
         # that were connected to the corresponding node has to be reset
@@ -754,36 +698,6 @@ class PipelineEditor(PipelineDevelopperView):
             self.main_window.pipeline_manager.displayNodeParameters(
                 node_name, process)
 
-    def dragEnterEvent(self, event):
-        """Event handler when the mouse enters the widget.
-
-        :param event: event
-        """
-
-        if event.mimeData().hasFormat('component/name'):
-            event.accept()
-
-    def dragMoveEvent(self, event):
-        """Event handler when the mouse moves in the widget.
-
-        :param event: event
-        """
-
-        if event.mimeData().hasFormat('component/name'):
-            event.accept()
-
-    def dropEvent(self, event):
-        """Event handler when something is dropped in the widget.
-
-        :param event: event
-
-        """
-
-        if event.mimeData().hasFormat('component/name'):
-            self.click_pos = QtGui.QCursor.pos()
-            path = bytes(event.mimeData().data('component/name'))
-            self.find_process(path.decode('utf8'))
-
     def export_node_plugs(self, node_name, inputs=True, outputs=True,
                           optional=False, from_undo=False, from_redo=False):
         """Export all the plugs of a node
@@ -835,39 +749,6 @@ class PipelineEditor(PipelineDevelopperView):
                                                                            True)
         self.main_window.statusBar().showMessage(
             "Plugs {0} have been exported.".format(str(parameter_list)))
-
-    def find_process(self, path):
-        """Find the dropped process in the system's paths.
-
-        :param path: class's path (e.g. "nipype.interfaces.spm.Smooth") (str)
-        """
-
-        package_name, process_name = os.path.splitext(path)
-        process_name = process_name[1:]
-        __import__(package_name)
-        pkg = sys.modules[package_name]
-        for name, instance in sorted(list(pkg.__dict__.items())):
-            if name == process_name:
-                if issubclass(instance, Node):
-                    # it's a node
-                    try:
-                        QtGui.QApplication.setOverrideCursor(
-                            QtCore.Qt.WaitCursor)
-                        self.add_named_node(None, instance)
-                        QtGui.QApplication.restoreOverrideCursor()
-                        return
-                    except Exception as e:
-                        print(e)
-                        return
-                try:
-                    process = get_process_instance(instance)
-                except Exception as e:
-                    print(e)
-                    return
-                else:
-                    QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-                    self.add_process(instance)
-                    QtGui.QApplication.restoreOverrideCursor()
 
     def get_current_filename(self):
         """Return the relative path the pipeline was last saved to.
@@ -1848,7 +1729,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         if not pipeline or not hasattr(pipeline, 'nodes'):
             self.main_window.pipeline_manager.iterationTable \
                 .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
-        if 'iteration' in pipeline.nodes:
+        elif 'iteration' in pipeline.nodes:
             self.main_window.pipeline_manager.iterationTable \
                 .check_box_iterate.setCheckState(Qt.Qt.Checked)
         else:
