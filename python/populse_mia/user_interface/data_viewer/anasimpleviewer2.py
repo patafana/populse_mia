@@ -50,6 +50,7 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
+from PyQt5.QtGui import QColor
 
 # the following imports have to be made after the qApp.startingUp() test
 # since they do instantiate Anatomist for registry to work.
@@ -170,6 +171,7 @@ class AnaSimpleViewer(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
+        findChild(awin, 'actionprint_view').triggered.connect(self.colorBackgroundList)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
         findChild(awin, 'editAddAction').triggered.connect(self.editAdd)
@@ -413,7 +415,7 @@ class AnaSimpleViewer(Qt.QObject):
                 a = ana.Anatomist('-b')
                 a.execute('Camera', windows=[self.awindows[-1]],
                           view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
-        if (len(views)==4):
+        if views==["Axial", "Sagittal","Coronal"]:
             counter=0
             for i in views:
                 self.viewButtons[counter].setChecked(True)
@@ -557,7 +559,7 @@ class AnaSimpleViewer(Qt.QObject):
         # create the 4 windows if they don't exist
         if len(self.awindows) == 0:
             if (views==None):
-                self.createTotalWindow(["Axial", "Sagittal","Coronal","3D"])
+                self.createTotalWindow(["Axial", "Sagittal","Coronal"])
             else:
                 self.createTotalWindow(views)
         # view obj in these views
@@ -725,12 +727,21 @@ class AnaSimpleViewer(Qt.QObject):
             Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
         else:
             if (item[0].text() in displayedObNames):
-                print('TRUE')
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(False)
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editRemoveAction').setEnabled(True)
             else:
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editRemoveAction').setEnabled(False)
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
+
+    def colorBackgroundList(self):
+        displayedObNames = []
+        for i in range (len(self.displayedObjects)):
+            displayedObNames.append(self.displayedObjects[i].name)
+        for i in range (len(self.aobjects)):
+            if Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).text() in displayedObNames:
+                Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).setBackground(QColor('#7fc97f'))
+            else:
+                Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).setBackground(QColor("transparent"))
 
     def addObject(self, obj):
         '''Display an object in all windows
