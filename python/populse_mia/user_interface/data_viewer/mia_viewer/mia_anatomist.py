@@ -61,19 +61,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.button_cross = QToolButton()
         self.button_cross.clicked.connect(self.reset_search_bar)
 
-    def setGridLayout(self):
-        a = ana.Anatomist('-b')
-        #a.deleteObjects(self.awindows)
-        print('length displayed', len(self.displayed))
-        print('2', self.displayed)
-        print('3', len(self.documents))
-        print('4', self.documents)
-        #a.removeObjects(self.displayed, self.anaviewer.awidget, False)
-        self.anaviewer.loadObject(self.displayed[0], grid=True)
-        #for i in range(len(self.awindows)):
-            #self.viewgridlay.removeWidget(self.awindows[i].getInternalRep())
-        #self.anaviewer.createTotalWindow(["Coronal", "Axial", "Sagittal", "3D"], True)
-
     def display_files(self, files):
         self.displayed += files
         for filename in files:
@@ -157,6 +144,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         search_bar_layout.addWidget(self.button_cross)
         #Add layout to dialogBox
         layout.addLayout(search_bar_layout)
+
         self.table_data = TableDataBrowser(
             self.project, self, self.project.session.get_shown_tags(), False,
             True, link_viewer=False)

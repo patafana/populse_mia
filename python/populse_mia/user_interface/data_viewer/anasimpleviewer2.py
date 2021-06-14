@@ -181,7 +181,6 @@ class AnaSimpleViewer(Qt.QObject):
             self.enableVolumeRendering)
         findChild(awin, 'viewOpen_Anatomist_main_window').triggered.connect(
             self.open_anatomist_main_window)
-        findChild(awin, 'actionprint_view').triggered.connect(self.getViewsToDisplay)
         # manually entered coords
         le = findChild(awin, 'coordXEdit')
         le.setValidator(Qt.QDoubleValidator(le))
@@ -499,7 +498,21 @@ class AnaSimpleViewer(Qt.QObject):
         for w in self.awindows:
             w.focusView()
 
+    def checkviews(self):
+        nb_views_checked = 0
+        for i in range (len(self.viewButtons)):
+            if self.viewButtons[i].isChecked():
+                nb_views_checked +=1
+        if nb_views_checked ==1:
+            for i in range (len(self.viewButtons)):
+                if self.viewButtons[i].isChecked():
+                    self.viewButtons[i].setEnabled(False)
+        else:
+            for i in range (len(self.viewButtons)):
+                self.viewButtons[i].setEnabled(True)
+
     def newDisplay(self):
+        self.checkviews()
         self.deleteTotalWindow()
         views = self.getViewsToDisplay()
         self.createTotalWindow(views)
@@ -547,6 +560,7 @@ class AnaSimpleViewer(Qt.QObject):
         # keep it in the global list
         self.aobjects.append(obj)
         self.displayedObjects.append(obj)
+        self.colorBackgroundList()
         if obj.objectType == 'VOLUME':
             # volume are checked for possible adequate colormaps
             hints = colormaphints.checkVolume(
@@ -814,12 +828,14 @@ class AnaSimpleViewer(Qt.QObject):
         objs = self.selectedObjects()
         for o in objs:
             self.addObject(o)
+        self.colorBackgroundList()
 
     def editRemove(self):
         '''Hide selected objects'''
         objs = self.selectedObjects()
         for o in objs:
             self.removeObject(o)
+        self.colorBackgroundList()
 
     def editDelete(self):
         '''Delete selected objects'''
