@@ -576,7 +576,8 @@ class MiniViewer(QWidget):
                 try:
                     #self.img.insert(idx, nib.load(file_path))
                     chk = nib.load(file_path)
-                    
+                    chk = nib.as_closest_canonical(chk)
+
                 except nib.filebasedimages.ImageFileError as e:
                     print("Error while trying to display the {} image ...!\n"
                           "Traceback:".format(os.path.abspath(file_path)))
