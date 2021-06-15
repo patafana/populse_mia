@@ -50,7 +50,8 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import (QColor, QIcon)
+from populse_mia.software_properties import Config
 
 # the following imports have to be made after the qApp.startingUp() test
 # since they do instantiate Anatomist for registry to work.
@@ -555,8 +556,10 @@ class AnaSimpleViewer(Qt.QObject):
         '''Register an object in anasimpleviewer objects list, and display it
         '''
         a = ana.Anatomist('-b')
-        Qt.QObject.findChild(self.awidget, QtCore.QObject,
-                            'objectslist').addItem(obj.name)
+        ojectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
+                            'objectslist')
+        ojectlist.addItem(obj.name)
+
         # keep it in the global list
         self.aobjects.append(obj)
         self.displayedObjects.append(obj)
@@ -752,10 +755,34 @@ class AnaSimpleViewer(Qt.QObject):
         for i in range (len(self.displayedObjects)):
             displayedObNames.append(self.displayedObjects[i].name)
         for i in range (len(self.aobjects)):
-            if Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).text() in displayedObNames:
-                Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).setBackground(QColor('#7fc97f'))
+            item = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i)
+            if item.text() in displayedObNames:
+                self.changeIcon(item,i, 'check')
+                item = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i)
+                item.setBackground(QColor('#7fc97f'))
             else:
-                Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i).setBackground(QColor("transparent"))
+                self.changeIcon(item, i)
+                item = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist').item(i)
+                item.setBackground(QColor("transparent"))
+
+    def changeIcon(self, item, i, icon=None):
+        objectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
+        row = objectlist.row(item)
+        #remove item from objectlist
+        itembis = objectlist.takeItem(row)
+        object_name = self.aobjects[i].name
+        #Add blank icon as spaceItem
+        sources_images_dir = Config().getSourceImageDir()
+        if icon == 'check':
+            icon = QIcon(os.path.join(sources_images_dir, 'check.png'))
+            new_item = Qt.QListWidgetItem(icon, object_name)
+            #reinsert new item with check icon
+            objectlist.insertItem(row, new_item)
+        else:
+            icon = QIcon(os.path.join(sources_images_dir, 'BLANK_ICON.png'))
+            new_item = Qt.QListWidgetItem(icon, object_name)
+            #reinsert new item with blank icon
+            objectlist.insertItem(row, new_item)
 
     def addObject(self, obj):
         '''Display an object in all windows

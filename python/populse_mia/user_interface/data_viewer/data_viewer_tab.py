@@ -38,7 +38,7 @@ class DataViewerTab(Qt.QWidget):
 
         self.viewers_combo.addItem('Mia_viewer')
         self.viewers_combo.addItem('Anatomist')
-
+        
         stacks = Qt.QStackedLayout()
         lay.addLayout(stacks)
 

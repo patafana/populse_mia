@@ -57,10 +57,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.displayed = []
         self.table_data = []
 
-        #Button for filtering widget
-        self.button_cross = QToolButton()
-        self.button_cross.clicked.connect(self.reset_search_bar)
-
     def display_files(self, files):
         self.displayed += files
         for filename in files:
@@ -128,22 +124,29 @@ class MiaViewer(Qt.QWidget, DataViewer):
         dialog.setLayout(layout)
 
         #Some specific filtering
-
-        #Cancel search button
-        sources_images_dir = Config().getSourceImageDir()
-        self.button_cross.setStyleSheet('background-color:rgb(255, 255, 255);')
-        self.button_cross.setIcon(
-            QIcon(os.path.join(sources_images_dir, 'gray_cross.png')))
         #QLineEdit for research
         self.search_bar = RapidSearch(dialog)
         self.search_bar.textChanged.connect(self.search_str)
+        #Cancel search button
+        sources_images_dir = Config().getSourceImageDir()
+        button_cross = QToolButton()
+        button_cross.setStyleSheet('background-color:rgb(255, 255, 255);')
+        button_cross.setIcon(
+            QIcon(os.path.join(sources_images_dir, 'gray_cross.png')))
+        button_cross.clicked.connect(self.reset_search_bar)
+
+        title = Qt.QLabel()
+        title.setText('Search by FileName: ')
+
+        layout.addWidget(title)
 
         search_bar_layout = QHBoxLayout()
-        search_bar_layout.setSpacing(0)
         search_bar_layout.addWidget(self.search_bar)
-        search_bar_layout.addWidget(self.button_cross)
+        search_bar_layout.addSpacing(3)
+        search_bar_layout.addWidget(button_cross)
         #Add layout to dialogBox
         layout.addLayout(search_bar_layout)
+        layout.addSpacing(8)
 
         self.table_data = TableDataBrowser(
             self.project, self, self.project.session.get_shown_tags(), False,
