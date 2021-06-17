@@ -9,8 +9,9 @@ import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
-from ..anasimpleviewer2 import AnaSimpleViewer
-from populse_mia.user_interface.data_viewer import resources
+#from ..anasimpleviewer2 import AnaSimpleViewer
+from populse_mia.user_interface.data_viewer.mia_viewer.anasimpleviewer2 import AnaSimpleViewer
+from populse_mia.user_interface.data_viewer.mia_viewer import resources
 from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
 from populse_mia.user_interface.data_browser.data_browser \
     import TableDataBrowser
@@ -18,8 +19,8 @@ from populse_mia.data_manager.project import TAG_FILENAME, COLLECTION_CURRENT
 import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
-from PyQt5.QtWidgets import (QToolButton, QHBoxLayout)
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
+from PyQt5.QtGui import QIcon, QDoubleValidator
 
 not_defined_value = "*Not Defined*"
 
@@ -41,7 +42,10 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
         #Filter action Icon (find images from the browser)
         filter_action = findChild(awidget, 'filterAction')
+        preferences_action = findChild(awidget, 'actionPreferences')
+
         filter_action.triggered.connect(self.filter_documents)
+        preferences_action.triggered.connect(self.preferences)
 
         layout = Qt.QVBoxLayout()
         self.setLayout(layout)
@@ -56,6 +60,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.documents = []
         self.displayed = []
         self.table_data = []
+        self.im_sec = 5
 
     def display_files(self, files):
         self.displayed += files
@@ -183,3 +188,47 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                                      value))
                 result_names.append(value)
             self.display_files(result_names)
+
+    def preferences(self):
+        dialog = Qt.QDialog()
+        dialog.setWindowTitle('Preferences')
+        dialog.resize(800,500)
+        layout = Qt.QVBoxLayout()
+        dialog.setLayout(layout)
+
+
+        #set automatic time frame rate
+        frame_rate_layout = QHBoxLayout()
+        title = Qt.QLabel()
+        title.setText('Automatic time image display:')
+        line_edit = Qt.QLineEdit()
+        line_edit.setText(str(self.im_sec))
+        line_edit.setValidator(QDoubleValidator(0,50,4))
+        unit = Qt.QLabel()
+        unit.setText('image/s')
+        frame_rate_layout.addWidget(title)
+        frame_rate_layout.addWidget(line_edit)
+        frame_rate_layout.addWidget(unit)
+        frame_rate_layout.insertSpacing(1, 200)
+        layout.addLayout(frame_rate_layout)
+
+        #Save and cancel buttons
+        hlay = Qt.QHBoxLayout()
+        layout.addLayout(hlay)
+        ok = Qt.QPushButton('Save')
+        hlay.addStretch(1)
+        hlay.addWidget(ok)
+        ok.clicked.connect(dialog.accept)
+        ok.setDefault(True)
+        cancel = Qt.QPushButton('Cancel')
+        hlay.addWidget(cancel)
+        cancel.clicked.connect(dialog.reject)
+        hlay.addStretch(1)
+
+        res = dialog.exec_()
+
+        if res == Qt.QDialog.Accepted:
+            if line_edit.isModified():
+                self.im_sec = float(line_edit.text())
+
+            self.anaviewer.setpreferences(self.im_sec)

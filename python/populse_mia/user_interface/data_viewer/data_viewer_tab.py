@@ -36,9 +36,9 @@ class DataViewerTab(Qt.QWidget):
         hlay.addWidget(self.viewers_combo)
         hlay.addStretch(1)
 
-        self.viewers_combo.addItem('Mia_viewer')
         self.viewers_combo.addItem('Anatomist')
-        
+        self.viewers_combo.addItem('Mia_viewer')
+            
         stacks = Qt.QStackedLayout()
         lay.addLayout(stacks)
 
