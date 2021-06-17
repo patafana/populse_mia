@@ -352,8 +352,16 @@
      <string>Help</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionPreferences"/>
+    <addaction name="separator"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuEdit"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
@@ -379,6 +387,7 @@
    </attribute>
    <addaction name="fileOpenAction"/>
    <addaction name="filterAction"/>
+   <addaction name="actionPreferences"/>
    <addaction name="editAddAction"/>
    <addaction name="editRemoveAction"/>
    <addaction name="editDeleteAction"/>
@@ -387,6 +396,7 @@
    <addaction name="actionSagittal"/>
    <addaction name="actionCoronal"/>
    <addaction name="action3D"/>
+   <addaction name="actionTimeRunning"/>
   </widget>
   <action name="filterAction">
    <property name="icon">
@@ -554,6 +564,30 @@
    </property>
    <property name="toolTip">
     <string>Show view in 3D</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/settings.png</normaloff>:/settings.png</iconset>
+   </property>
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+  </action>
+  <action name="actionTimeRunning">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="IconResources.qrc">
+     <normaloff>:/bouton-rec.png</normaloff>:/bouton-rec.png</iconset>
+   </property>
+   <property name="text">
+    <string>TimeRunning</string>
+   </property>
+   <property name="toolTip">
+    <string>Display time images automatically by choosing the frame rate in the settings</string>
    </property>
   </action>
  </widget>
