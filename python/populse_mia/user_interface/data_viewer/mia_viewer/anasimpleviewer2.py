@@ -154,6 +154,7 @@ class AnaSimpleViewer(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
+        findChild(awin, 'actionprint_view').triggered.connect(self.changeConfig)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -255,6 +256,15 @@ class AnaSimpleViewer(Qt.QObject):
 
             AnaSimpleViewer._global_handlers_initialized = True
 
+    def changeConfig(self, config):
+        ''' change config depending on user settings
+            (realoads images even if the config hasn't changed)
+        '''
+        a = ana.Anatomist('-b')
+        a.config()['axialConvention'] = config
+        self.newDisplay()
+
+
     def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
     def clickHandler(self, eventName, params):
@@ -298,7 +308,7 @@ class AnaSimpleViewer(Qt.QObject):
             valbox.setVerticalHeaderLabels([''] * (len(self.fusion2d) - 1))
         i = 0
         for obj in self.fusion2d[1:]:
-            # retreive volume value in its own coords system
+            # retreive volume val'radio'ue in its own coords system
             aimsv = ana.cpp.AObjectConverter.aims(obj)
             oref = obj.getReferential()
             tr = a.getTransformation(wref, oref)
@@ -333,8 +343,9 @@ class AnaSimpleViewer(Qt.QObject):
             clip.setOffset(pos[:3])
             clip.notifyObservers()
 
-    def setpreferences(self, im_sec):
+    def setpreferences(self, im_sec, config):
         self.im_sec = im_sec
+        self.changeConfig(config)
 
     def automaticRunning(self):
         a = ana.Anatomist('-b')
@@ -350,7 +361,7 @@ class AnaSimpleViewer(Qt.QObject):
         pos = [float(findChild(self.awidget, 'coordXEdit').text()), float(findChild(self.awidget, 'coordYEdit').text()), float(findChild(self.awidget, 'coordZEdit').text()),]
 
         i = int(float(findChild(self.awidget, 'coordTEdit').text()))
-        if i == 239:
+        if i == nb_images-1:
             i=0
         sources_images_dir = Config().getSourceImageDir()
         playAction = findChild(self.awidget, 'actionTimeRunning')
@@ -517,6 +528,8 @@ class AnaSimpleViewer(Qt.QObject):
             w.focusView()
 
     def checkviews(self):
+        '''Prevent from closing the last view opened
+        '''
         nb_views_checked = 0
         for i in range (len(self.viewButtons)):
             if self.viewButtons[i].isChecked():

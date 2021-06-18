@@ -57,6 +57,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.displayed = []
         self.table_data = []
         self.im_sec = 5
+        self.config = 'neuro'
 
     def display_files(self, files):
         self.displayed += files
@@ -201,6 +202,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
         box.addItem('Radio')
         config_layout.addWidget(title_config)
         config_layout.addWidget(box)
+        if self.config == 'radio':
+            box.setCurrentIndex(1)
 
         #set automatic time frame rate
         frame_rate_layout = QHBoxLayout()
@@ -237,7 +240,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         res = dialog.exec_()
 
         if res == Qt.QDialog.Accepted:
-            if line_edit.isModified():
-                self.im_sec = float(line_edit.text())
+            self.im_sec = float(line_edit.text())
+            self.config = box.currentText().lower()
 
-            self.anaviewer.setpreferences(self.im_sec)
+            self.anaviewer.setpreferences(self.im_sec, self.config)
