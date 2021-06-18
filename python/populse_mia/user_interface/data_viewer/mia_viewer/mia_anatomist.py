@@ -9,7 +9,6 @@ import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
-#from ..anasimpleviewer2 import AnaSimpleViewer
 from populse_mia.user_interface.data_viewer.mia_viewer.anasimpleviewer2 import AnaSimpleViewer
 from populse_mia.user_interface.data_viewer.mia_viewer import resources
 from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
@@ -53,9 +52,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                           Qt.QSizePolicy.Expanding)
         layout.addWidget(self.anaviewer.awidget)
 
-        #comments were for when I tried to display both viewers (must be added as arguments is init too)
-        #self.project = project
-        #self.documents = docs
         self.project = None
         self.documents = []
         self.displayed = []
@@ -64,8 +60,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
     def display_files(self, files):
         self.displayed += files
-        for filename in files:
-            self.anaviewer.loadObject(filename)
+        self.anaviewer.loadObject(files)
 
     def displayed_files(self):
         return self.displayed
@@ -194,8 +189,18 @@ class MiaViewer(Qt.QWidget, DataViewer):
         dialog.setWindowTitle('Preferences')
         dialog.resize(800,500)
         layout = Qt.QVBoxLayout()
+        layout.setContentsMargins(25, 25, 25, 25)
         dialog.setLayout(layout)
 
+        #Change Neuro/Radio configuration
+        config_layout = QHBoxLayout()
+        title_config = Qt.QLabel()
+        title_config.setText('Configuration: ')
+        box = Qt.QComboBox()
+        box.addItem('Neuro')
+        box.addItem('Radio')
+        config_layout.addWidget(title_config)
+        config_layout.addWidget(box)
 
         #set automatic time frame rate
         frame_rate_layout = QHBoxLayout()
@@ -210,7 +215,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
         frame_rate_layout.addWidget(line_edit)
         frame_rate_layout.addWidget(unit)
         frame_rate_layout.insertSpacing(1, 200)
+
+        #Set general vertical layout
+        layout.addLayout(config_layout)
         layout.addLayout(frame_rate_layout)
+        layout.addStretch(1)
 
         #Save and cancel buttons
         hlay = Qt.QHBoxLayout()

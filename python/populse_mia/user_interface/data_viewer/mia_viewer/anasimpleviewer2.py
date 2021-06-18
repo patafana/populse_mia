@@ -55,7 +55,7 @@ from populse_mia.software_properties import Config
 import time
 import PyQt5
 import numpy as np
-
+from PyQt5.QtWidgets import QMessageBox
 # the following imports have to be made after the qApp.startingUp() test
 # since they do instantiate Anatomist for registry to work.
 from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, \
@@ -134,32 +134,15 @@ class AnaSimpleViewer(Qt.QObject):
 
     _global_handlers_initialized = False
 
-    def __init__(self, init_global_handlers=False):
+    def __init__(self, init_global_handlers=True):
         Qt.QObject.__init__(self)
 
         if init_global_handlers:
             self.init_global_handlers()
 
         a = ana.Anatomist('-b')
-        '''
-        uifile = 'anasimpleviewer-qt4.ui'
 
-        # load the anasimpleviewer GUI
-        anasimpleviewerdir = os.path.join(
-            six.text_type(a.anatomistSharedPath()),
-            'anasimpleviewer')
-        cwd = os.getcwd()
-
-        # PyQt4 uic doesn' seem to allow specifying the directory when
-        # looking for icon files: we have no other choice than globally
-        # changing the working directory
-        os.chdir(anasimpleviewerdir)
-        awin = loadUi(os.path.join(anasimpleviewerdir, uifile))
-        os.chdir(cwd)
-        self.awidget = awin
-        '''
         #new ui file for dataviewer
-
         uifile = 'mainwindow.ui'
         cwd = os.getcwd()
         mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/mia_viewer')
@@ -167,10 +150,6 @@ class AnaSimpleViewer(Qt.QObject):
         awin = loadUi(os.path.join(mainwindowdir, uifile))
         os.chdir(cwd)
         self.awidget = awin
-
-
-
-
 
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
@@ -373,14 +352,20 @@ class AnaSimpleViewer(Qt.QObject):
         i = int(float(findChild(self.awidget, 'coordTEdit').text()))
         if i == 239:
             i=0
-        while findChild(self.awidget, 'actionTimeRunning').isChecked() and i<len(list_im):
+        sources_images_dir = Config().getSourceImageDir()
+        playAction = findChild(self.awidget, 'actionTimeRunning')
+        while playAction.isChecked() and i<len(list_im):
+            pauseIcon = QIcon(os.path.join(sources_images_dir, 'pause.png'))
+            playAction.setIcon(pauseIcon)
+            #playIcon.swap(pauseIcon)
             t.setText('%8.3f' % list_im[i])
-            t.update()
             t1 = float(findChild(self.awidget, 'coordTEdit').text())
             a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [t1])
             PyQt5.QtWidgets.QApplication.processEvents()
             time.sleep(frame_rate)
             i +=1
+        playIcon = QIcon(os.path.join(sources_images_dir, 'play.png'))
+        playAction.setIcon(playIcon)
 
     def createWindow(self, wintype='Axial'):
         '''Opens a new window in the windows grid layout.
@@ -553,17 +538,42 @@ class AnaSimpleViewer(Qt.QObject):
             self.addObject(self.displayedObjects[i])
             self.viewReferential(self.displayedObjects[i])
 
-    def loadObject(self, fname):
+    def loadObject(self, files):
         '''Load an object and display it in all anasimpleviewer windows
         '''
         a = ana.Anatomist('-b')
-        obj = a.loadObject(fname)
-        if obj:
-            self.registerObject(obj)
-        # c = ana.cpp.LoadObjectCommand( fname, -1, "", False,
-            #{ 'asynchonous' : True } )
-        # c.objectLoaded.connect( self.objectLoaded )
-        # a.execute( c )
+        i = 0
+        for fname in files:
+            objectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
+                                'objectslist')
+            #test if object has already been imported
+            for w in range (objectlist.count()):
+                if os.path.basename(fname) == objectlist.item(w).text():
+                    msgBox = QMessageBox()
+                    msgBox.setIcon(QMessageBox.Warning)
+                    msgBox.setText("Some of your objects have already been imported")
+                    msgBox.setWindowTitle("Warning")
+                    msgBox.setStandardButtons(QMessageBox.Ok)
+
+                    returnValue = msgBox.exec()
+                    if returnValue == QMessageBox.Ok:
+                        return
+
+            obj = a.loadObject(fname)
+            if obj:
+                if i==0:
+                    self.registerObject(obj)
+                    i +=1
+                else:
+                    objectlist.addItem(obj.name)
+                    # keep it in the global list
+                    self.aobjects.append(obj)
+                    self.colorBackgroundList()
+                    if obj.objectType == 'VOLUME':
+                        # volume are checked for possible adequate colormaps
+                        hints = colormaphints.checkVolume(
+                            ana.cpp.AObjectConverter.aims(obj))
+                        obj.attributed()['colormaphints'] = hints
 
     @QtCore.Slot('anatomist::AObject *', 'const std::string &')
     def objectLoaded(self, obj, filename):
@@ -668,6 +678,7 @@ class AnaSimpleViewer(Qt.QObject):
             self.fusion2d = [f2d] + fusobjs
             # repalette( fusobjs )
             obj = f2d
+
         if obj.objectType == 'VOLUME':
             # choose a good colormap for a single volume
             if 'volume_contents_likelihoods' in obj.attributed():

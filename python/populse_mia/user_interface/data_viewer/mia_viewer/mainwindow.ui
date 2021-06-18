@@ -581,7 +581,7 @@
    </property>
    <property name="icon">
     <iconset resource="IconResources.qrc">
-     <normaloff>:/bouton-rec.png</normaloff>:/bouton-rec.png</iconset>
+     <normaloff>:/play.png</normaloff>:/play.png</iconset>
    </property>
    <property name="text">
     <string>TimeRunning</string>
