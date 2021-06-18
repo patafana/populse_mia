@@ -150,6 +150,8 @@ class Config:
         - isAutoSave: checks if auto-save mode is activated
         - isControlV1: checks if the selected display of the controller is of 
           V1 type
+        - isRadioView: checks if miniviewer in radiological orientation (if
+           not, then it is in neurological orientation)
         - loadConfig: reads the config in the config.yml file
         - saveConfig: saves the config to the config.yml file
         - set_admin_hash: set the password hash
@@ -172,6 +174,8 @@ class Config:
           the mini viewer
         - set_opened_projects: set the opened projects
         - set_projects_save_path: set the folder where the projects are saved
+        - set_radioView: set the orientation in miniviewer (True for
+           radiological, False for neurological orientation)
         - setShowAllSlices: set the "show all slices" checkbox of the mini
           viewer
         - setSourceImageDir: set the source directory for project images
@@ -740,6 +744,17 @@ class Config:
         """
         return self.config.get("control_V1", False)
 
+    def isRadioView(self):
+        """Get if the display in miniviewer is in radiological orientation.
+
+        True for radiolological
+        False for neurological
+
+        :return: boolean
+
+        """
+        return self.config.get("radio_view", True)
+
     def loadConfig(self):
         """Read the config in the config.yml file.
 
@@ -940,6 +955,18 @@ class Config:
         :param: path: string of path
         """
         self.config["projects_save_path"] = path
+        # Then save the modification
+        self.saveConfig()
+
+    def set_radioView(self, radio_view):
+        """Set the radiological orientation in miniviewer.
+
+        True for radiological
+        False for radiological
+
+        :param: radio_view: boolean
+        """
+        self.config["radio_view"] = radio_view
         # Then save the modification
         self.saveConfig()
 

@@ -1909,6 +1909,18 @@ class PopUpPreferences(QDialog):
         h_box_max_thumbnails.addWidget(self.max_thumbnails_box)
         h_box_max_thumbnails.addStretch(1)
 
+        ## Radiological vs neurological orientation in miniviewer data browser
+        self.radioView_checkbox = QCheckBox('', self)
+        self.radioView_label = QLabel("Radiological orientation in miniviewer (data browser)")
+
+        if config.isRadioView() == True:
+            self.radioView_checkbox.setChecked(1)
+
+        h_box_radioView = QtWidgets.QHBoxLayout()
+        h_box_radioView.addWidget(self.radioView_checkbox)
+        h_box_radioView.addWidget(self.radioView_label)
+        h_box_radioView.addStretch(1)
+
         ## Draws graphic objects
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
@@ -1918,6 +1930,7 @@ class PopUpPreferences(QDialog):
         v_box_global.addLayout(h_box_control)
         v_box_global.addWidget(self.max_thumbnails_label)
         v_box_global.addLayout(h_box_max_thumbnails)
+        v_box_global.addLayout(h_box_radioView)
 
         self.groupbox_global.setLayout(v_box_global)
 
@@ -2614,11 +2627,20 @@ class PopUpPreferences(QDialog):
         QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.status_label.setText("Testing configuration ...")
         QCoreApplication.processEvents()
+
         # Auto-save
         if self.save_checkbox.isChecked():
             config.setAutoSave(True)
+
         else:
             config.setAutoSave(False)
+
+        # RadioView in miniviewer (databrowser)
+        if self.radioView_checkbox.isChecked():
+            config.set_radioView(True)
+
+        else:
+            config.set_radioView(False)
 
         # Version 1 controller
         if self.control_checkbox.isChecked():

@@ -128,6 +128,14 @@ class MiniViewer(QWidget):
         self.line_edit_nb_slices.setText(str(self.config.getNbAllSlicesMax()))
         self.line_edit_nb_slices.returnPressed.connect(self.update_nb_slices)
 
+        self.label_orientation = QLabel()
+
+        if self.config.isRadioView() == True:
+            self.label_orientation.setText("Radiological orientation")
+
+        else:
+            self.label_orientation.setText("Neurological orientation")
+
         # All these objects are depending on the number of scans to visualize
         self.im_2D = []
         self.slider_3D = []
@@ -452,9 +460,13 @@ class MiniViewer(QWidget):
         np.clip(im2D, display_min, display_max, im2D)
         # convert to integer display data type. NaNs get converted to 0.
         im2D = im2D.astype(display_type)
+
         # Rotate. Copy array to avoid negative strides (Qt doesn't handle that)
-        #im2D = np.rot90(im2D, 3).copy()
-        im2D = np.rot90(im2D, 1).copy()
+        if self.config.isRadioView() == True:
+            im2D = np.rot90(im2D.T, 2).copy() # radiological
+
+        else:
+            im2D = np.rot90(im2D, 1).copy() # neurological
 
         if im2d_provided:
             return im2D
@@ -577,8 +589,6 @@ class MiniViewer(QWidget):
             for idx, file_path in enumerate(self.file_paths.copy()):
 
                 try:
-                    #self.img.insert(idx, nib.load(file_path))
-                    #chk = nib.load(file_path)
                     chk = nib.as_closest_canonical(nib.load(file_path))
 
                 except nib.filebasedimages.ImageFileError as e:
@@ -776,6 +786,8 @@ class MiniViewer(QWidget):
 
             if self.check_box_slices.isChecked():
                 self.h_box_check_box.addStretch(1)
+                self.h_box_check_box.addWidget(self.label_orientation)
+                self.h_box_check_box.addStretch(1)
                 self.label_nb_slices.setHidden(False)
                 self.line_edit_nb_slices.setHidden(False)
                 self.h_box_check_box.addWidget(self.label_nb_slices)
@@ -784,6 +796,8 @@ class MiniViewer(QWidget):
             else:
                 self.check_box_cursors.setHidden(False)
                 self.h_box_check_box.addWidget(self.check_box_cursors)
+                self.h_box_check_box.addStretch(1)
+                self.h_box_check_box.addWidget(self.label_orientation)
                 self.h_box_check_box.addStretch(1)
                 self.label_nb_slices.setHidden(True)
                 self.line_edit_nb_slices.setHidden(True)
@@ -827,6 +841,12 @@ class MiniViewer(QWidget):
         else:
             self.check_box_slices.setCheckable(True)
         self.show_slices(file_paths)
+
+        if self.config.isRadioView() == True:
+            self.label_orientation.setText("Radiological orientation")
+
+        else:
+            self.label_orientation.setText("Neurological orientation")
 
     # def check_differences(self, file_paths):
     #     old_to_new = []
