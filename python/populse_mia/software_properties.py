@@ -123,6 +123,7 @@ class Config:
         - getPathToProjectsFolder: returns the project's path
         - get_projects_save_path: returns the folder where the projects are
           saved
+        - get_referential: returns boolean to indicate DataViewer referential
         - getShowAllSlices: returns if the "show all slices" checkbox of the
           mini viewer is activated
         - getSourceImageDir: get the source directory for project images
@@ -178,6 +179,7 @@ class Config:
         - set_projects_save_path: set the folder where the projects are saved
         - set_radioView: set the orientation in miniviewer (True for
            radiological, False for neurological orientation)
+        - set_referential: sets the DataViewer referential 
         - setShowAllSlices: set the "show all slices" checkbox of the mini
           viewer
         - setSourceImageDir: set the source directory for project images
@@ -612,6 +614,13 @@ class Config:
                 os.mkdir(os.path.join(self.get_mia_path(), 'projects'))
             return os.path.join(self.get_mia_path(), 'projects')
 
+    def get_referential(self):
+        """ checks in dataViewer which referential has been chosen by user
+
+        :return: boolean
+        """
+        return self.config.get("ref", "0")
+
     def get_spm_path(self):
         """Get the path of SPM12.
 
@@ -987,6 +996,19 @@ class Config:
         :param: radio_view: boolean
         """
         self.config["radio_view"] = radio_view
+        # Then save the modification
+        self.saveConfig()
+
+    def set_referential(self, ref):
+        """Set the referential to image ref or world coordinates
+
+        True for Image ref
+        False for World Coordinates
+
+        :param: ref: boolean
+
+        """
+        self.config["ref"] = ref
         # Then save the modification
         self.saveConfig()
 

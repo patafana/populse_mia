@@ -211,6 +211,7 @@ class AnaSimpleViewer(Qt.QObject):
         self.control_3d_type = 'LeftSimple3DControl'
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.displayedObjects = []
+        self.files = []
 
         findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
@@ -237,9 +238,9 @@ class AnaSimpleViewer(Qt.QObject):
             cd.addControl('VolRenderControl', VolRenderControl, 25)
 
             # tweak: override some user config options
-            a.config()['setAutomaticReferential'] = 0
+            a.config()['setAutomaticReferential'] = Config().get_referential()
             a.config()['windowSizeFactor'] = 1.
-            a.config()['axialConvention'] = 'neuro'
+            a.config()['axialConvention'] = Config().getViewerConfig()
             a.config()['commonScannerBasedReferential'] = 1
 
             # register controls
@@ -255,14 +256,21 @@ class AnaSimpleViewer(Qt.QObject):
 
             AnaSimpleViewer._global_handlers_initialized = True
 
-    def changeConfig(self, config):
+    def changeConfig(self, config, ref):
         ''' change config depending on user settings
-            (realoads images even if the config hasn't changed)
+            (realoads images even if the config hasn't changed, doesn't reload for referential for now)
+            config : string "neuro" or "radio"
+            ref : Boolean
+            0 : World coordinates
+            1 : Image referential
         '''
+        object = []
         a = ana.Anatomist('-b')
+        a.config()['setAutomaticReferential'] = ref
         a.config()['axialConvention'] = config
-        self.newDisplay()
-
+        object.append(self.aobjects[0])
+        self.deleteObjects(self.aobjects)
+        self.loadObject(self.files, config_changed = True)
 
     def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
@@ -363,7 +371,6 @@ class AnaSimpleViewer(Qt.QObject):
             i=0
         playAction = findChild(self.awidget, 'actionTimeRunning')
         while playAction.isChecked() and i<len(list_im):
-            #Change Icon
             playAction.setIcon(pauseIcon)
             t.setText('%8.3f' % list_im[i])
             a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [list_im[i]])
@@ -545,17 +552,21 @@ class AnaSimpleViewer(Qt.QObject):
             self.addObject(self.displayedObjects[i])
             self.viewReferential(self.displayedObjects[i])
 
-    def loadObject(self, files):
+    def loadObject(self, files, config_changed = None):
         '''Load an object and display it in all anasimpleviewer windows
         '''
         a = ana.Anatomist('-b')
         i = 0
+        for j in range(len(files)):
+            self.files.append(files[j])
         for fname in files:
             objectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
                                 'objectslist')
             #test if object has already been imported
             for w in range (objectlist.count()):
                 if os.path.basename(fname) == objectlist.item(w).text():
+                    if config_changed == True:
+                        return
                     msgBox = QMessageBox()
                     msgBox.setIcon(QMessageBox.Warning)
                     msgBox.setText("Some of your objects have already been imported")
@@ -583,6 +594,7 @@ class AnaSimpleViewer(Qt.QObject):
                         obj.attributed()['colormaphints'] = hints
 
     @QtCore.Slot('anatomist::AObject *', 'const std::string &')
+
     def objectLoaded(self, obj, filename):
         a = ana.Anatomist('-b')
         if not obj:

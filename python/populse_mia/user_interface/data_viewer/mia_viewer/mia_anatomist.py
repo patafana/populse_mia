@@ -190,10 +190,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
         #Get initial config:
         im_sec = Config().getViewerFramerate()
         config = Config().getViewerConfig()
+        ref = Config().get_referential()
 
         dialog = Qt.QDialog()
         dialog.setWindowTitle('Preferences')
-        dialog.resize(800,500)
+        dialog.resize(600,400)
         layout = Qt.QVBoxLayout()
         layout.setContentsMargins(25, 25, 25, 25)
         dialog.setLayout(layout)
@@ -224,9 +225,21 @@ class MiaViewer(Qt.QWidget, DataViewer):
         frame_rate_layout.addWidget(unit)
         frame_rate_layout.insertSpacing(1, 200)
 
+        #Change referential
+        ref_layout = QHBoxLayout()
+        title_ref = Qt.QLabel()
+        title_ref.setText('Referential: ')
+        box2 = Qt.QComboBox()
+        box2.addItem('World Coordinates')
+        box2.addItem('Image referential')
+        ref_layout.addWidget(title_ref)
+        ref_layout.addWidget(box2)
+        box2.setCurrentIndex(int(ref))
+
         #Set general vertical layout
         layout.addLayout(config_layout)
         layout.addLayout(frame_rate_layout)
+        layout.addLayout(ref_layout)
         layout.addStretch(1)
 
         #Save and cancel buttons
@@ -247,8 +260,10 @@ class MiaViewer(Qt.QWidget, DataViewer):
         if res == Qt.QDialog.Accepted:
             im_sec = float(line_edit.text())
             config = box.currentText().lower()
+            ref = box2.currentIndex()
 
             #Save Config parameters
             Config().setViewerFramerate(im_sec)
             Config().setViewerConfig(config)
-            self.anaviewer.changeConfig(config)
+            Config().set_referential(ref)
+            self.anaviewer.changeConfig(config, ref)
