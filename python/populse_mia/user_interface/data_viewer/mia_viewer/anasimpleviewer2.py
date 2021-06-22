@@ -364,8 +364,7 @@ class AnaSimpleViewer(Qt.QObject):
         playAction = findChild(self.awidget, 'actionTimeRunning')
         while playAction.isChecked() and i<len(list_im):
             #Change Icon
-            #playAction.setIcon(pauseIcon)
-
+            playAction.setIcon(pauseIcon)
             t.setText('%8.3f' % list_im[i])
             a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [list_im[i]])
             PyQt5.QtWidgets.QApplication.processEvents()
