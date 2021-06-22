@@ -58,7 +58,7 @@ import numpy as np
 from PyQt5.QtWidgets import QMessageBox
 # the following imports have to be made after the qApp.startingUp() test
 # since they do instantiate Anatomist for registry to work.
-from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, \
+from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, ResetFOVAction, \
     registerSimpleControls
 
 
@@ -154,7 +154,7 @@ class AnaSimpleViewer(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        findChild(awin, 'actionprint_view').triggered.connect(self.changeConfig)
+        #findChild(awin, 'actionprint_view').triggered.connect(self.resetFOV)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -211,7 +211,6 @@ class AnaSimpleViewer(Qt.QObject):
         self.control_3d_type = 'LeftSimple3DControl'
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.displayedObjects = []
-        self.im_sec = 5
 
         findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
@@ -238,7 +237,7 @@ class AnaSimpleViewer(Qt.QObject):
             cd.addControl('VolRenderControl', VolRenderControl, 25)
 
             # tweak: override some user config options
-            a.config()['setAutomaticReferential'] = 1
+            a.config()['setAutomaticReferential'] = 0
             a.config()['windowSizeFactor'] = 1.
             a.config()['axialConvention'] = 'neuro'
             a.config()['commonScannerBasedReferential'] = 1
@@ -343,39 +342,35 @@ class AnaSimpleViewer(Qt.QObject):
             clip.setOffset(pos[:3])
             clip.notifyObservers()
 
-    def setpreferences(self, im_sec, config):
-        self.im_sec = im_sec
-        self.changeConfig(config)
-
     def automaticRunning(self):
         a = ana.Anatomist('-b')
         objects = []
-        frame_rate = 1/self.im_sec
+        im_sec = Config().getViewerFramerate()
+        frame_rate = 1/im_sec
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
         t = findChild(self.awidget, 'coordTEdit')
+        sources_images_dir = Config().getSourceImageDir()
+        pauseIcon = QIcon(os.path.join(sources_images_dir, 'pause.png'))
+        playIcon = QIcon(os.path.join(sources_images_dir, 'play.png'))
 
         for i in range (len(self.displayedObjects)):
             objects.append(ana.cpp.AObjectConverter.aims(self.displayedObjects[i]).dimT())
         nb_images = np.max(objects)
         list_im = list(range(0, nb_images))
         pos = [float(findChild(self.awidget, 'coordXEdit').text()), float(findChild(self.awidget, 'coordYEdit').text()), float(findChild(self.awidget, 'coordZEdit').text()),]
-
         i = int(float(findChild(self.awidget, 'coordTEdit').text()))
         if i == nb_images-1:
             i=0
-        sources_images_dir = Config().getSourceImageDir()
         playAction = findChild(self.awidget, 'actionTimeRunning')
         while playAction.isChecked() and i<len(list_im):
-            pauseIcon = QIcon(os.path.join(sources_images_dir, 'pause.png'))
-            playAction.setIcon(pauseIcon)
-            #playIcon.swap(pauseIcon)
+            #Change Icon
+            #playAction.setIcon(pauseIcon)
+
             t.setText('%8.3f' % list_im[i])
-            t1 = float(findChild(self.awidget, 'coordTEdit').text())
-            a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [t1])
+            a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [list_im[i]])
             PyQt5.QtWidgets.QApplication.processEvents()
             time.sleep(frame_rate)
             i +=1
-        playIcon = QIcon(os.path.join(sources_images_dir, 'play.png'))
         playAction.setIcon(playIcon)
 
     def createWindow(self, wintype='Axial'):
@@ -620,6 +615,7 @@ class AnaSimpleViewer(Qt.QObject):
         self.colorBackgroundList()
         if obj.objectType == 'VOLUME':
             # volume are checked for possible adequate colormaps
+            #prints the header of volume ana.cpp.AObjectConverter.aims(obj)
             hints = colormaphints.checkVolume(
                 ana.cpp.AObjectConverter.aims(obj))
             obj.attributed()['colormaphints'] = hints

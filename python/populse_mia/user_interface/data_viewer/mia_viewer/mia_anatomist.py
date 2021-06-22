@@ -19,7 +19,7 @@ import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
 from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
-from PyQt5.QtGui import QIcon, QDoubleValidator
+from PyQt5.QtGui import QIcon, QIntValidator
 
 not_defined_value = "*Not Defined*"
 
@@ -186,6 +186,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
             self.display_files(result_names)
 
     def preferences(self):
+
+        #Get initial config:
+        im_sec = Config().getViewerFramerate()
+        config = Config().getViewerConfig()
+
         dialog = Qt.QDialog()
         dialog.setWindowTitle('Preferences')
         dialog.resize(800,500)
@@ -202,7 +207,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         box.addItem('Radio')
         config_layout.addWidget(title_config)
         config_layout.addWidget(box)
-        if self.config == 'radio':
+        if config == 'radio':
             box.setCurrentIndex(1)
 
         #set automatic time frame rate
@@ -210,8 +215,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
         title = Qt.QLabel()
         title.setText('Automatic time image display:')
         line_edit = Qt.QLineEdit()
-        line_edit.setText(str(self.im_sec))
-        line_edit.setValidator(QDoubleValidator(0,50,4))
+        line_edit.setText(str(im_sec))
+        line_edit.setValidator(QIntValidator(1,100))
         unit = Qt.QLabel()
         unit.setText('image/s')
         frame_rate_layout.addWidget(title)
@@ -240,7 +245,10 @@ class MiaViewer(Qt.QWidget, DataViewer):
         res = dialog.exec_()
 
         if res == Qt.QDialog.Accepted:
-            self.im_sec = float(line_edit.text())
-            self.config = box.currentText().lower()
+            im_sec = float(line_edit.text())
+            config = box.currentText().lower()
 
-            self.anaviewer.setpreferences(self.im_sec, self.config)
+            #Save Config parameters
+            Config().setViewerFramerate(im_sec)
+            Config().setViewerConfig(config)
+            self.anaviewer.changeConfig(config)
