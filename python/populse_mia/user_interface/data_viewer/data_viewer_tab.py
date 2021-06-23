@@ -89,9 +89,6 @@ class DataViewerTab(Qt.QWidget):
         self.activate_viewer(viewer_name)
 
     def activate_viewer(self, viewer_name):
-
-        print('\nprout viewer_name: ', viewer_name)
-
         if self.viewer_name == viewer_name:
             return
         print('\n- Activate viewer:', viewer_name)
