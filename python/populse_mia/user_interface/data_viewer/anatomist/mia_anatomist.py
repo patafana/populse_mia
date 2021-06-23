@@ -104,7 +104,3 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                                      value))
                 result_names.append(value)
             self.display_files(result_names)
-
-
-
-
