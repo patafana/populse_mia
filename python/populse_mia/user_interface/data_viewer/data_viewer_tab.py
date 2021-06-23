@@ -9,7 +9,7 @@ Contains:
 """
 
 from soma.qt_gui.qt_backend import Qt
-import anatomist.direct.api as ana
+#import anatomist.direct.api as ana
 import importlib
 import os
 import traceback
@@ -38,7 +38,10 @@ class DataViewerTab(Qt.QWidget):
 
         self.viewers_combo.addItem('Anatomist')
         self.viewers_combo.addItem('Mia_viewer')
-            
+        self.viewers_combo.activated.connect(self.viewer_activated)
+        lay.addStretch(1)
+
+        """
         stacks = Qt.QStackedLayout()
         lay.addLayout(stacks)
 
@@ -65,18 +68,15 @@ class DataViewerTab(Qt.QWidget):
         stacks.addWidget(self.viewer_miaViewer)
 
         self.stacks = stacks
+        """
+        
         self.layout = lay
         self.viewer_name = None
         self.viewer = None
         self.project = []
         self.docs = []
 
-        self.viewers_combo.currentIndexChanged.connect(self.change_viewer)
-
-    def change_viewer(self):
-        index = self.viewers_combo.currentIndex()
-        self.viewer_activated(index)
-        self.set_documents(self.project, self.docs)
+        #self.viewers_combo.currentIndexChanged.connect(self.change_viewer)
 
     def current_viewer(self):
         if self.viewer_name is None:
@@ -87,6 +87,48 @@ class DataViewerTab(Qt.QWidget):
     def viewer_activated(self, index):
         viewer_name = self.viewers_combo.itemText(index).lower()
         self.activate_viewer(viewer_name)
+
+    def activate_viewer(self, viewer_name):
+
+        print('\nprout viewer_name: ', viewer_name)
+
+        if self.viewer_name == viewer_name:
+            return
+        print('\n- Activate viewer:', viewer_name)
+        try:
+            viewer_module = importlib.import_module(
+                '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
+            viewer = viewer_module.MiaViewer()
+
+            if viewer_name == 'mia_viewer':              # to be removed when
+                self.viewers_combo.setCurrentIndex(0)    # mia_viewer will be
+                raise ImportError                        # stable and on master
+            
+        except ImportError:
+            print('viewer %s is not available or not working.' % viewer_name)
+            return
+        if self.viewer is not None:
+            self.viewer.deleteLater()
+            del self.viewer
+        self.viewer_name = viewer_name
+        self.viewer = viewer
+        self.layout.insertWidget(1, viewer)
+
+    def set_documents(self, project, documents):
+        if self.viewer:
+            self.viewer.set_documents(project, documents)
+            self.project = project
+            self.docs = documents
+
+
+
+
+        
+    """
+    def change_viewer(self):
+        index = self.viewers_combo.currentIndex()
+        self.viewer_activated(index)
+        self.set_documents(self.project, self.docs)
 
     def activate_viewer(self, viewer_name):
         if self.viewer_name == viewer_name:
@@ -100,9 +142,4 @@ class DataViewerTab(Qt.QWidget):
             viewer = self.viewer_miaViewer
         self.stacks.setCurrentWidget(viewer)
         self.viewer = viewer
-
-    def set_documents(self, project, documents):
-        if self.viewer:
-            self.viewer.set_documents(project, documents)
-            self.project = project
-            self.docs = documents
+    """
