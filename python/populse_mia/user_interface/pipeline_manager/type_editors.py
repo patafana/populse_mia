@@ -3,7 +3,7 @@ from soma.qt_gui.controls.Directory import DirectoryControlWidget
 from soma.qt_gui.controls.List_File_offscreen \
     import OffscreenListFileControlWidget
 from soma.qt_gui import controller_widget
-from soma.qt_gui.qt_backend import Qt, QtGui
+from soma.qt_gui.qt_backend import Qt, QtGui, QtWidgets
 from functools import partial
 from soma.utils.weak_proxy import weak_proxy
 import traits.api as traits
@@ -72,7 +72,6 @@ class PopulseFileControlWidget(FileControlWidget):
             browse_hook = partial(
                 control_class.filter_clicked, weak_proxy(widget), node_name,
                 control_name)
-                                    #parameters, process)
             widget.filter_b.clicked.connect(browse_hook)
 
         return (widget, label)
@@ -98,6 +97,7 @@ class PopulseFileControlWidget(FileControlWidget):
                                    main_window)
         widget.pop_up.setWindowModality(Qt.Qt.WindowModal)
         widget.pop_up.show()
+
         widget.pop_up.plug_value_changed.connect(
             partial(PopulseFileControlWidget.update_plug_value_from_filter,
                     widget, plug_name))
@@ -112,10 +112,22 @@ class PopulseFileControlWidget(FileControlWidget):
         # If the list contains only one element, setting
         # this element as the plug value
         len_list = len(filter_res_list)
-        if len_list >= 1:
+
+        if len_list == 1:
             res = filter_res_list[0]
+
         else:
             res = traits.Undefined
+
+            if len_list > 1:
+                msg = QtWidgets.QMessageBox()
+                msg.setText("The '{0}' parameter must by a filename, "
+                            "but a value of {1} <class \'list\'> was "
+                            "specified.".format(plug_name, filter_res_list))
+                msg.setIcon(QtWidgets.QMessageBox.Warning)
+                msg.setWindowTitle('TraitError')
+                msg.exec_()
+                res = traits.Undefined
 
         # Set the selected file path to the path sub control
         widget.path.set_value(six.text_type(res))
