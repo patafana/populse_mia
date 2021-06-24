@@ -264,11 +264,9 @@ class AnaSimpleViewer(Qt.QObject):
             0 : World coordinates
             1 : Image referential
         '''
-        object = []
         a = ana.Anatomist('-b')
         a.config()['setAutomaticReferential'] = ref
         a.config()['axialConvention'] = config
-        object.append(self.aobjects[0])
         self.deleteObjects(self.aobjects)
         self.loadObject(self.files, config_changed = True)
 
@@ -556,10 +554,18 @@ class AnaSimpleViewer(Qt.QObject):
         '''Load an object and display it in all anasimpleviewer windows
         '''
         a = ana.Anatomist('-b')
+        
+        #Progress indication
+        window = Qt.QWidget()
+        window.setWindowTitle('Loading data')
+        window.move(800, 500)
+        window.resize(300,50)
+        window.show()
+
         i = 0
-        for j in range(len(files)):
-            self.files.append(files[j])
         for fname in files:
+            if fname not in self.files:
+                self.files.append(fname)
             objectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
                                 'objectslist')
             #test if object has already been imported
@@ -592,6 +598,7 @@ class AnaSimpleViewer(Qt.QObject):
                         hints = colormaphints.checkVolume(
                             ana.cpp.AObjectConverter.aims(obj))
                         obj.attributed()['colormaphints'] = hints
+                    i +=1
 
     @QtCore.Slot('anatomist::AObject *', 'const std::string &')
 
