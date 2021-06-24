@@ -92,15 +92,17 @@ class DataViewerTab(Qt.QWidget):
         if self.viewer_name == viewer_name:
             return
         print('\n- Activate viewer:', viewer_name)
+
         try:
-            viewer_module = importlib.import_module(
-                '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
-            viewer = viewer_module.MiaViewer()
 
             if viewer_name == 'mia_viewer':              # to be removed when
                 self.viewers_combo.setCurrentIndex(0)    # mia_viewer will be
                 raise ImportError                        # stable and on master
-            
+
+            viewer_module = importlib.import_module(
+                '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
+            viewer = viewer_module.MiaViewer()
+
         except ImportError:
             print('viewer %s is not available or not working.' % viewer_name)
             return
