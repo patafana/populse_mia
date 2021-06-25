@@ -29,17 +29,16 @@ class MiaViewer(Qt.QWidget, DataViewer):
     implementation based on `PyAnatomist <http://brainvisa.info/pyanatomist/sphinx/index.html>`_
     '''
 
-    def __init__(self):
+    def __init__(self, init_global_handlers = None):
 
         super(MiaViewer, self).__init__()
 
-        self.anaviewer = AnaSimpleViewer()
+        self.anaviewer = AnaSimpleViewer(init_global_handlers)
 
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
         awidget = self.anaviewer.awidget
 
-        #Filter action Icon (find images from the browser)
         filter_action = findChild(awidget, 'filterAction')
         preferences_action = findChild(awidget, 'actionPreferences')
 

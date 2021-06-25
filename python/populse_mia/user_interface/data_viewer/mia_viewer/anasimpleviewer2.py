@@ -60,6 +60,7 @@ from PyQt5.QtWidgets import QMessageBox
 # since they do instantiate Anatomist for registry to work.
 from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, ResetFOVAction, \
     registerSimpleControls
+import importlib
 
 
 class LeftSimple3DControl(Simple2DControl):
@@ -137,10 +138,13 @@ class AnaSimpleViewer(Qt.QObject):
     def __init__(self, init_global_handlers=True):
         Qt.QObject.__init__(self)
 
+        a = ana.Anatomist('-b')
+
         if init_global_handlers:
             self.init_global_handlers()
-
-        a = ana.Anatomist('-b')
+        else:
+            a.config()['setAutomaticReferential'] = Config().get_referential()
+            a.config()['axialConvention'] = Config().getViewerConfig()
 
         #new ui file for dataviewer
         uifile = 'mainwindow.ui'
@@ -554,7 +558,7 @@ class AnaSimpleViewer(Qt.QObject):
         '''Load an object and display it in all anasimpleviewer windows
         '''
         a = ana.Anatomist('-b')
-        
+
         #Progress indication
         window = Qt.QWidget()
         window.setWindowTitle('Loading data')

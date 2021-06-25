@@ -751,7 +751,7 @@ class MainWindow(QMainWindow):
 
                 #I don't understand why files from raw_data are automatically
                 #transferred to derived_data. I comment on this feature in the
-                #next 3 lines. We can uncomment if this action makes sense ...   
+                #next 3 lines. We can uncomment if this action makes sense ...
                 #if not file_in_database:
                 #    os.rename(filename, filename.replace("raw_data",
                 #                                         "derived_data"))
@@ -1242,7 +1242,7 @@ class MainWindow(QMainWindow):
         elif self.tabs.tabText(
                 self.tabs.currentIndex()).replace("&",
                                                   "", 1) == 'Data Viewer':
-            self.data_viewer.activate_viewer(self.data_viewer.current_viewer())
+            self.data_viewer.load_viewer(self.data_viewer.current_viewer())
             documents = self.project.session.get_documents_names(
                 COLLECTION_CURRENT)
             self.data_viewer.set_documents(self.project, documents)
