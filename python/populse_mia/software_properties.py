@@ -123,6 +123,7 @@ class Config:
         - getPathToProjectsFolder: returns the project's path
         - get_projects_save_path: returns the folder where the projects are
           saved
+        - get_referential: returns boolean to indicate DataViewer referential
         - getShowAllSlices: returns if the "show all slices" checkbox of the
           mini viewer is activated
         - getSourceImageDir: get the source directory for project images
@@ -131,6 +132,8 @@ class Config:
           version)
         - getTextColor: return the text color
         - getThumbnailTag: returns the tag that is displayed in the mini viewer
+        - getViewerConfig: returns the DataViewer configuration (neuro or radio), by default neuro
+        - getViewerFramerate: returns the DataViewer framerate for automatic time running images
         - get_use_fsl: returns the value of "use fsl" checkbox in the
           preferences
         - get_use_matlab: returns the value of "use matlab" checkbox in the
@@ -148,7 +151,7 @@ class Config:
         - getPathToProjectsDBFile: returns the already-saved projects's path
           (currently commented)
         - isAutoSave: checks if auto-save mode is activated
-        - isControlV1: checks if the selected display of the controller is of 
+        - isControlV1: checks if the selected display of the controller is of
           V1 type
         - isRadioView: checks if miniviewer in radiological orientation (if
            not, then it is in neurological orientation)
@@ -176,6 +179,7 @@ class Config:
         - set_projects_save_path: set the folder where the projects are saved
         - set_radioView: set the orientation in miniviewer (True for
            radiological, False for neurological orientation)
+        - set_referential: sets the DataViewer referential 
         - setShowAllSlices: set the "show all slices" checkbox of the mini
           viewer
         - setSourceImageDir: set the source directory for project images
@@ -183,6 +187,8 @@ class Config:
         - set_spm_standalone_path: set the path of SPM12 (standalone version)
         - setTextColor: set the text color
         - setThumbnailTag: set the tag that is displayed in the mini viewer
+        - setViewerConfig: set the Viewer configuration neuro or radio
+        - setViewerFramerate: set the Viewer frame rate for automatic running time images
         - set_use_fsl: set the value of "use fsl" checkbox in the preferences
         - set_use_matlab: set the value of "use matlab" checkbox in the
           preferences
@@ -262,7 +268,7 @@ class Config:
 
         else:
             sconf.update(dict(use_fsl=False))
-        
+
         if use_spm_standalone and os.path.exists(
                 spm_standalone_path) and os.path.exists(
                     matlab_standalone_path):
@@ -349,12 +355,12 @@ class Config:
 
         try:
             study_config.import_from_dict(capsul_config.get('study_config', {}))
-            
+
         except Exception as exc:
             print("\nAn issue is detected in the Mia's configuration"
                   ":\n{}\nPlease check the settings in File > Mia "
                   "Preferences > Pipeline ...".format(exc))
-    
+
         else:
             engine_config = capsul_config.get('engine')
 
@@ -362,7 +368,7 @@ class Config:
 
                 for environment, config in engine_config.items():
                     c = dict(config)
-                    
+
                     if ('capsul_engine' not in c or
                                               'uses' not in c['capsul_engine']):
                         c['capsul_engine'] = {
@@ -608,6 +614,13 @@ class Config:
                 os.mkdir(os.path.join(self.get_mia_path(), 'projects'))
             return os.path.join(self.get_mia_path(), 'projects')
 
+    def get_referential(self):
+        """ checks in dataViewer which referential has been chosen by user
+
+        :return: boolean
+        """
+        return self.config.get("ref", "0")
+
     def get_spm_path(self):
         """Get the path of SPM12.
 
@@ -727,6 +740,22 @@ class Config:
 
         """
         return self.config.get("thumbnail_tag", "SequenceName")
+
+    def getViewerConfig(self):
+        """ Get the viewer config neuro or radio, neuro by default_flow_style
+
+        :return: String
+
+        """
+        return self.config.get("config_NeuRad", "neuro")
+
+    def getViewerFramerate(self):
+        """Get the Viewer framerate
+
+        :return: integer
+
+        """
+        return self.config.get("im_sec", "5")
 
     def isAutoSave(self):
         """Get if the auto-save mode is enabled or not.
@@ -970,6 +999,19 @@ class Config:
         # Then save the modification
         self.saveConfig()
 
+    def set_referential(self, ref):
+        """Set the referential to image ref or world coordinates
+
+        True for Image ref
+        False for World Coordinates
+
+        :param: ref: boolean
+
+        """
+        self.config["ref"] = ref
+        # Then save the modification
+        self.saveConfig()
+
     def set_spm_path(self, path):
         """Set the path of SPM12 (license version).
 
@@ -1122,6 +1164,27 @@ class Config:
         self.config["thumbnail_tag"] = thumbnail_tag
         # Then save the modification
         self.saveConfig()
+
+    def setViewerConfig(self, config_NeuRad):
+        """sets user's configuration neuro or radio for data_viewer
+
+        :param: config_NeuRad: string
+
+        """
+        self.config["config_NeuRad"] = config_NeuRad
+        # Then save the modification
+        self.saveConfig()
+
+    def setViewerFramerate(self, im_sec):
+        """sets user's framerate for data_viewer
+
+        :param: im_sec: int
+
+        """
+        self.config["im_sec"] = im_sec
+        # Then save the modification
+        self.saveConfig()
+
 
     # def set_mia_path(self, path):
     #     """
