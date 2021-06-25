@@ -97,19 +97,19 @@ class DataViewerTab(Qt.QWidget):
                 print('{0}: {1}\n'.format(e.__class__.__name__, e))
                 return
 
-        #Try import mia_viewer
-        if 'mia_viewer' not in self.viewers:
+        #Try import anatomist_2
+        if 'anatomist_2' not in self.viewers:
             try:
-                viewer_name = 'mia_viewer'
+                viewer_name = 'anatomist_2'
                 viewer_module = importlib.import_module(
                 '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
-                self.viewer_miaViewer = viewer_module.MiaViewer(init_global_handlers)
-                self.stacks.addWidget(self.viewer_miaViewer)
-                self.viewers_combo.addItem('Mia_viewer')
-                self.viewers.append('mia_viewer')
+                self.viewer_anatomist_2 = viewer_module.MiaViewer(init_global_handlers)
+                self.stacks.addWidget(self.viewer_anatomist_2)
+                self.viewers_combo.addItem('Anatomist_2')
+                self.viewers.append('anatomist_2')
 
             except (ImportError):
-                print('import error of mia viewer')
+                print('import error of anatomist_2 viewer')
                 pass
 
             except Exception as e:
@@ -129,8 +129,8 @@ class DataViewerTab(Qt.QWidget):
 
         if viewer_name == 'anatomist':
             viewer = self.viewer_anatomist
-        if viewer_name == 'mia_viewer':
-            viewer = self.viewer_miaViewer
+        if viewer_name == 'anatomist_2':
+            viewer = self.viewer_anatomist_2
 
         if viewer:
             self.stacks.setCurrentWidget(viewer)

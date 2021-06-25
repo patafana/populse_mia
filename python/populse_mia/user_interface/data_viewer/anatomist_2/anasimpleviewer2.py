@@ -110,7 +110,7 @@ class VolRenderControl(LeftSimple3DControl):
             pool.action('TrackCutAction').endTrackball, True)
 
 
-class AnaSimpleViewer(Qt.QObject):
+class AnaSimpleViewer2(Qt.QObject):
     '''
     AnaSimpleViewer is a "simple viewer" application and widget, which can be
     used using the "anasimpleviewer.py" command, or included in a custom widget
@@ -149,7 +149,7 @@ class AnaSimpleViewer(Qt.QObject):
         #new ui file for dataviewer
         uifile = 'mainwindow.ui'
         cwd = os.getcwd()
-        mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/mia_viewer')
+        mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/anatomist_2')
         os.chdir(mainwindowdir)
         awin = loadUi(os.path.join(mainwindowdir, uifile))
         os.chdir(cwd)

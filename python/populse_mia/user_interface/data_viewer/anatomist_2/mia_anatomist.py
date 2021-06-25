@@ -9,8 +9,8 @@ import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
-from populse_mia.user_interface.data_viewer.mia_viewer.anasimpleviewer2 import AnaSimpleViewer
-from populse_mia.user_interface.data_viewer.mia_viewer import resources
+from populse_mia.user_interface.data_viewer.anatomist_2.anasimpleviewer2 import AnaSimpleViewer2
+from populse_mia.user_interface.data_viewer.anatomist_2 import resources
 from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
 from populse_mia.user_interface.data_browser.data_browser \
     import TableDataBrowser
@@ -33,7 +33,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
         super(MiaViewer, self).__init__()
 
-        self.anaviewer = AnaSimpleViewer(init_global_handlers)
+        self.anaviewer = AnaSimpleViewer2(init_global_handlers)
 
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
