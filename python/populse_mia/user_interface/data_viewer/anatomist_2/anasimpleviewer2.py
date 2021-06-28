@@ -887,7 +887,6 @@ class AnaSimpleViewer2(Qt.QObject):
         if obj in self.displayedObjects:
             self.displayedObjects.remove(obj)
         self.disableButtons()
-        print('pass heeeeeeeeeeeeeeeeeeeeere')
         if obj.objectType == 'VOLUME':
             self.removeVolume(obj)
         elif obj.objectType == 'SURFACE':
@@ -911,9 +910,11 @@ class AnaSimpleViewer2(Qt.QObject):
         res = self.fdialog.exec_()
         if res:
             fnames = self.fdialog.selectedFiles()
+            files = []
             for fname in fnames:
                 print(six.text_type(fname))
-                self.loadObject(six.text_type(fname))
+                files.append(six.text_type(fname))
+            self.loadObject(files)
 
     def selectedObjects(self):
         '''list of objects selected in the list box on the upper left panel
