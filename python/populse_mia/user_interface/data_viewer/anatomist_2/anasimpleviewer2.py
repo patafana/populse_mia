@@ -355,7 +355,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def automaticRunning(self):
         a = ana.Anatomist('-b')
         objects = []
-        im_sec = Config().getViewerFramerate()
+        im_sec = float(Config().getViewerFramerate())
         frame_rate = 1/im_sec
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
         t = findChild(self.awidget, 'coordTEdit')
