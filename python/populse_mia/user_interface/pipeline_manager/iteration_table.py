@@ -266,8 +266,14 @@ class IterationTable(QWidget):
             self.project,
             self.project.session.get_fields_names(COLLECTION_CURRENT),
             self.iterated_tag)
+
         if ui_select.exec_():
-            self.update_iterated_tag(ui_select.selected_tag)
+
+            if self.iterated_tag is None and ui_select.selected_tag is None:
+                pass
+
+            else:
+                self.update_iterated_tag(ui_select.selected_tag)
 
     def filter_values(self):
         iterated_tag = self.iterated_tag
