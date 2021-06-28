@@ -258,11 +258,15 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
         if res == Qt.QDialog.Accepted:
             im_sec = float(line_edit.text())
-            config = box.currentText().lower()
-            ref = box2.currentIndex()
+            new_config = box.currentText().lower()
+            new_ref = box2.currentIndex()
 
-            #Save Config parameters
+            #Save Config parameters and reload images
+            #when config and referential have changed
             Config().setViewerFramerate(im_sec)
-            Config().setViewerConfig(config)
-            Config().set_referential(ref)
-            self.anaviewer.changeConfig(config, ref)
+            Config().setViewerConfig(new_config)
+            Config().set_referential(new_ref)
+            if new_config != config:
+                self.anaviewer.changeConfig(new_config)
+            if new_ref != ref:
+                self.anaviewer.changeRef(new_ref)
