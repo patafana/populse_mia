@@ -81,6 +81,7 @@ class IterationTable(QWidget):
 
         # values_list will contain the different values of each selected tag
         self.values_list = [[], []]
+        self.all_tag_values = []
 
         # Checkbox to choose to iterate the pipeline or not
         self.check_box_iterate = QCheckBox("Iterate pipeline")
