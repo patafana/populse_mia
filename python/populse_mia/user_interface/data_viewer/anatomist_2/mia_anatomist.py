@@ -117,6 +117,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.project.currentFilter.search_bar = str_search
 
     def filter_documents(self):
+        '''Filter documents already loaded in the Databrowser
+        '''
         dialog = Qt.QDialog()
         dialog.setWindowTitle('Filter documents')
         dialog.resize(1150,500)
@@ -185,7 +187,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
             self.display_files(result_names)
 
     def preferences(self):
-
+        '''Preferences for the dataviewer
+        '''
         #Get initial config:
         im_sec = Config().getViewerFramerate()
         config = Config().getViewerConfig()

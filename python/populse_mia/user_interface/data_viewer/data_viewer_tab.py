@@ -18,6 +18,10 @@ import traceback
 class DataViewerTab(Qt.QWidget):
     '''
     DataViewerTab is the widget in the data viewer tab of Populse-MIA GUI.
+    A combobox containing the available viewers will always appear
+    If import of anatomist and anatomist_2 fails, it won't impact the work of Mia itself
+    Viewers are put in Qt.QStackedLayout in order to share a same project
+    A new viewer can be added
     '''
 
     def __init__(self, main_window):
@@ -41,6 +45,7 @@ class DataViewerTab(Qt.QWidget):
         self.lay.addLayout(hlay)
         hlay.addWidget(Qt.QLabel('use viewer:'))
 
+        #Combobox will contain the viewers if they are available
         self.viewers_combo = Qt.QComboBox()
         self.viewers_combo.setMinimumWidth(150)
 
@@ -50,6 +55,9 @@ class DataViewerTab(Qt.QWidget):
         self.viewers_combo.currentIndexChanged.connect(self.change_viewer)
 
     def change_viewer(self):
+        '''switche to viewer selected in the combobox
+        pass the project from on viewer to the other
+        '''
         index = self.viewers_combo.currentIndex()
         self.viewer_activated(index)
         self.set_documents(self.project, self.docs)

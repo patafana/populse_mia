@@ -143,10 +143,11 @@ class AnaSimpleViewer2(Qt.QObject):
         if init_global_handlers:
             self.init_global_handlers()
         else:
+            #Config settings must be read even if control initialization is not done
             a.config()['setAutomaticReferential'] = Config().get_referential()
             a.config()['axialConvention'] = Config().getViewerConfig()
 
-        #new ui file for dataviewer
+        #ui file for dataviewer anasimpleviewer_2
         uifile = 'mainwindow.ui'
         cwd = os.getcwd()
         mainwindowdir = os.path.join(cwd,'user_interface/data_viewer/anatomist_2')
@@ -358,6 +359,9 @@ class AnaSimpleViewer2(Qt.QObject):
             clip.notifyObservers()
 
     def automaticRunning(self):
+        ''' Enable automatic running of functionnal images
+        frame rate can be changed in preferences by the user
+        '''
         a = ana.Anatomist('-b')
         objects = []
         im_sec = Config().getViewerFramerate()
@@ -444,6 +448,8 @@ class AnaSimpleViewer2(Qt.QObject):
 
 
     def createTotalWindow(self, views):
+        ''' Create the windows which will contain the views
+        '''
         for i in views:
             self.createWindow(str(i))
             if (i=='3D'):
@@ -451,6 +457,7 @@ class AnaSimpleViewer2(Qt.QObject):
                 a = ana.Anatomist('-b')
                 a.execute('Camera', windows=[self.awindows[-1]],
                           view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
+        #Sets view buttons checked for first display
         if views==["Axial", "Sagittal","Coronal"]:
             counter=0
             for i in views:
@@ -458,12 +465,16 @@ class AnaSimpleViewer2(Qt.QObject):
                 counter +=1
 
     def deleteTotalWindow (self):
+        ''' Clear windows and fusions in order to enable new display
+        '''
         self.awindows.clear()
         self.fusion2d.clear()
         for i in reversed(range(self.viewgridlay.count())):
             self.viewgridlay.itemAt(i).widget().deleteLater()
 
     def getViewsToDisplay (self):
+        ''' Check which views must be displayed
+        '''
         views = []
         if self.viewButtons[0].isChecked():
             views.append('Axial')
@@ -476,6 +487,8 @@ class AnaSimpleViewer2(Qt.QObject):
         return(views)
 
     def viewReferential (self, object):
+        ''' Set referential at the object center to visualize it
+        '''
         a = ana.Anatomist('-b')
         bb = object.boundingbox()
         position = (aims.Point3df(bb[1][:3]) - bb[0][:3]) / 2.
@@ -537,6 +550,8 @@ class AnaSimpleViewer2(Qt.QObject):
 
     def checkviews(self):
         '''Prevent from closing the last view opened
+            Checks how many views button are enabled and if only one is,
+            it disables the button
         '''
         nb_views_checked = 0
         for i in range (len(self.viewButtons)):
@@ -551,6 +566,8 @@ class AnaSimpleViewer2(Qt.QObject):
                 self.viewButtons[i].setEnabled(True)
 
     def newDisplay(self):
+        ''' New display of windows, objects and views
+        '''
         self.checkviews()
         self.deleteTotalWindow()
         views = self.getViewsToDisplay()
@@ -560,7 +577,9 @@ class AnaSimpleViewer2(Qt.QObject):
             self.viewReferential(self.displayedObjects[i])
 
     def loadObject(self, files, config_changed = None):
-        '''Load an object and display it in all anasimpleviewer windows
+        '''Load objects in files and display
+        Only the first object of files is displayed, the others are loaded and
+        added to objectlist but not displayed
         '''
         a = ana.Anatomist('-b')
 
@@ -813,6 +832,8 @@ class AnaSimpleViewer2(Qt.QObject):
 
 
     def disableButtons(self):
+        '''Disable plus or minus button depending on the selected object's display
+        '''
         displayedObNames = []
         for i in range (len(self.displayedObjects)):
             displayedObNames.append(self.displayedObjects[i].name)
@@ -829,6 +850,9 @@ class AnaSimpleViewer2(Qt.QObject):
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
 
     def colorBackgroundList(self):
+        '''Color the background of displayed objects in objectlist and call
+        changeIcon to add the right icon
+        '''
         displayedObNames = []
         for i in range (len(self.displayedObjects)):
             displayedObNames.append(self.displayedObjects[i].name)
@@ -844,6 +868,8 @@ class AnaSimpleViewer2(Qt.QObject):
                 item.setBackground(QColor("transparent"))
 
     def changeIcon(self, item, i, icon=None):
+        ''' adds empty icon if object is not displayed and check icon if displayed
+        '''
         objectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
         row = objectlist.row(item)
         #remove item from objectlist
