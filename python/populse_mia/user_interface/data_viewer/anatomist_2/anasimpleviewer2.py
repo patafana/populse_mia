@@ -260,17 +260,22 @@ class AnaSimpleViewer2(Qt.QObject):
 
             AnaSimpleViewer._global_handlers_initialized = True
 
-    def changeConfig(self, config, ref):
+    def changeConfig(self, config):
         ''' change config depending on user settings
-            (realoads images even if the config hasn't changed, doesn't reload for referential for now)
             config : string "neuro" or "radio"
+        '''
+        a = ana.Anatomist('-b')
+        a.config()['axialConvention'] = config
+        self.newDisplay()
+
+    def changeRef(self, ref):
+        ''' change referential
             ref : Boolean
             0 : World coordinates
             1 : Image referential
         '''
         a = ana.Anatomist('-b')
         a.config()['setAutomaticReferential'] = ref
-        a.config()['axialConvention'] = config
         self.deleteObjects(self.aobjects)
         self.loadObject(self.files, config_changed = True)
 
@@ -882,6 +887,7 @@ class AnaSimpleViewer2(Qt.QObject):
         if obj in self.displayedObjects:
             self.displayedObjects.remove(obj)
         self.disableButtons()
+        print('pass heeeeeeeeeeeeeeeeeeeeere')
         if obj.objectType == 'VOLUME':
             self.removeVolume(obj)
         elif obj.objectType == 'SURFACE':
