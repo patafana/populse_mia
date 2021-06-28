@@ -260,17 +260,22 @@ class AnaSimpleViewer2(Qt.QObject):
 
             AnaSimpleViewer._global_handlers_initialized = True
 
-    def changeConfig(self, config, ref):
+    def changeConfig(self, config):
         ''' change config depending on user settings
-            (realoads images even if the config hasn't changed, doesn't reload for referential for now)
             config : string "neuro" or "radio"
+        '''
+        a = ana.Anatomist('-b')
+        a.config()['axialConvention'] = config
+        self.newDisplay()
+
+    def changeRef(self, ref):
+        ''' change referential
             ref : Boolean
             0 : World coordinates
             1 : Image referential
         '''
         a = ana.Anatomist('-b')
         a.config()['setAutomaticReferential'] = ref
-        a.config()['axialConvention'] = config
         self.deleteObjects(self.aobjects)
         self.loadObject(self.files, config_changed = True)
 
@@ -355,7 +360,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def automaticRunning(self):
         a = ana.Anatomist('-b')
         objects = []
-        im_sec = Config().getViewerFramerate()
+        im_sec = float(Config().getViewerFramerate())
         frame_rate = 1/im_sec
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
         t = findChild(self.awidget, 'coordTEdit')
@@ -905,9 +910,11 @@ class AnaSimpleViewer2(Qt.QObject):
         res = self.fdialog.exec_()
         if res:
             fnames = self.fdialog.selectedFiles()
+            files = []
             for fname in fnames:
                 print(six.text_type(fname))
-                self.loadObject(six.text_type(fname))
+                files.append(six.text_type(fname))
+            self.loadObject(files)
 
     def selectedObjects(self):
         '''list of objects selected in the list box on the upper left panel
