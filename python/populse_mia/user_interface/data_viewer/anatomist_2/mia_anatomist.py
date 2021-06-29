@@ -7,6 +7,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 import anatomist.direct.api as ana
 
+
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
 from populse_mia.user_interface.data_viewer.anatomist_2.anasimpleviewer2 import AnaSimpleViewer2
@@ -19,7 +20,12 @@ import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
 from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
-from PyQt5.QtGui import QIcon, QIntValidator
+from PyQt5.QtGui import QIcon, QIntValidator, QPixmap, QSize
+
+#import paletteViewer as PV
+#from soma import aims
+#from PIL import Image
+#import numpy as np
 
 not_defined_value = "*Not Defined*"
 
@@ -50,6 +56,32 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.anaviewer.awidget.setSizePolicy(Qt.QSizePolicy.Expanding,
                                           Qt.QSizePolicy.Expanding)
         layout.addWidget(self.anaviewer.awidget)
+
+        """
+        a = ana.Anatomist('-b')
+        processor = a.theProcessor()
+        #print('heeeeeeeeeeeee', a.anatomistSharedPath())
+        an_shared_path = str(a.anatomistSharedPath())
+        imgfilename = os.path.join(an_shared_path, 'rgb', 'Blue-Red.ima')
+        r = aims.Reader()
+        img = r.read(imgfilename)
+        print("1111111111", img)
+        colors = PV.convertVolumeToArray(img).ravel().tolist()
+        print(colors)
+        array = np.array(colors)
+        img = Image.fromarray(array, 'RGB')
+        #img.save('myy22.jpeg')
+        p1 = QPixmap("/home/celine/casa_distro/brainvisa-opensource-master/home/git_projects/populse_mia/python/populse_mia/Blue-Green-Red-Yellow_BW_2D.png")
+        #Ca ça ne marche point
+        combobox.setItemData(0, p1, Qt.Qt.DecorationRole)
+        #combobox.setIconSize(QSize(65,20))
+        #img.save('myyyyyyyyyyyyyy.png')
+        #colors[-4:] = (255, 255, 255, 64)
+        #self._mypalette = 'AModelsGraphFusionObject_pal_%d' % 2
+        #processor.execute('NewPalette', {'name': self._mypalette})
+        #processor.execute('ChangePalette', {'name': self._mypalette,
+        #                                    'colors': colors, 'color_mode': 'RGBA'})
+        """
 
         self.project = None
         self.documents = []

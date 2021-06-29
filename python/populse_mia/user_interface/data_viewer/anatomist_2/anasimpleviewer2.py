@@ -159,7 +159,7 @@ class AnaSimpleViewer2(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        #findChild(awin, 'actionprint_view').triggered.connect(self.resetFOV)
+        #findChild(awin, 'actionprint_view').triggered.connect(self.newPalette)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -224,6 +224,19 @@ class AnaSimpleViewer2(Qt.QObject):
         findChild(awin, 'action3D').triggered.connect(self.newDisplay)
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
 
+        toolBar = findChild(awin, 'toolBar')
+        actionAutoRunning = findChild(awin, 'actionTimeRunning')
+        self.combobox = Qt.QComboBox()
+        self.combobox.addItem("Palette")
+        self.combobox.addItem("B-W LINEAR")
+        self.combobox.addItem("Yellow-red")
+        self.combobox.addItem("RAINBOW")
+        self.combobox.addItem("Yellow-Red-White-Blue-Green")
+        self.combobox.addItem("Blue-red-bright-dark")
+        toolBar.insertWidget(actionAutoRunning, self.combobox)
+        self.combobox.currentIndexChanged.connect(self.newPalette)
+
+
     def init_global_handlers(self):
         '''
         Set some global controls / settings in Anatomist application object
@@ -260,6 +273,27 @@ class AnaSimpleViewer2(Qt.QObject):
             a.setGraphParams(label_attribute='label')
 
             AnaSimpleViewer._global_handlers_initialized = True
+
+    def newPalette(self):
+        list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
+        row_item = list.currentRow()
+        color = self.combobox.currentText()
+        if row_item != -1:
+            self.aobjects[row_item].setPalette(palette = color)
+            actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
+
+    def setPalette(self):
+        available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "Blue-red-bright-dark"]
+        list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
+        row_item = list.currentRow()
+        color = self.combobox.currentText()
+        actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
+        print("PALETTE", actual_pal)
+        if actual_pal != color:
+            if actual_pal in available_palettes:
+                self.combobox.setCurrentText(actual_pal)
+            else:
+                self.combobox.setCurrentText("Palette")
 
     def changeConfig(self, config):
         ''' change config depending on user settings
@@ -740,6 +774,7 @@ class AnaSimpleViewer2(Qt.QObject):
                 cmap = colormaphints.chooseColormaps(
                     (obj.attributed()['colormaphints'], ))
                 obj.setPalette(cmap[0])
+
         else:
             # choose good colormaps for the current set of volumes
             hints = [x.attributed()['colormaphints'] for x in obj.children]
@@ -830,10 +865,10 @@ class AnaSimpleViewer2(Qt.QObject):
         a.removeObjects([obj, mesh2d], self.awindows)
         del self.meshes2d[obj.getInternalRep()]
 
-
     def disableButtons(self):
         '''Disable plus or minus button depending on the selected object's display
         '''
+        self.setPalette()
         displayedObNames = []
         for i in range (len(self.displayedObjects)):
             displayedObNames.append(self.displayedObjects[i].name)
