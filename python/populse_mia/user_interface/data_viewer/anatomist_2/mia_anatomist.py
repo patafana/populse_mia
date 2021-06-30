@@ -7,6 +7,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 import anatomist.direct.api as ana
 
+
 from soma.qt_gui.qt_backend import Qt
 from ..data_viewer import DataViewer
 from populse_mia.user_interface.data_viewer.anatomist_2.anasimpleviewer2 import AnaSimpleViewer2
@@ -19,7 +20,12 @@ import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
 from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
-from PyQt5.QtGui import QIcon, QIntValidator
+from PyQt5.QtGui import QIcon, QIntValidator, QPixmap, QSize
+
+#import paletteViewer as PV
+#from soma import aims
+#from PIL import Image
+#import numpy as np
 
 not_defined_value = "*Not Defined*"
 
@@ -117,6 +123,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.project.currentFilter.search_bar = str_search
 
     def filter_documents(self):
+        '''Filter documents already loaded in the Databrowser
+        '''
         dialog = Qt.QDialog()
         dialog.setWindowTitle('Filter documents')
         dialog.resize(1150,500)
@@ -185,7 +193,8 @@ class MiaViewer(Qt.QWidget, DataViewer):
             self.display_files(result_names)
 
     def preferences(self):
-
+        '''Preferences for the dataviewer
+        '''
         #Get initial config:
         im_sec = Config().getViewerFramerate()
         config = Config().getViewerConfig()
