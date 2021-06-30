@@ -57,32 +57,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                           Qt.QSizePolicy.Expanding)
         layout.addWidget(self.anaviewer.awidget)
 
-        """
-        a = ana.Anatomist('-b')
-        processor = a.theProcessor()
-        #print('heeeeeeeeeeeee', a.anatomistSharedPath())
-        an_shared_path = str(a.anatomistSharedPath())
-        imgfilename = os.path.join(an_shared_path, 'rgb', 'Blue-Red.ima')
-        r = aims.Reader()
-        img = r.read(imgfilename)
-        print("1111111111", img)
-        colors = PV.convertVolumeToArray(img).ravel().tolist()
-        print(colors)
-        array = np.array(colors)
-        img = Image.fromarray(array, 'RGB')
-        #img.save('myy22.jpeg')
-        p1 = QPixmap("/home/celine/casa_distro/brainvisa-opensource-master/home/git_projects/populse_mia/python/populse_mia/Blue-Green-Red-Yellow_BW_2D.png")
-        #Ca ça ne marche point
-        combobox.setItemData(0, p1, Qt.Qt.DecorationRole)
-        #combobox.setIconSize(QSize(65,20))
-        #img.save('myyyyyyyyyyyyyy.png')
-        #colors[-4:] = (255, 255, 255, 64)
-        #self._mypalette = 'AModelsGraphFusionObject_pal_%d' % 2
-        #processor.execute('NewPalette', {'name': self._mypalette})
-        #processor.execute('ChangePalette', {'name': self._mypalette,
-        #                                    'colors': colors, 'color_mode': 'RGBA'})
-        """
-
         self.project = None
         self.documents = []
         self.displayed = []

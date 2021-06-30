@@ -62,7 +62,6 @@ from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, Reset
     registerSimpleControls
 import importlib
 
-
 class LeftSimple3DControl(Simple2DControl):
     '''
     define another control where rotation is with the left mouse button
@@ -217,6 +216,7 @@ class AnaSimpleViewer2(Qt.QObject):
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.displayedObjects = []
         self.files = []
+        self.available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "Blue-red-bright-dark"]
 
         findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
@@ -228,14 +228,10 @@ class AnaSimpleViewer2(Qt.QObject):
         actionAutoRunning = findChild(awin, 'actionTimeRunning')
         self.combobox = Qt.QComboBox()
         self.combobox.addItem("Palette")
-        self.combobox.addItem("B-W LINEAR")
-        self.combobox.addItem("Yellow-red")
-        self.combobox.addItem("RAINBOW")
-        self.combobox.addItem("Yellow-Red-White-Blue-Green")
-        self.combobox.addItem("Blue-red-bright-dark")
+        for palette in self.available_palettes:
+            self.combobox.addItem(palette)
         toolBar.insertWidget(actionAutoRunning, self.combobox)
         self.combobox.currentIndexChanged.connect(self.newPalette)
-
 
     def init_global_handlers(self):
         '''
@@ -280,17 +276,14 @@ class AnaSimpleViewer2(Qt.QObject):
         color = self.combobox.currentText()
         if row_item != -1:
             self.aobjects[row_item].setPalette(palette = color)
-            actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
 
     def setPalette(self):
-        available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "Blue-red-bright-dark"]
         list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
         row_item = list.currentRow()
         color = self.combobox.currentText()
         actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
-        print("PALETTE", actual_pal)
         if actual_pal != color:
-            if actual_pal in available_palettes:
+            if actual_pal in self.available_palettes:
                 self.combobox.setCurrentText(actual_pal)
             else:
                 self.combobox.setCurrentText("Palette")
