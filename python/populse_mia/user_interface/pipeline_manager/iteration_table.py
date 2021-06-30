@@ -295,11 +295,11 @@ class IterationTable(QWidget):
         :param idx: index of the clicked push button
         """
 
-        popUp = PopUpSelectTagCountTable(
-            self.project,
-            self.project.session.get_fields_names(COLLECTION_CURRENT),
-            self.push_buttons[idx].text())
-        if popUp.exec_():
+        popUp = PopUpSelectTagCountTable(self.project,
+                                         self.project.session.get_fields_names(
+                                                            COLLECTION_CURRENT),
+                                         self.push_buttons[idx].text())
+        if popUp.exec_() and popUp.selected_tag is not None:
             self.push_buttons[idx].setText(popUp.selected_tag)
             self.fill_values(idx)
             self.update_table()
