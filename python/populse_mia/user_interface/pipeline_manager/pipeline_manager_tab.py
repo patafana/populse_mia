@@ -44,7 +44,7 @@ from populse_mia.user_interface.pop_ups import (PopUpInheritanceDict,
 
 # Capsul imports
 from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
-                        PipelineNode, Process, ProcessNode, StudyConfig, Switch)
+                        PipelineNode, Process, ProcessNode, Switch)
 from capsul.attributes.completion_engine import ProcessCompletionEngine
 from capsul.engine import WorkflowExecutionError
 from capsul.pipeline import pipeline_tools
