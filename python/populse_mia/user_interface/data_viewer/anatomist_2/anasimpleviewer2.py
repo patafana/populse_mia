@@ -50,7 +50,7 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
-from PyQt5.QtGui import (QColor, QIcon, QSize)
+from PyQt5.QtGui import (QColor, QIcon, QSize, QLabel)
 from populse_mia.software_properties import Config
 import time
 import PyQt5
@@ -268,21 +268,23 @@ class AnaSimpleViewer2(Qt.QObject):
     def setComboBox(self):
         toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
         actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
-        self.combobox.addItem("Palette")
+        label = QLabel("palette: ")
         for palette in self.available_palettes:
             self.combobox.addItem(palette)
+        toolBar.insertWidget(actionAutoRunning, label)
         toolBar.insertWidget(actionAutoRunning, self.combobox)
         sources_images_dir = Config().getSourceImageDir()
         for i in range (len(self.available_palettes)):
             icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[i]))
-            self.combobox.setItemIcon(i+1, icon)
-        size = QSize(80, 15)
+            self.combobox.setItemIcon(i, icon)
+        size = QSize(200, 15)
         self.combobox.setIconSize(size)
 
     def newPalette(self):
         list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
         row_item = list.currentRow()
         color = self.combobox.currentText()
+        #to avoid crash when no object is selected (row_item = -1)
         if row_item != -1:
             self.aobjects[row_item].setPalette(palette = color)
 
@@ -295,7 +297,13 @@ class AnaSimpleViewer2(Qt.QObject):
             if actual_pal in self.available_palettes:
                 self.combobox.setCurrentText(actual_pal)
             else:
-                self.combobox.setCurrentText("Palette")
+                self.combobox.addItem(actual_pal)
+                self.combobox.setCurrentText(actual_pal)
+                self.available_palettes.append(actual_pal)
+                sources_images_dir = Config().getSourceImageDir()
+                index = self.combobox.currentIndex()
+                icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[index]))
+                self.combobox.setItemIcon(index, icon)
 
     def changeConfig(self, config):
         ''' change config depending on user settings
