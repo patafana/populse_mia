@@ -50,7 +50,7 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
-from PyQt5.QtGui import (QColor, QIcon)
+from PyQt5.QtGui import (QColor, QIcon, QSize)
 from populse_mia.software_properties import Config
 import time
 import PyQt5
@@ -207,6 +207,7 @@ class AnaSimpleViewer2(Qt.QObject):
         self.viewWindow = findChild(awin, 'windows')
 
         self.viewgridlay = Qt.QHBoxLayout(self.viewWindow)
+        self.combobox = Qt.QComboBox()
         self.fdialog = None
         self.awindows = []
         self.aobjects = []
@@ -216,7 +217,7 @@ class AnaSimpleViewer2(Qt.QObject):
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.displayedObjects = []
         self.files = []
-        self.available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "Blue-red-bright-dark"]
+        self.available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "blue-red-bright-dark"]
 
         findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
         findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
@@ -224,13 +225,7 @@ class AnaSimpleViewer2(Qt.QObject):
         findChild(awin, 'action3D').triggered.connect(self.newDisplay)
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
 
-        toolBar = findChild(awin, 'toolBar')
-        actionAutoRunning = findChild(awin, 'actionTimeRunning')
-        self.combobox = Qt.QComboBox()
-        self.combobox.addItem("Palette")
-        for palette in self.available_palettes:
-            self.combobox.addItem(palette)
-        toolBar.insertWidget(actionAutoRunning, self.combobox)
+        self.setComboBox()
         self.combobox.currentIndexChanged.connect(self.newPalette)
 
     def init_global_handlers(self):
@@ -269,6 +264,20 @@ class AnaSimpleViewer2(Qt.QObject):
             a.setGraphParams(label_attribute='label')
 
             AnaSimpleViewer._global_handlers_initialized = True
+
+    def setComboBox(self):
+        toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
+        actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
+        self.combobox.addItem("Palette")
+        for palette in self.available_palettes:
+            self.combobox.addItem(palette)
+        toolBar.insertWidget(actionAutoRunning, self.combobox)
+        sources_images_dir = Config().getSourceImageDir()
+        for i in range (len(self.available_palettes)):
+            icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[i]))
+            self.combobox.setItemIcon(i+1, icon)
+        size = QSize(80, 15)
+        self.combobox.setIconSize(size)
 
     def newPalette(self):
         list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
