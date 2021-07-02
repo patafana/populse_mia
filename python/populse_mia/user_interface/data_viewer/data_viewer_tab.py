@@ -123,8 +123,6 @@ class DataViewerTab(Qt.QWidget):
                 print('{0}: {1}\n'.format(e.__class__.__name__, e))
                 return
 
-        self.activate_viewer(self.viewers_combo.currentText().lower())
-
     def activate_viewer(self, viewer_name):
         viewer = viewer_name
         if self.viewer_name == viewer_name:
