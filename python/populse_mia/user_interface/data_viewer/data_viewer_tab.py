@@ -94,16 +94,11 @@ class DataViewerTab(Qt.QWidget):
                 if self.viewer_anatomist.anaviewer._global_handlers_initialized:
                     init_global_handlers = False
 
-            except (ImportError):
-                print('import error of anatomist viewer')
-                pass
-
             except Exception as e:
                 print('\n{0} viewer is not available or not working '
                       '...!\nTraceback:'.format(viewer_name))
                 print(''.join(traceback.format_tb(e.__traceback__)), end='')
                 print('{0}: {1}\n'.format(e.__class__.__name__, e))
-                return
 
         #Try import anatomist_2
         if 'anatomist_2' not in self.viewers:
@@ -121,7 +116,6 @@ class DataViewerTab(Qt.QWidget):
                       '...!\nTraceback:'.format(viewer_name))
                 print(''.join(traceback.format_tb(e.__traceback__)), end='')
                 print('{0}: {1}\n'.format(e.__class__.__name__, e))
-                return
 
     def activate_viewer(self, viewer_name):
         viewer = viewer_name
