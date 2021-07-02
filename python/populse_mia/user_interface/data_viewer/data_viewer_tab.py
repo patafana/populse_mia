@@ -116,10 +116,6 @@ class DataViewerTab(Qt.QWidget):
                 self.viewers_combo.addItem('Anatomist_2')
                 self.viewers.append('anatomist_2')
 
-            except (ImportError):
-                print('import error of anatomist_2 viewer')
-                pass
-
             except Exception as e:
                 print('\n{0} viewer is not available or not working '
                       '...!\nTraceback:'.format(viewer_name))

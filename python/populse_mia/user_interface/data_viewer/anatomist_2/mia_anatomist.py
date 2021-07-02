@@ -20,7 +20,7 @@ import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
 from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
-from PyQt5.QtGui import QIcon, QIntValidator, QPixmap, QSize
+from PyQt5.QtGui import QIcon, QIntValidator, QPixmap
 
 #import paletteViewer as PV
 #from soma import aims

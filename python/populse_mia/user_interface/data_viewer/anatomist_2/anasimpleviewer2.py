@@ -50,7 +50,7 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
-from PyQt5.QtGui import (QColor, QIcon, QSize, QLabel)
+from PyQt5.QtGui import (QColor, QIcon, QLabel)
 from populse_mia.software_properties import Config
 import time
 import PyQt5
@@ -134,7 +134,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
     _global_handlers_initialized = False
 
-    def __init__(self, init_global_handlers=True):
+    def __init__(self, init_global_handlers=None):
         Qt.QObject.__init__(self)
 
         a = ana.Anatomist('-b')
@@ -158,7 +158,6 @@ class AnaSimpleViewer2(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        #findChild(awin, 'actionprint_view').triggered.connect(self.newPalette)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -232,7 +231,7 @@ class AnaSimpleViewer2(Qt.QObject):
         '''
         Set some global controls / settings in Anatomist application object
         '''
-        if not AnaSimpleViewer._global_handlers_initialized:
+        if not AnaSimpleViewer2._global_handlers_initialized:
 
             registerSimpleControls()
             a = ana.Anatomist('-b')
@@ -263,7 +262,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
             a.setGraphParams(label_attribute='label')
 
-            AnaSimpleViewer._global_handlers_initialized = True
+            AnaSimpleViewer2._global_handlers_initialized = True
 
     def setComboBox(self):
         toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
@@ -277,7 +276,7 @@ class AnaSimpleViewer2(Qt.QObject):
         for i in range (len(self.available_palettes)):
             icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[i]))
             self.combobox.setItemIcon(i, icon)
-        size = QSize(200, 15)
+        size = PyQt5.QtCore.QSize(200, 15)
         self.combobox.setIconSize(size)
 
     def newPalette(self):
