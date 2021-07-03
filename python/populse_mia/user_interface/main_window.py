@@ -1347,3 +1347,8 @@ class MainWindow(QMainWindow):
                     self.saved_projects_actions[i].setData(
                         self.saved_projects_list[i])
                     self.saved_projects_actions[i].setVisible(True)
+
+    def closeEvent(self, event):
+        if self.data_viewer:
+            self.data_viewer.clear()
+        super().close()
