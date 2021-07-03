@@ -281,7 +281,8 @@ class AnaSimpleViewer2(Qt.QObject):
         list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
         row_item = list.currentRow()
         color = self.combobox.currentText()
-        actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
+        actual_pal = self.aobjects[row_item].getInfo().get(
+            'palette', {}).get('palette')
         if actual_pal != color:
             if actual_pal in self.available_palettes:
                 self.combobox.setCurrentText(actual_pal)
@@ -722,7 +723,9 @@ class AnaSimpleViewer2(Qt.QObject):
             if len(wins) == 0:
                 return
             vr = a.fusionObjects([obj], method='VolumeRenderingFusionMethod')
+            vr.releaseAppRef()
             clip = a.fusionObjects([vr], method='FusionClipMethod')
+            clip.releaseAppRef()
             self.volrender = [clip, vr]
             a.addObjects(clip, wins, **opts)
         else:
@@ -752,6 +755,7 @@ class AnaSimpleViewer2(Qt.QObject):
             # several objects: fusion them
             fusobjs = self.fusion2d[1:] + [obj]
             f2d = a.fusionObjects(fusobjs, method='Fusion2DMethod')
+            f2d.releaseAppRef()
             if self.fusion2d[0] is not None:
                 # destroy the previous fusion
                 a.deleteObjects(self.fusion2d[0])
@@ -793,6 +797,7 @@ class AnaSimpleViewer2(Qt.QObject):
             fusobjs = [o for o in self.fusion2d[1:] if o != obj]
             if len(fusobjs) >= 2:
                 f2d = a.fusionObjects(fusobjs, method='Fusion2DMethod')
+                f2d.releaseAppRef()
             else:
                 f2d = None
             if self.fusion2d[0] is not None:
@@ -1021,28 +1026,34 @@ class AnaSimpleViewer2(Qt.QObject):
         objs = [o for o in a.getObjects() if o.filename in files]
         self.deleteObjects(objs)
 
-    def closeAll(self):
+    def closeAll(self, close_ana=True):
         '''Exit'''
-        print("Exiting")
+        print("Exiting Ana2")
         a = ana.Anatomist('-b')
         # remove windows from their parent to prevent them to be brutally
         # deleted by Qt.
         w = None
         for w in self.awindows:
-            w.hide()
+            try:
+                w.hide()
+            except:
+                continue  # window closed by Qt ?
             self.viewgridlay.removeWidget(w.internalRep._get())
             w.setParent(None)
         del w
         self.awindows = []
+        self.displayedObjects = []
         self.viewgridlay = None
         self.volrender = None
         self.fusion2d = []
+        self.mesh3d = {}
         self.aobjects = []
         self.awidget.close()
         self.awidget = None
         del self.fdialog
-        a = ana.Anatomist()
-        a.close()
+        if close_ana:
+            a = ana.Anatomist()
+            a.close()
 
     def stopVolumeRendering(self):
         '''Disable volume rendering: show a slice instead'''
@@ -1074,7 +1085,9 @@ class AnaSimpleViewer2(Qt.QObject):
         if len(wins) == 0:
             return
         vr = a.fusionObjects([obj], method='VolumeRenderingFusionMethod')
+        vr.releaseAppRef()
         clip = a.fusionObjects([vr], method='FusionClipMethod')
+        clip.releaseAppRef()
         self.volrender = [clip, vr]
         a.removeObjects(obj, wins)
         a.addObjects(clip, wins)

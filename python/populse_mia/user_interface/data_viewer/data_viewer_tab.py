@@ -149,3 +149,16 @@ class DataViewerTab(Qt.QWidget):
             self.viewer.set_documents(project, documents)
             self.project = project
             self.docs = documents
+
+    def clear(self):
+        if self.viewer_anatomist:
+            self.viewer_anatomist.close()
+            self.viewer_anatomist = None
+        if self.viewer_anatomist_2:
+            self.viewer_anatomist_2.close()
+            self.viewer_anatomist_2 = None
+        #super(DataViewerTab, self).close()
+
+    def closeEvent(self, event):
+        self.clear()
+        super().close()
