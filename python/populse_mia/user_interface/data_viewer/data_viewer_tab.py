@@ -48,16 +48,17 @@ class DataViewerTab(Qt.QWidget):
         #Combobox will contain the viewers if they are available
         self.viewers_combo = Qt.QComboBox()
         self.viewers_combo.setMinimumWidth(150)
- 
+
         hlay.addWidget(self.viewers_combo)
         hlay.addStretch(1)
 
         self.viewers_combo.currentIndexChanged.connect(self.change_viewer)
 
     def activate_viewer(self, viewer_name):
-        """blabla
+        """activates viewer viewer_name which was selected
+        in the combobox
 
-        :param viewer_name: blabla
+        :param viewer_name: string
         """
         if self.viewer_current and list(self.viewer_current)[0] == viewer_name:
             return
@@ -75,24 +76,27 @@ class DataViewerTab(Qt.QWidget):
         pass the project from on viewer to the other
         '''
         index = self.viewers_combo.currentIndex()
-        self.viewer_activated(index)
+        viewer_name = self.viewers_combo.itemText(index).lower()
+        self.activate_viewer(viewer_name)
         self.set_documents(self.project, self.docs)
 
     def clear(self):
-        """blabla
+        """clears all loaded viewers before closing Mia
         """
         for viewer in list(self.viewers_loaded):
             self.viewers_loaded[viewer].close()
             del self.viewers_loaded[viewer]
 
     def closeEvent(self, event):
-        """blabla
+        """clears and closes all events before closing Mia
         """
         self.clear()
         super().close()
 
     def current_viewer(self):
-        """blabla
+        """return current viewer (selected viewer in combobox)
+        used when user changes from BrowserTab or PipelineManagerTab
+        to DataViewerTab
 
         """
         if not self.viewer_current:
@@ -101,9 +105,10 @@ class DataViewerTab(Qt.QWidget):
             return list(self.viewer_current)[0]
 
     def load_viewer(self, viewer_name):
-        """blabla
+        """available viewers in data_viewer folder are loaded as soon
+        as Data Viewer tab is clicked
 
-        :param viewer_name: blabla
+        :param viewer_name: string
         """
         if viewer_name:
             detected_viewer = [viewer_name]
@@ -144,20 +149,12 @@ class DataViewerTab(Qt.QWidget):
                     print('{0}: {1}\n'.format(e.__class__.__name__, e))
 
     def set_documents(self, project, documents):
-        """blabla
+        """shares project with documents to all viewers
 
-        :param project: blabla
-        :param documents: blabla
+        :param project: whole project
+        :param documents: objects (images) contained in the project
         """
         if self.viewer_current:
             self.viewer_current[list(self.viewer_current)[0]].set_documents(project, documents)
             self.project = project
             self.docs = documents
-
-    def viewer_activated(self, index):
-        """blabla
-
-        :param index: blabla
-        """
-        viewer_name = self.viewers_combo.itemText(index).lower()
-        self.activate_viewer(viewer_name)
