@@ -436,7 +436,10 @@ class AnaSimpleViewer2(Qt.QObject):
 
         for i in range (len(self.displayedObjects)):
             objects.append(ana.cpp.AObjectConverter.aims(self.displayedObjects[i]).dimT())
-        nb_images = np.max(objects)
+        if objects:
+            nb_images = np.max(objects)
+        else:
+            return
         list_im = list(range(0, nb_images))
         pos = [float(findChild(self.awidget, 'coordXEdit').text()), float(findChild(self.awidget, 'coordYEdit').text()), float(findChild(self.awidget, 'coordZEdit').text()),]
         i = int(float(findChild(self.awidget, 'coordTEdit').text()))
