@@ -24,9 +24,9 @@ class DataViewerTab(Qt.QWidget):
     '''
 
     def __init__(self, main_window):
-        """blabla
+        """The constructor ...
 
-        :param main_window: blabla
+        :param main_window: an instance of the MainWindow class
         """
         super(DataViewerTab, self).__init__()
         self.docs = []
@@ -55,10 +55,10 @@ class DataViewerTab(Qt.QWidget):
         self.viewers_combo.currentIndexChanged.connect(self.change_viewer)
 
     def activate_viewer(self, viewer_name):
-        """activates viewer viewer_name which was selected
-        in the combobox
+        """Activates viewer viewer_name which was selected
+        in the combobox.
 
-        :param viewer_name: string
+        :param viewer_name: a viewer name (a string)
         """
         if self.viewer_current and list(self.viewer_current)[0] == viewer_name:
             return
@@ -72,8 +72,8 @@ class DataViewerTab(Qt.QWidget):
             self.viewer_current[viewer_name] = viewer
 
     def change_viewer(self):
-        '''switches to viewer selected in the combobox
-        pass the project from on viewer to the other
+        '''Switches to viewer selected in the combobox
+        pass the project from on viewer to the other.
         '''
         index = self.viewers_combo.currentIndex()
         viewer_name = self.viewers_combo.itemText(index).lower()
@@ -81,22 +81,22 @@ class DataViewerTab(Qt.QWidget):
         self.set_documents(self.project, self.docs)
 
     def clear(self):
-        """clears all loaded viewers before closing Mia
+        """Clears all loaded viewers before closing Mia.
         """
         for viewer in list(self.viewers_loaded):
             self.viewers_loaded[viewer].close()
             del self.viewers_loaded[viewer]
 
     def closeEvent(self, event):
-        """clears and closes all events before closing Mia
+        """clears and closes all events before closing Mia.
         """
         self.clear()
         super().close()
 
     def current_viewer(self):
-        """return current viewer (selected viewer in combobox)
+        """Return current viewer (selected viewer in combobox)
         used when user changes from BrowserTab or PipelineManagerTab
-        to DataViewerTab
+        to DataViewerTab.
 
         """
         if not self.viewer_current:
@@ -105,8 +105,8 @@ class DataViewerTab(Qt.QWidget):
             return list(self.viewer_current)[0]
 
     def load_viewer(self, viewer_name):
-        """available viewers in data_viewer folder are loaded as soon
-        as Data Viewer tab is clicked
+        """Available viewers in data_viewer folder are loaded as soon
+        as Data Viewer tab is clicked.
 
         :param viewer_name: string
         """
@@ -120,6 +120,12 @@ class DataViewerTab(Qt.QWidget):
                                    and p != '__pycache__']
             #detected_viewer = ['anatomist', 'anatomist_2']
 
+
+        
+        #print('\ntoto detected_viewer: ', detected_viewer)
+        #detected_viewer = ['anatomist_2', 'anatomist']
+        #print('\ntoto detected_viewer: ', detected_viewer)
+            
         if not self.viewers_loaded:
             self.stacks = Qt.QStackedLayout()
             self.lay.addLayout(self.stacks)
@@ -149,7 +155,7 @@ class DataViewerTab(Qt.QWidget):
                     print('{0}: {1}\n'.format(e.__class__.__name__, e))
 
     def set_documents(self, project, documents):
-        """shares project with documents to all viewers
+        """Shares project with documents to all viewers.
 
         :param project: whole project
         :param documents: objects (images) contained in the project
