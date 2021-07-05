@@ -50,7 +50,7 @@ from soma.qt_gui.qt_backend import QtCore, QtGui, Qt
 from soma.qt_gui.qt_backend import uic
 from soma.qt_gui.qt_backend.uic import loadUi
 import six
-from PyQt5.QtGui import (QColor, QIcon, QLabel)
+from PyQt5.QtGui import (QColor, QIcon, QLabel, QSlider, QWidget)
 from populse_mia.software_properties import Config
 import time
 import PyQt5
@@ -158,6 +158,7 @@ class AnaSimpleViewer2(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
+        #findChild(awin, 'actionprint_view').triggered.connect(self.changeMaterial)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -207,6 +208,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
         self.viewgridlay = Qt.QHBoxLayout(self.viewWindow)
         self.combobox = Qt.QComboBox()
+        self.slider = Qt.QSlider(Qt.Qt.Horizontal)
         self.fdialog = None
         self.awindows = []
         self.aobjects = []
@@ -225,7 +227,9 @@ class AnaSimpleViewer2(Qt.QObject):
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
 
         self.setComboBox()
+        self.setSlider()
         self.combobox.currentIndexChanged.connect(self.newPalette)
+        self.slider.valueChanged.connect(self.changeOpacity)
 
     def init_global_handlers(self):
         '''
@@ -267,7 +271,8 @@ class AnaSimpleViewer2(Qt.QObject):
     def setComboBox(self):
         toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
         actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
-        label = QLabel("palette: ")
+        label = QLabel("Palette: ")
+        label.setToolTip('Change color palette of selected object')
         for palette in self.available_palettes:
             self.combobox.addItem(palette)
         toolBar.insertWidget(actionAutoRunning, label)
@@ -279,30 +284,44 @@ class AnaSimpleViewer2(Qt.QObject):
         size = PyQt5.QtCore.QSize(200, 15)
         self.combobox.setIconSize(size)
 
-    def newPalette(self):
-        list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
-        row_item = list.currentRow()
-        color = self.combobox.currentText()
-        #to avoid crash when no object is selected (row_item = -1)
-        if row_item != -1:
-            self.aobjects[row_item].setPalette(palette = color)
+    def setSlider(self):
+        toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
+        actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
+        space = QWidget().resize(5,0)
+        label = QLabel("Opacity: ")
+        label.setToolTip('Change opacity of selected object')
+        size = PyQt5.QtCore.QSize(120, 15)
+        self.slider.setMaximumSize(size)
+        self.slider.setValue(100)
+        toolBar.insertWidget(actionAutoRunning, space)
+        toolBar.insertWidget(actionAutoRunning, label)
+        toolBar.insertWidget(actionAutoRunning, self.slider)
 
-    def setPalette(self):
-        list = Qt.QObject.findChild(self.awidget, QtCore.QObject,'objectslist')
-        row_item = list.currentRow()
+    def changeOpacity(self):
+        if self.selectedObjects():
+            diffuse_vect = self.selectedObjects()[0].getInfo()['material']['diffuse']
+            self.selectedObjects()[0].setMaterial(diffuse=[diffuse_vect[0], diffuse_vect[1], diffuse_vect[2], self.slider.value()/100])
+
+    def newPalette(self):
         color = self.combobox.currentText()
-        actual_pal = self.aobjects[row_item].getInfo()['palette']['palette']
-        if actual_pal != color:
-            if actual_pal in self.available_palettes:
-                self.combobox.setCurrentText(actual_pal)
-            else:
-                self.combobox.addItem(actual_pal)
-                self.combobox.setCurrentText(actual_pal)
-                self.available_palettes.append(actual_pal)
-                sources_images_dir = Config().getSourceImageDir()
-                index = self.combobox.currentIndex()
-                icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[index]))
-                self.combobox.setItemIcon(index, icon)
+        if self.selectedObjects():
+            self.selectedObjects()[0].setPalette(palette = color)
+
+    def setColorPalette(self):
+        color = self.combobox.currentText()
+        if self.selectedObjects():
+            actual_pal = self.selectedObjects()[0].getInfo()['palette']['palette']
+            if actual_pal != color:
+                if actual_pal in self.available_palettes:
+                    self.combobox.setCurrentText(actual_pal)
+                else:
+                    self.combobox.addItem(actual_pal)
+                    self.combobox.setCurrentText(actual_pal)
+                    self.available_palettes.append(actual_pal)
+                    sources_images_dir = Config().getSourceImageDir()
+                    index = self.combobox.currentIndex()
+                    icon = QIcon(os.path.join(sources_images_dir, self.available_palettes[index]))
+                    self.combobox.setItemIcon(index, icon)
 
     def changeConfig(self, config):
         ''' change config depending on user settings
@@ -877,7 +896,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def disableButtons(self):
         '''Disable plus or minus button depending on the selected object's display
         '''
-        self.setPalette()
+        self.setColorPalette()
         displayedObNames = []
         for i in range (len(self.displayedObjects)):
             displayedObNames.append(self.displayedObjects[i].name)
@@ -1184,6 +1203,8 @@ class AnaSimpleViewer2(Qt.QObject):
         menu = ana.cpp.OptionMatcher.popupMenu(osel, t)
         prop = menu.addAction('Object properties')
         prop.triggered.connect(self.object_properties)
+        new_view = menu.addAction('Open in new view')
+        new_view.triggered.connect(self.addNewView)
         menu.exec_(Qt.QCursor.pos())
 
     def object_properties(self):
@@ -1197,3 +1218,6 @@ class AnaSimpleViewer2(Qt.QObject):
         else:
             self.browser.removeObjects(self.browser.Objects())
         self.browser.addObjects(self.selectedObjects())
+
+    def addNewView(self):
+        print('Function in progress')
