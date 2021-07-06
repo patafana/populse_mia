@@ -81,6 +81,7 @@ class IterationTable(QWidget):
 
         # values_list will contain the different values of each selected tag
         self.values_list = [[], []]
+        self.all_tag_values = []
 
         # Checkbox to choose to iterate the pipeline or not
         self.check_box_iterate = QCheckBox("Iterate pipeline")
@@ -265,8 +266,14 @@ class IterationTable(QWidget):
             self.project,
             self.project.session.get_fields_names(COLLECTION_CURRENT),
             self.iterated_tag)
+
         if ui_select.exec_():
-            self.update_iterated_tag(ui_select.selected_tag)
+
+            if self.iterated_tag is None and ui_select.selected_tag is None:
+                pass
+
+            else:
+                self.update_iterated_tag(ui_select.selected_tag)
 
     def filter_values(self):
         iterated_tag = self.iterated_tag
@@ -288,11 +295,11 @@ class IterationTable(QWidget):
         :param idx: index of the clicked push button
         """
 
-        popUp = PopUpSelectTagCountTable(
-            self.project,
-            self.project.session.get_fields_names(COLLECTION_CURRENT),
-            self.push_buttons[idx].text())
-        if popUp.exec_():
+        popUp = PopUpSelectTagCountTable(self.project,
+                                         self.project.session.get_fields_names(
+                                                            COLLECTION_CURRENT),
+                                         self.push_buttons[idx].text())
+        if popUp.exec_() and popUp.selected_tag is not None:
             self.push_buttons[idx].setText(popUp.selected_tag)
             self.fill_values(idx)
             self.update_table()

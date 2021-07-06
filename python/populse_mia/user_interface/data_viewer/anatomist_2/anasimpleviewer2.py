@@ -141,10 +141,6 @@ class AnaSimpleViewer2(Qt.QObject):
 
         if init_global_handlers:
             self.init_global_handlers()
-        else:
-            #Config settings must be read even if control initialization is not done
-            a.config()['setAutomaticReferential'] = Config().get_referential()
-            a.config()['axialConvention'] = Config().getViewerConfig()
 
         #ui file for dataviewer anasimpleviewer_2
         uifile = 'mainwindow.ui'
@@ -250,9 +246,7 @@ class AnaSimpleViewer2(Qt.QObject):
             cd.addControl('VolRenderControl', VolRenderControl, 25)
 
             # tweak: override some user config options
-            a.config()['setAutomaticReferential'] = Config().get_referential()
             a.config()['windowSizeFactor'] = 1.
-            a.config()['axialConvention'] = Config().getViewerConfig()
             a.config()['commonScannerBasedReferential'] = 1
 
             # register controls
@@ -331,14 +325,13 @@ class AnaSimpleViewer2(Qt.QObject):
         a.config()['axialConvention'] = config
         self.newDisplay()
 
-    def changeRef(self, ref):
+    def changeRef(self):
         ''' change referential
             ref : Boolean
             0 : World coordinates
             1 : Image referential
         '''
         a = ana.Anatomist('-b')
-        a.config()['setAutomaticReferential'] = ref
         self.deleteObjects(self.aobjects)
         self.loadObject(self.files, config_changed = True)
 
@@ -426,7 +419,7 @@ class AnaSimpleViewer2(Qt.QObject):
         '''
         a = ana.Anatomist('-b')
         objects = []
-        im_sec = Config().getViewerFramerate()
+        im_sec = float(Config().getViewerFramerate())
         frame_rate = 1/im_sec
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
         t = findChild(self.awidget, 'coordTEdit')
@@ -647,6 +640,8 @@ class AnaSimpleViewer2(Qt.QObject):
         added to objectlist but not displayed
         '''
         a = ana.Anatomist('-b')
+        a.config()['setAutomaticReferential'] = Config().get_referential()
+        a.config()['axialConvention'] = Config().getViewerConfig()
 
         #Progress indication
         window = Qt.QWidget()
@@ -760,7 +755,9 @@ class AnaSimpleViewer2(Qt.QObject):
             if len(wins) == 0:
                 return
             vr = a.fusionObjects([obj], method='VolumeRenderingFusionMethod')
+            vr.releaseAppRef()
             clip = a.fusionObjects([vr], method='FusionClipMethod')
+            clip.releaseAppRef()
             self.volrender = [clip, vr]
             a.addObjects(clip, wins, **opts)
         else:
@@ -790,6 +787,7 @@ class AnaSimpleViewer2(Qt.QObject):
             # several objects: fusion them
             fusobjs = self.fusion2d[1:] + [obj]
             f2d = a.fusionObjects(fusobjs, method='Fusion2DMethod')
+            f2d.releaseAppRef()
             if self.fusion2d[0] is not None:
                 # destroy the previous fusion
                 a.deleteObjects(self.fusion2d[0])
@@ -831,6 +829,7 @@ class AnaSimpleViewer2(Qt.QObject):
             fusobjs = [o for o in self.fusion2d[1:] if o != obj]
             if len(fusobjs) >= 2:
                 f2d = a.fusionObjects(fusobjs, method='Fusion2DMethod')
+                f2d.releaseAppRef()
             else:
                 f2d = None
             if self.fusion2d[0] is not None:
@@ -1059,28 +1058,34 @@ class AnaSimpleViewer2(Qt.QObject):
         objs = [o for o in a.getObjects() if o.filename in files]
         self.deleteObjects(objs)
 
-    def closeAll(self):
+    def closeAll(self, close_ana=True):
         '''Exit'''
-        print("Exiting")
+        print("Exiting Ana2")
         a = ana.Anatomist('-b')
         # remove windows from their parent to prevent them to be brutally
         # deleted by Qt.
         w = None
         for w in self.awindows:
-            w.hide()
+            try:
+                w.hide()
+            except:
+                continue  # window closed by Qt ?
             self.viewgridlay.removeWidget(w.internalRep._get())
             w.setParent(None)
         del w
         self.awindows = []
+        self.displayedObjects = []
         self.viewgridlay = None
         self.volrender = None
         self.fusion2d = []
+        self.mesh3d = {}
         self.aobjects = []
         self.awidget.close()
         self.awidget = None
         del self.fdialog
-        a = ana.Anatomist()
-        a.close()
+        if close_ana:
+            a = ana.Anatomist()
+            a.close()
 
     def stopVolumeRendering(self):
         '''Disable volume rendering: show a slice instead'''
@@ -1112,7 +1117,9 @@ class AnaSimpleViewer2(Qt.QObject):
         if len(wins) == 0:
             return
         vr = a.fusionObjects([obj], method='VolumeRenderingFusionMethod')
+        vr.releaseAppRef()
         clip = a.fusionObjects([vr], method='FusionClipMethod')
+        clip.releaseAppRef()
         self.volrender = [clip, vr]
         a.removeObjects(obj, wins)
         a.addObjects(clip, wins)

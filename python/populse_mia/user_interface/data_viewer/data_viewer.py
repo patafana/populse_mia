@@ -71,4 +71,7 @@ class DataViewer(object):
             'set_documents is abstract and should be overloaded in data '
             'viewer implementations')
 
+    def close(self):
+        self.clear()
+
 

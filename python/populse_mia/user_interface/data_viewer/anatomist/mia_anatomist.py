@@ -21,11 +21,17 @@ class MiaViewer(Qt.QWidget, DataViewer):
     implementation based on `PyAnatomist <http://brainvisa.info/pyanatomist/sphinx/index.html>`_
     '''
 
-    def __init__(self):
+    def __init__(self, init_global_handlers = None):
 
         super(MiaViewer, self).__init__()
 
-        self.anaviewer = AnaSimpleViewer()
+        self.anaviewer = AnaSimpleViewer(init_global_handlers)
+
+        # count global number of viewers using anatomist, in order to close it
+        # nicely
+        if not hasattr(DataViewer, 'mia_viewers'):
+            DataViewer.mia_viewers = 0
+        DataViewer.mia_viewers += 1
 
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
@@ -104,3 +110,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
                                                      value))
                 result_names.append(value)
             self.display_files(result_names)
+
+    def close(self):
+        super(MiaViewer, self).close()
+        close_ana = False
+        DataViewer.mia_viewers -= 1 # dec count
+        if DataViewer.mia_viewers == 0:
+            close_ana = True
+        self.anaviewer.closeAll(close_ana)

@@ -41,6 +41,12 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
         self.anaviewer = AnaSimpleViewer2(init_global_handlers)
 
+        # count global number of viewers using anatomist, in order to close it
+        # nicely
+        if not hasattr(DataViewer, 'mia_viewers'):
+            DataViewer.mia_viewers = 0
+        DataViewer.mia_viewers += 1
+
         findChild = lambda x, y: Qt.QObject.findChild(x, Qt.QObject, y)
 
         awidget = self.anaviewer.awidget
@@ -278,4 +284,12 @@ class MiaViewer(Qt.QWidget, DataViewer):
             if new_config != config:
                 self.anaviewer.changeConfig(new_config)
             if new_ref != ref:
-                self.anaviewer.changeRef(new_ref)
+                self.anaviewer.changeRef()
+
+    def close(self):
+        super(MiaViewer, self).close()
+        close_ana = False
+        DataViewer.mia_viewers -= 1 # dec count
+        if DataViewer.mia_viewers == 0:
+            close_ana = True
+        self.anaviewer.closeAll(close_ana)

@@ -3,9 +3,11 @@
 
 :Contains:
     :Class:
+        - PlugFilter (must be declared before AttributesFilter)
+        - AttributesFilter
+        - CapsulNodeController
         - FilterWidget
         - NodeController
-        - PlugFilter
 
 """
 
@@ -17,44 +19,47 @@
 # for details.
 ##########################################################################
 
-
-import sys
+import os
 import sip
 import six
-import os
-from matplotlib.backends.qt_compat import QtWidgets
+import sys
 from functools import partial
+from matplotlib.backends.qt_compat import QtWidgets
 from traits.api import Undefined, TraitError
 
 # PyQt5 imports
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (
-    QPushButton, QVBoxLayout, QWidget, QHBoxLayout, QLabel, QLineEdit,
-    QGroupBox, QMessageBox, QToolButton, QDialog, QDialogButtonBox,
-    QApplication)
 from PyQt5 import Qt
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
+                             QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+                             QMessageBox, QPushButton, QToolButton,
+                             QVBoxLayout, QWidget)
 
 # soma-base imports
 from soma.controller import trait_ids
-from capsul.qt_gui.widgets.attributed_process_widget \
-    import AttributedProcessWidget
+
+# capsul imports
+from capsul.qt_gui.widgets.attributed_process_widget import (
+                                                        AttributedProcessWidget)
 
 # Populse_MIA imports
-from populse_mia.user_interface.data_browser.advanced_search import (
-    AdvancedSearch)
-from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
-from populse_mia.user_interface.data_browser.data_browser import (
-    TableDataBrowser, not_defined_value)
-from populse_mia.user_interface.pop_ups import (
-    PopUpSelectTagCountTable, PopUpVisualizedTags)
-from populse_mia.data_manager.project import TAG_FILENAME, \
-    COLLECTION_CURRENT, COLLECTION_BRICK
 from populse_mia.data_manager.filter import Filter
-from populse_mia.user_interface.pipeline_manager.process_mia import ProcessMIA
+from populse_mia.data_manager.project import (COLLECTION_BRICK,
+                                              COLLECTION_CURRENT,
+                                              TAG_FILENAME)
 from populse_mia.software_properties import Config
+from populse_mia.user_interface.data_browser.advanced_search import (
+                                                                 AdvancedSearch)
+from populse_mia.user_interface.data_browser.data_browser import (
+                                                              not_defined_value,
+                                                              TableDataBrowser)
+from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
+from populse_mia.user_interface.pipeline_manager.process_mia import ProcessMIA
+from populse_mia.user_interface.pop_ups import (PopUpSelectTagCountTable,
+                                                PopUpVisualizedTags)
 from . import type_editors
-import sip
+
 
 if sys.version_info[0] >= 3:
     unicode = str
@@ -65,6 +70,536 @@ if sys.version_info[0] >= 3:
 else:
     def values(d):
         return d.values()
+
+
+class PlugFilter(QWidget):
+    """Filter widget used on a node plug.
+
+    The widget displays a browser with the selected files of the database,
+    a rapid search and an advanced search to filter these files. Once the
+    filtering is done, the result (as a list of files) is set to the plug.
+
+    .. Methods:
+        - ok_clicked: set the new value to the node plug and closes the widget
+        - reset_search_bar: reset the search bar of the rapid search
+        - search_str: update the files to display in the browser
+        - set_plug_value: emit a signal to set the file names to the node plug
+        - update_tag_to_filter: update the tag to Filter
+        - update_tags: update the list of visualized tags
+    """
+
+    plug_value_changed = pyqtSignal(list)
+
+    def __init__(self, project, scans_list, process, node_name, plug_name,
+                 node_controller, main_window):
+        """
+        Initialization of the PlugFilter widget
+
+        :param project: current project in the software
+        :param scans_list: list of database files to filter
+        :param process: process instance of the selected node
+        :param node_name: name of the current node
+        :param plug_name: name of the selected node plug
+        :param node_controller: parent node controller
+        :param main_window: parent main window
+        """
+        super(PlugFilter, self).__init__(None)
+
+        from populse_mia.user_interface.data_browser.rapid_search import (
+                                                                    RapidSearch)
+        from populse_mia.data_manager.project import COLLECTION_CURRENT
+
+        self.project = project
+        self.node_controller = node_controller
+        self.main_window = main_window
+        self.process = process
+        self.plug_name = plug_name
+
+        # If the filter is saved in the node plug (not the case now)
+        # if hasattr(self.process, 'filters'):
+        #    if self.plug_name in self.process.filters.keys():
+        #         print("Already a filter for {0} plug of {1} process".format(
+        #                 self.plug_name, self.process.name))
+        #         # TODO: fill the advanced search with the corresponding
+        #          filter:orphan:
+
+        # Verifying that the scan names begin not with a "/" or a "\"
+        doc_list = []
+        for brick in self.main_window.pipeline_manager.brick_list:
+            doc = self.project.session.get_document(COLLECTION_BRICK,
+                                                    brick)
+            if doc is not None:
+                for key in doc["Output(s)"]:
+                    if isinstance(doc["Output(s)"][key], str):
+                        if doc["Output(s)"][key] != '':
+                            doc_delete = os.path.relpath(doc["Output(s)"][key],
+                                                     self.project.folder)
+                            doc_list.append(doc_delete)
+
+        if scans_list:
+            scans_list_copy = []
+            for scan in scans_list:
+                scan_no_pfolder = scan.replace(self.project.folder, "")
+                if scan_no_pfolder[0] in ["\\", "/"]:
+                    scan_no_pfolder = scan_no_pfolder[1:]
+                if scan_no_pfolder not in doc_list:
+                    scans_list_copy.append(scan_no_pfolder)
+
+            self.scans_list = scans_list_copy
+
+        # If there is no element in scans_list, this means that all the scans
+        # of the database needs to be taken into account
+        else:
+            self.scans_list = self.project.session.get_documents_names(
+                COLLECTION_CURRENT)
+
+        self.setWindowTitle("Filter - " + node_name + " - " + plug_name)
+
+        # Graphical components
+        self.table_data = TableDataBrowser(self.project, self,
+                                           self.node_controller.visibles_tags,
+                                           False, True, link_viewer=False)
+
+        # Reducing the list of scans to selection
+        all_scans = self.table_data.scans_to_visualize
+        self.table_data.scans_to_visualize = self.scans_list
+        self.table_data.scans_to_search = self.scans_list
+        self.table_data.update_visualized_rows(all_scans)
+
+        search_bar_layout = QHBoxLayout()
+
+        self.rapid_search = RapidSearch(self)
+        self.rapid_search.textChanged.connect(partial(self.search_str))
+
+        sources_images_dir = Config().getSourceImageDir()
+        self.button_cross = QToolButton()
+        self.button_cross.setStyleSheet('background-color:rgb(255, 255, 255);')
+        self.button_cross.setIcon(QIcon(os.path.join(sources_images_dir,
+                                                     'gray_cross.png')))
+        self.button_cross.clicked.connect(self.reset_search_bar)
+
+        search_bar_layout.addWidget(self.rapid_search)
+        search_bar_layout.addWidget(self.button_cross)
+
+        self.advanced_search = AdvancedSearch(
+            self.project, self, self.scans_list,
+            self.node_controller.visibles_tags, from_pipeline=True)
+        self.advanced_search.show_search()
+
+        push_button_tags = QPushButton("Visualized tags")
+        push_button_tags.clicked.connect(self.update_tags)
+
+        self.push_button_tag_filter = QPushButton(TAG_FILENAME)
+        self.push_button_tag_filter.clicked.connect(self.update_tag_to_filter)
+
+        push_button_ok = QPushButton("OK")
+        push_button_ok.clicked.connect(self.ok_clicked)
+
+        push_button_cancel = QPushButton("Cancel")
+        push_button_cancel.clicked.connect(self.close)
+
+        # Layout
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(push_button_tags)
+        buttons_layout.addWidget(self.push_button_tag_filter)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(push_button_ok)
+        buttons_layout.addWidget(push_button_cancel)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(search_bar_layout)
+        main_layout.addWidget(self.advanced_search)
+        main_layout.addWidget(self.table_data)
+        main_layout.addLayout(buttons_layout)
+
+        self.setLayout(main_layout)
+
+        screen_resolution = QApplication.instance().desktop().screenGeometry()
+        width, height = screen_resolution.width(), screen_resolution.height()
+        self.setMinimumWidth(round(0.6 * width))
+        self.setMinimumHeight(round(0.8 * height))
+
+    def ok_clicked(self):
+        """Set the new value to the node plug and closes the widget."""
+
+        # To use if the filters are set on plugs, which is not the case
+        # if isinstance(self.process, ProcessMIA):
+        #     (fields, conditions, values, links, nots) =
+        #     self.advanced_search.get_filters(False)
+        #
+        #
+        #     plug_filter = Filter(None, nots, values, fields,
+        #     links, conditions, "")
+        #     self.process.filters[self.plug_name] = plug_filter
+
+        self.set_plug_value()
+        self.close()
+
+    def reset_search_bar(self):
+        """Reset the search bar of the rapid search."""
+        self.rapid_search.setText("")
+        self.advanced_search.rows = []
+        self.advanced_search.show_search()
+
+        # All rows reput
+        old_scan_list = self.table_data.scans_to_visualize
+        self.table_data.scans_to_visualize = self.scans_list
+        self.table_data.scans_to_search = self.scans_list
+        self.table_data.update_visualized_rows(old_scan_list)
+
+    def search_str(self, str_search):
+        """Update the files to display in the browser.
+        :param str_search: string typed in the rapid search
+        """
+        old_scan_list = self.table_data.scans_to_visualize
+
+        # Every scan taken if empty search
+        if str_search == "":
+            return_list = self.table_data.scans_to_search
+        else:
+            # Scans with at least a not defined value
+            if str_search == not_defined_value:
+                filter = self.prepare_not_defined_filter(
+                    self.project.session.get_shown_tags())
+
+            # Scans matching the search
+            else:
+                filter = self.rapid_search.prepare_filter(
+                    str_search, self.project.session.get_shown_tags(),
+                    self.table_data.scans_to_search)
+
+            generator = self.project.session.filter_documents(
+                COLLECTION_CURRENT, filter)
+
+            # Creating the list of scans
+            return_list = [getattr(scan, TAG_FILENAME) for scan in generator]
+
+        self.table_data.scans_to_visualize = return_list
+        self.advanced_search.scans_list = return_list
+
+        # Rows updated
+        self.table_data.update_visualized_rows(old_scan_list)
+
+    def set_plug_value(self):
+        """Emit a signal to set the file names to the node plug."""
+
+        result_names = []
+        points = self.table_data.selectedIndexes()
+
+        # If the user has selected some items
+        if points:
+            for point in points:
+                row = point.row()
+                tag_name = self.push_button_tag_filter.text()
+                if tag_name.startswith('&'):
+                    tag_name = tag_name[1:]
+                # We get the FileName of the scan from the first row
+                scan_name = self.table_data.item(row, 0).text()
+                value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                       scan_name, tag_name)
+                if tag_name == TAG_FILENAME:
+                    value = os.path.abspath(os.path.join(self.project.folder,
+                                                         value))
+                result_names.append(value)
+        else:
+            filter = self.table_data.get_current_filter()
+            for i in range(len(filter)):
+                scan_name = filter[i]
+                tag_name = self.push_button_tag_filter.text()
+                value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                       scan_name, tag_name)
+                if tag_name == TAG_FILENAME:
+                    value = os.path.abspath(os.path.join(self.project.folder,
+                                                         value))
+                result_names.append(value)
+
+        self.plug_value_changed.emit(result_names)
+
+    def update_tag_to_filter(self):
+        """Update the tag to Filter."""
+
+        popUp = PopUpSelectTagCountTable(self.project,
+                                         self.node_controller.visibles_tags,
+                                         self.push_button_tag_filter.text())
+        if popUp.exec_():
+            self.push_button_tag_filter.setText(popUp.selected_tag)
+
+    def update_tags(self):
+        """Update the list of visualized tags."""
+
+        dialog = QDialog()
+        visualized_tags = PopUpVisualizedTags(
+            self.project,
+            self.node_controller.visibles_tags)
+        layout = QVBoxLayout()
+        layout.addWidget(visualized_tags)
+        buttons_layout = QHBoxLayout()
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok |
+                                   QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        buttons_layout.addWidget(buttons)
+        layout.addLayout(buttons_layout)
+        dialog.setLayout(layout)
+        dialog.show()
+        dialog.setMinimumHeight(600)
+        dialog.setMinimumWidth(600)
+        if dialog.exec():
+            new_visibilities = []
+            for x in range(visualized_tags.list_widget_selected_tags.count()):
+                visible_tag = visualized_tags.list_widget_selected_tags.item(
+                    x).text()
+                new_visibilities.append(visible_tag)
+            new_visibilities.append(TAG_FILENAME)
+            self.table_data.update_visualized_columns(
+                self.node_controller.visibles_tags, new_visibilities)
+            self.node_controller.visibles_tags = new_visibilities
+            for row in self.advanced_search.rows:
+                fields = row[2]
+                fields.clear()
+                for visible_tag in new_visibilities:
+                    fields.addItem(visible_tag)
+                fields.model().sort(0)
+                fields.addItem("All visualized tags")
+
+        points = self.table_data.selectedIndexes()
+
+        # If the user has selected some items
+        if points:
+            for point in points:
+                row = point.row()
+                for tag_name in self.project.session.get_fields_names(
+                        COLLECTION_CURRENT):
+                    # We get the FileName of the scan from the first row
+                    scan_name = self.table_data.item(row, 0).text()
+                    value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                          scan_name, tag_name)
+                    attributes.setdefault(tag_name, []).append(value)
+        else:
+            filter = self.table_data.get_current_filter()
+            for i in range(len(filter)):
+                scan_name = filter[i]
+                for tag_name in self.project.session.get_fields_names(
+                        COLLECTION_CURRENT):
+                    value = self.project.session.get_value(COLLECTION_CURRENT,
+                                                          scan_name, tag_name)
+                    attributes.setdefault(tag_name, []).append(value)
+
+        self.attributes_selected.emit(attributes)
+
+
+class AttributesFilter(PlugFilter):
+    """Filter widget used on an attributes set for completion.
+
+    The widget displays a browser with the selected files of the database,
+    a rapid search and an advanced search to filter these files. Once the
+    filtering is done, the result (as a list of files) is set to the plug.
+    """
+    attributes_selected = pyqtSignal(dict)
+
+    def ok_clicked(self):
+        """Close the widget"""
+        self.close()
+        attributes = {}
+
+
+# Node controller V2 style
+class CapsulNodeController(QWidget):
+    '''
+    Implementation of NodeController using Capsul AttributedProcessWidget
+    widget
+    '''
+    value_changed = pyqtSignal(list)
+
+    def __init__(self, project, scan_list, pipeline_manager_tab,
+                 main_window):
+        super().__init__()
+        self.project = project
+        self.scan_list = scan_list
+        self.main_window = main_window
+        self.node_name = ""
+        self.visibles_tags = []
+
+        # Layouts
+        v_box_final = QVBoxLayout()
+        self.setLayout(v_box_final)
+        self.process_widget = None
+
+        # Node name
+        hlayout = QHBoxLayout()
+        label_node_name = QLabel()
+        label_node_name.setText('Node name:')
+
+        self.line_edit_node_name = QLineEdit()
+        hlayout.addWidget(label_node_name)
+        hlayout.addWidget(self.line_edit_node_name)
+        v_box_final.addLayout(hlayout)
+
+    def display_parameters(self, node_name, process, pipeline):
+        """Display the parameters of the selected node.
+
+        The node parameters are read and line labels/line edits/push buttons
+        are created for each of them. This methods consists mainly in widget
+        and layout organization.
+
+        :param node_name: name of the node
+        :param process: process of the node
+        :param pipeline: current pipeline
+        """
+        self.node_name = node_name
+        # The pipeline global inputs and outputs node name cannot be modified
+        if self.node_name not in ('inputs', 'outputs'):
+            self.line_edit_node_name.setText(self.node_name)
+            self.line_edit_node_name.setReadOnly(False)
+            self.line_edit_node_name.returnPressed.connect(
+                partial(self.update_node_name, pipeline))
+        else:
+            self.line_edit_node_name.setText('Pipeline inputs/outputs')
+            self.line_edit_node_name.setReadOnly(True)
+
+        if self.process_widget:
+            item = self.layout().takeAt(1)
+            self.process_widget.deleteLater()
+            del item
+            self.process_widget = None
+
+        userlevel = Config().get_user_level()
+        self.process = process
+        self.process_widget = AttributedProcessWidget(
+            process, override_control_types={
+                'File': type_editors.PopulseFileControlWidget,
+                'Directory': type_editors.PopulseDirectoryControlWidget,
+                'List_File':
+                    type_editors.PopulseOffscreenListFileControlWidget,
+                'Undefined':
+                    type_editors.PopulseUndefinedControlWidget},
+            separate_outputs=True,
+            user_data={'project': self.project,
+                       'scan_list': self.scan_list,
+                       'main_window': self.main_window,
+                       'node_controller': self},
+            scroll=False,
+            userlevel=userlevel)
+        
+        if hasattr(process, 'completion_engine'):
+            compl = process.completion_engine
+            atts = compl.get_attribute_values()
+
+            if len(atts.user_traits()) != 0:
+                btn = QPushButton('Filter')
+                btn.setSizePolicy(Qt.QSizePolicy.Fixed,
+                                  Qt.QSizePolicy.Fixed)
+                btn.clicked.connect(self.filter_attributes)
+                self.process_widget.attrib_widget.layout().insertWidget(0, btn)
+        self.layout().addWidget(self.process_widget)
+        self.process.on_trait_change(self.parameters_changed)
+
+        # this cannot be done in __del__ since the C++ part will be already
+        # destroyed by then.
+        # However this signal seems never to be emitted, and I don't understand
+        # why. So release_process() has to be called manually from the
+        # pipeline manager. Sigh.
+        self.destroyed.connect(partial(self.static_release, process,
+                                       self.parameters_changed))
+
+    @staticmethod
+    def static_release(process, param_changed):
+        """Remove notification"""
+        process.on_trait_change(param_changed, remove=True)
+
+    def release_process(self):
+        """Remove notification from process"""
+        if hasattr(self, 'process'):
+            self.process.on_trait_change(self.parameters_changed, remove=True)
+        try:
+            if not sip.isdeleted(self):
+                self.value_changed.disconnect()
+        except TypeError:
+            pass  # it was not connected: OK
+
+    def update_parameters(self, process=None):
+        """Update the parameters values.
+
+        Does nothing any longer since the controller widget already reacts to
+        changes in the process parameters.
+
+        :param process: process of the node
+        """
+        pass
+
+    def parameters_changed(self, param, value, old_value):
+        """Emit the value_changed signal."""
+        value_type = type(value)
+        self.value_changed.emit(["plug_value", self.node_name, old_value,
+                                 param, value_type, value])
+
+    def update_node_name(self, pipeline, new_node_name=None):
+        """Change the name of the selected node and updates the pipeline.
+
+        Because the nodes are stored in a dictionary, we have to create
+        a new node that has the same traits as the selected one and create
+        new links that are the same than the selected node.
+
+        :param pipeline: current pipeline
+        :param new_node_name: new node name (is None except when this method
+        is called from an undo/redo)
+        """
+        # Copying the old node
+        old_node = pipeline.nodes[self.node_name]
+        old_node_name = self.node_name
+
+        if not new_node_name:
+            new_node_name = self.line_edit_node_name.text()
+
+        if new_node_name in list(pipeline.nodes.keys()):
+            print("Node name already in pipeline")
+
+        else:
+            pipeline.rename_node(old_node_name, new_node_name)
+
+            # Updating the node_name attribute
+            self.node_name = new_node_name
+            # To undo/redo
+            self.value_changed.emit(["node_name",
+                                     pipeline.nodes[new_node_name],
+                                     new_node_name, old_node_name])
+            self.main_window.statusBar().showMessage(
+                'Node name "{0}" has been changed to "{1}".'.format(
+                    old_node_name, new_node_name))
+
+    def filter_attributes(self):
+        """Display a filter widget."""
+        self.pop_up = AttributesFilter(
+            self.project, self.scan_list, self.process,
+            self.node_name, 'attributes', self, self.main_window)
+        self.pop_up.show()
+        self.pop_up.attributes_selected.connect(
+            self.update_attributes_from_filter)
+
+    def update_attributes_from_filter(self, attributes):
+        """Update attributes from filter widger"""
+        compl = self.process.completion_engine
+        atts = compl.get_attribute_values()
+        num_set = 0
+        for name, value in attributes.items():
+
+            if atts.trait(name):
+                if isinstance(getattr(atts, name), list):
+                    setattr(atts, name, value)
+
+                else:
+                    setattr(atts, name, value[0])
+
+                num_set += 1
+
+        if num_set == 0 and len(attributes) != 0:
+            mbox_icon = QMessageBox.Information
+            mbox_title = 'Unmatching tags / attributes'
+            mbox_text = ('The selected data tags do not match the expected '
+                         'attributes set for process parameters completion')
+            mbox = QMessageBox(mbox_icon, mbox_title, mbox_text)
+            timer = Qt.QTimer.singleShot(2000, mbox.accept)
+            mbox.exec()
 
 
 class FilterWidget(QWidget):
@@ -321,6 +856,7 @@ class FilterWidget(QWidget):
                 fields.addItem("All visualized tags")
 
 
+# Node controller V1 style
 class NodeController(QWidget):
     """
     Allow to change the input and output values of a pipeline node
@@ -686,6 +1222,7 @@ class NodeController(QWidget):
 
         if self.node_name in ['inputs', 'outputs']:
             node_name = ''
+
         else:
             node_name = self.node_name
 
@@ -693,10 +1230,12 @@ class NodeController(QWidget):
 
         try:
             pipeline.nodes[node_name].set_plug_value(plug_name, new_value)
+
         except TraitError as err:
             msg = QMessageBox()
-            msg.setText("{0}: {1}.".format(err.__class__, err))
+            msg.setText("{}".format(err))
             msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle(err.__class__.__name__)
             msg.exec_()
 
             if in_or_out == 'in':
@@ -754,542 +1293,6 @@ class NodeController(QWidget):
         # only implemented in CapsulNodeController
         pass
 
-# FIXME temporary: another implementation of NodeController using Capsul
-# AttributedProcessWidget widget
-class CapsulNodeController(QWidget):
-    '''
-    Implementation of NodeController using Capsul AttributedProcessWidget
-    widget
-    '''
 
-    value_changed = pyqtSignal(list)
 
-    def __init__(self, project, scan_list, pipeline_manager_tab,
-                 main_window):
-        
-        super().__init__()
-        self.project = project
-        self.scan_list = scan_list
-        self.main_window = main_window
-        self.node_name = ""
-        self.visibles_tags = []
-
-        # Layouts
-        v_box_final = QVBoxLayout()
-        self.setLayout(v_box_final)
-        self.process_widget = None
-
-        # Node name
-        hlayout = QHBoxLayout()
-        label_node_name = QLabel()
-        label_node_name.setText('Node name:')
-
-        self.line_edit_node_name = QLineEdit()
-        hlayout.addWidget(label_node_name)
-        hlayout.addWidget(self.line_edit_node_name)
-        v_box_final.addLayout(hlayout)
-
-    def display_parameters(self, node_name, process, pipeline):
-        """Display the parameters of the selected node.
-
-        The node parameters are read and line labels/line edits/push buttons
-        are created for each of them. This methods consists mainly in widget
-        and layout organization.
-
-        :param node_name: name of the node
-        :param process: process of the node
-        :param pipeline: current pipeline
-        """
-
-        self.node_name = node_name
-        # The pipeline global inputs and outputs node name cannot be modified
-        if self.node_name not in ('inputs', 'outputs'):
-            self.line_edit_node_name.setText(self.node_name)
-            self.line_edit_node_name.setReadOnly(False)
-            self.line_edit_node_name.returnPressed.connect(
-                partial(self.update_node_name, pipeline))
-        else:
-            self.line_edit_node_name.setText('Pipeline inputs/outputs')
-            self.line_edit_node_name.setReadOnly(True)
-
-        if self.process_widget:
-            item = self.layout().takeAt(1)
-            self.process_widget.deleteLater()
-            del item
-            self.process_widget = None
-
-        userlevel = Config().get_user_level()
-        self.process = process
-        self.process_widget = AttributedProcessWidget(
-            process, override_control_types={
-                'File': type_editors.PopulseFileControlWidget,
-                'Directory': type_editors.PopulseDirectoryControlWidget,
-                'List_File':
-                    type_editors.PopulseOffscreenListFileControlWidget,
-                'Undefined':
-                    type_editors.PopulseUndefinedControlWidget},
-            separate_outputs=True,
-            user_data={'project': self.project,
-                       'scan_list': self.scan_list,
-                       'main_window': self.main_window,
-                       'node_controller': self},
-            scroll=False,
-            userlevel=userlevel)
-        if hasattr(process, 'completion_engine'):
-            compl = process.completion_engine
-            atts = compl.get_attribute_values()
-
-            if len(atts.user_traits()) != 0:
-                btn = QPushButton('Filter')
-                btn.setSizePolicy(Qt.QSizePolicy.Fixed,
-                                  Qt.QSizePolicy.Fixed)
-                btn.clicked.connect(self.filter_attributes)
-                self.process_widget.attrib_widget.layout().insertWidget(0, btn)
-        self.layout().addWidget(self.process_widget)
-        self.process.on_trait_change(self.parameters_changed)
-
-        # this cannot be done in __del__ since the C++ part will be already
-        # destroyed by then
-        # However this signal seems never to be emitted, and I don't understand
-        # why. So release_process() has to be callesd manually from the
-        # pipeline manager. Sigh.
-        self.destroyed.connect(partial(self.static_release, process,
-                                       self.parameters_changed))
-
-    @staticmethod
-    def static_release(process, param_changed):
-        process.on_trait_change(param_changed, remove=True)
-
-    def release_process(self):
-        """
-        remove notification from process
-        """
-        if hasattr(self, 'process'):
-            self.process.on_trait_change(self.parameters_changed, remove=True)
-        try:
-            if not sip.isdeleted(self):
-                self.value_changed.disconnect()
-        except TypeError:
-            pass  # it was not connected: OK
-
-    def update_parameters(self, process=None):
-        """Update the parameters values.
-
-        Does nothing any longer since the controller widget already reacts to
-        changes in the process parameters.
-
-        :param process: process of the node
-        """
-        pass
-
-    def parameters_changed(self, param, value, old_value):
-        value_type = type(value)
-        self.value_changed.emit(["plug_value", self.node_name, old_value,
-                                 param, value_type, value])
-
-    def update_node_name(self, pipeline, new_node_name=None):
-        """Change the name of the selected node and updates the pipeline.
-
-        Because the nodes are stored in a dictionary, we have to create
-        a new node that has the same traits as the selected one and create
-        new links that are the same than the selected node.
-
-        :param pipeline: current pipeline
-        :param new_node_name: new node name (is None except when this method
-        is called from an undo/redo)
-        """
-        # Copying the old node
-        old_node = pipeline.nodes[self.node_name]
-        old_node_name = self.node_name
-
-        if not new_node_name:
-            new_node_name = self.line_edit_node_name.text()
-
-        if new_node_name in list(pipeline.nodes.keys()):
-            print("Node name already in pipeline")
-
-        else:
-
-            pipeline.rename_node(old_node_name, new_node_name)
-
-            # Updating the node_name attribute
-            self.node_name = new_node_name
-
-            # To undo/redo
-            self.value_changed.emit(["node_name",
-                                     pipeline.nodes[new_node_name],
-                                     new_node_name, old_node_name])
-
-            self.main_window.statusBar().showMessage(
-                'Node name "{0}" has been changed to "{1}".'.format(
-                    old_node_name, new_node_name))
-
-    def filter_attributes(self):
-        """Display a filter widget.
-
-        :param node_name: name of the node
-        :param plug_name: name of the plug
-        :param parameters: tuple containing the index of the plug, the current
-           pipeline instance and the type of the plug value
-        :param process: process of the node
-        """
-        self.pop_up = AttributesFilter(
-            self.project, self.scan_list, self.process,
-            self.node_name, 'attributes', self, self.main_window)
-        self.pop_up.show()
-        self.pop_up.attributes_selected.connect(
-            self.update_attributes_from_filter)
-
-    def update_attributes_from_filter(self, attributes):
-        compl = self.process.completion_engine
-        atts = compl.get_attribute_values()
-        num_set = 0
-        for name, value in attributes.items():
-            if atts.trait(name):
-                if isinstance(getattr(atts, name), list):
-                    setattr(atts, name, value)
-                else:
-                    setattr(atts, name, value[0])
-                num_set += 1
-        if num_set == 0 and len(attributes) != 0:
-            mbox_icon = QMessageBox.Information
-            mbox_title = 'Unmatching tags / attributes'
-            mbox_text = 'The selected data tags do not match the expected ' \
-                'attributes set for process parameters completion'
-            mbox = QMessageBox(mbox_icon, mbox_title, mbox_text)
-            timer = Qt.QTimer.singleShot(2000, mbox.accept)
-            mbox.exec()
-
-
-class PlugFilter(QWidget):
-    """Filter widget used on a node plug.
-
-    The widget displays a browser with the selected files of the database,
-    a rapid search and an advanced search to filter these files. Once the
-    filtering is done, the result (as a list of files) is set to the plug.
-
-    .. Methods:
-        - ok_clicked: set the new value to the node plug and closes the widget
-        - reset_search_bar: reset the search bar of the rapid search
-        - search_str: update the files to display in the browser
-        - set_plug_value: emit a signal to set the file names to the node plug
-        - update_tag_to_filter: update the tag to Filter
-        - update_tags: update the list of visualized tags
-    """
-
-    plug_value_changed = pyqtSignal(list)
-
-    def __init__(self, project, scans_list, process, node_name, plug_name,
-                 node_controller, main_window):
-        """
-        Initialization of the PlugFilter widget
-
-        :param project: current project in the software
-        :param scans_list: list of database files to filter
-        :param process: process instance of the selected node
-        :param node_name: name of the current node
-        :param plug_name: name of the selected node plug
-        :param node_controller: parent node controller
-        :param main_window: parent main window
-        """
-
-        super(PlugFilter, self).__init__(None)
-
-        from populse_mia.user_interface.data_browser.rapid_search import \
-            RapidSearch
-        from populse_mia.data_manager.project import \
-            COLLECTION_CURRENT
-
-        self.project = project
-        self.node_controller = node_controller
-        self.main_window = main_window
-        self.process = process
-        self.plug_name = plug_name
-
-        # If the filter is saved in the node plug (not the case now)
-        # if hasattr(self.process, 'filters'):
-        #    if self.plug_name in self.process.filters.keys():
-        #         print("Already a filter for {0} plug of {1} process".format(
-        #                 self.plug_name, self.process.name))
-        #         # TODO: fill the advanced search with the corresponding
-        #          filter:orphan:
-
-        # Verifying that the scan names begin not with a "/" or a "\"
-        doc_list = []
-        for brick in self.main_window.pipeline_manager.brick_list:
-            doc = self.project.session.get_document(COLLECTION_BRICK,
-                                                    brick)
-            if doc is not None:
-                for key in doc["Output(s)"]:
-                    if isinstance(doc["Output(s)"][key], str):
-                        if doc["Output(s)"][key] != '':
-                            doc_delete = os.path.relpath(doc["Output(s)"][key],
-                                                     self.project.folder)
-                            doc_list.append(doc_delete)
-
-        if scans_list:
-            scans_list_copy = []
-            for scan in scans_list:
-                scan_no_pfolder = scan.replace(self.project.folder, "")
-                if scan_no_pfolder[0] in ["\\", "/"]:
-                    scan_no_pfolder = scan_no_pfolder[1:]
-                if scan_no_pfolder not in doc_list:
-                    scans_list_copy.append(scan_no_pfolder)
-
-            self.scans_list = scans_list_copy
-
-        # If there is no element in scans_list, this means that all the scans
-        # of the database needs to be taken into account
-        else:
-            self.scans_list = self.project.session.get_documents_names(
-                COLLECTION_CURRENT)
-
-        self.setWindowTitle("Filter - " + node_name + " - " + plug_name)
-
-        # Graphical components
-        self.table_data = TableDataBrowser(self.project, self,
-                                           self.node_controller.visibles_tags,
-                                           False, True, link_viewer=False)
-
-        # Reducing the list of scans to selection
-        all_scans = self.table_data.scans_to_visualize
-        self.table_data.scans_to_visualize = self.scans_list
-        self.table_data.scans_to_search = self.scans_list
-        self.table_data.update_visualized_rows(all_scans)
-
-        search_bar_layout = QHBoxLayout()
-
-        self.rapid_search = RapidSearch(self)
-        self.rapid_search.textChanged.connect(partial(self.search_str))
-
-        sources_images_dir = Config().getSourceImageDir()
-        self.button_cross = QToolButton()
-        self.button_cross.setStyleSheet('background-color:rgb(255, 255, 255);')
-        self.button_cross.setIcon(QIcon(os.path.join(sources_images_dir,
-                                                     'gray_cross.png')))
-        self.button_cross.clicked.connect(self.reset_search_bar)
-
-        search_bar_layout.addWidget(self.rapid_search)
-        search_bar_layout.addWidget(self.button_cross)
-
-        self.advanced_search = AdvancedSearch(
-            self.project, self, self.scans_list,
-            self.node_controller.visibles_tags, from_pipeline=True)
-        self.advanced_search.show_search()
-
-        push_button_tags = QPushButton("Visualized tags")
-        push_button_tags.clicked.connect(self.update_tags)
-
-        self.push_button_tag_filter = QPushButton(TAG_FILENAME)
-        self.push_button_tag_filter.clicked.connect(self.update_tag_to_filter)
-
-        push_button_ok = QPushButton("OK")
-        push_button_ok.clicked.connect(self.ok_clicked)
-
-        push_button_cancel = QPushButton("Cancel")
-        push_button_cancel.clicked.connect(self.close)
-
-        # Layout
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(push_button_tags)
-        buttons_layout.addWidget(self.push_button_tag_filter)
-        buttons_layout.addStretch(1)
-        buttons_layout.addWidget(push_button_ok)
-        buttons_layout.addWidget(push_button_cancel)
-
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(search_bar_layout)
-        main_layout.addWidget(self.advanced_search)
-        main_layout.addWidget(self.table_data)
-        main_layout.addLayout(buttons_layout)
-
-        self.setLayout(main_layout)
-
-        screen_resolution = QApplication.instance().desktop().screenGeometry()
-        width, height = screen_resolution.width(), screen_resolution.height()
-        self.setMinimumWidth(round(0.6 * width))
-        self.setMinimumHeight(round(0.8 * height))
-
-    def ok_clicked(self):
-        """Set the new value to the node plug and closes the widget."""
-
-        # To use if the filters are set on plugs, which is not the case
-        # if isinstance(self.process, ProcessMIA):
-        #     (fields, conditions, values, links, nots) =
-        #     self.advanced_search.get_filters(False)
-        #
-        #
-        #     plug_filter = Filter(None, nots, values, fields,
-        #     links, conditions, "")
-        #     self.process.filters[self.plug_name] = plug_filter
-
-        self.set_plug_value()
-        self.close()
-
-    def reset_search_bar(self):
-        """Reset the search bar of the rapid search."""
-        self.rapid_search.setText("")
-        self.advanced_search.rows = []
-        self.advanced_search.show_search()
-
-        # All rows reput
-        old_scan_list = self.table_data.scans_to_visualize
-        self.table_data.scans_to_visualize = self.scans_list
-        self.table_data.scans_to_search = self.scans_list
-        self.table_data.update_visualized_rows(old_scan_list)
-
-    def search_str(self, str_search):
-        """Update the files to display in the browser.
-        :param str_search: string typed in the rapid search
-        """
-
-        old_scan_list = self.table_data.scans_to_visualize
-
-        # Every scan taken if empty search
-        if str_search == "":
-            return_list = self.table_data.scans_to_search
-        else:
-            # Scans with at least a not defined value
-            if str_search == not_defined_value:
-                filter = self.prepare_not_defined_filter(
-                    self.project.session.get_shown_tags())
-
-            # Scans matching the search
-            else:
-                filter = self.rapid_search.prepare_filter(
-                    str_search, self.project.session.get_shown_tags(),
-                    self.table_data.scans_to_search)
-
-            generator = self.project.session.filter_documents(
-                COLLECTION_CURRENT, filter)
-
-            # Creating the list of scans
-            return_list = [getattr(scan, TAG_FILENAME) for scan in generator]
-
-        self.table_data.scans_to_visualize = return_list
-        self.advanced_search.scans_list = return_list
-
-        # Rows updated
-        self.table_data.update_visualized_rows(old_scan_list)
-
-    def set_plug_value(self):
-        """Emit a signal to set the file names to the node plug."""
-
-        result_names = []
-        points = self.table_data.selectedIndexes()
-
-        # If the use has selected some items
-        if points:
-            for point in points:
-                row = point.row()
-                tag_name = self.push_button_tag_filter.text()
-                if tag_name.startswith('&'):
-                    tag_name = tag_name[1:]
-                # We get the FileName of the scan from the first row
-                scan_name = self.table_data.item(row, 0).text()
-                value = self.project.session.get_value(COLLECTION_CURRENT,
-                                                       scan_name, tag_name)
-                if tag_name == TAG_FILENAME:
-                    value = os.path.abspath(os.path.join(self.project.folder,
-                                                         value))
-                result_names.append(value)
-        else:
-            filter = self.table_data.get_current_filter()
-            for i in range(len(filter)):
-                scan_name = filter[i]
-                tag_name = self.push_button_tag_filter.text()
-                value = self.project.session.get_value(COLLECTION_CURRENT,
-                                                       scan_name, tag_name)
-                if tag_name == TAG_FILENAME:
-                    value = os.path.abspath(os.path.join(self.project.folder,
-                                                         value))
-                result_names.append(value)
-
-        self.plug_value_changed.emit(result_names)
-
-    def update_tag_to_filter(self):
-        """Update the tag to Filter."""
-
-        popUp = PopUpSelectTagCountTable(self.project,
-                                         self.node_controller.visibles_tags,
-                                         self.push_button_tag_filter.text())
-        if popUp.exec_():
-            self.push_button_tag_filter.setText(popUp.selected_tag)
-
-    def update_tags(self):
-        """Update the list of visualized tags."""
-
-        dialog = QDialog()
-        visualized_tags = PopUpVisualizedTags(
-            self.project,
-            self.node_controller.visibles_tags)
-        layout = QVBoxLayout()
-        layout.addWidget(visualized_tags)
-        buttons_layout = QHBoxLayout()
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok |
-                                   QDialogButtonBox.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        buttons_layout.addWidget(buttons)
-        layout.addLayout(buttons_layout)
-        dialog.setLayout(layout)
-        dialog.show()
-        dialog.setMinimumHeight(600)
-        dialog.setMinimumWidth(600)
-        if dialog.exec():
-            new_visibilities = []
-            for x in range(visualized_tags.list_widget_selected_tags.count()):
-                visible_tag = visualized_tags.list_widget_selected_tags.item(
-                    x).text()
-                new_visibilities.append(visible_tag)
-            new_visibilities.append(TAG_FILENAME)
-            self.table_data.update_visualized_columns(
-                self.node_controller.visibles_tags, new_visibilities)
-            self.node_controller.visibles_tags = new_visibilities
-            for row in self.advanced_search.rows:
-                fields = row[2]
-                fields.clear()
-                for visible_tag in new_visibilities:
-                    fields.addItem(visible_tag)
-                fields.model().sort(0)
-                fields.addItem("All visualized tags")
-
-
-class AttributesFilter(PlugFilter):
-    """Filter widget used on an attributes set for completion.
-
-    The widget displays a browser with the selected files of the database,
-    a rapid search and an advanced search to filter these files. Once the
-    filtering is done, the result (as a list of files) is set to the plug.
-    """
-    attributes_selected = pyqtSignal(dict)
-
-    def ok_clicked(self):
-
-        self.close()
-        attributes = {}
-        points = self.table_data.selectedIndexes()
-
-        # If the use has selected some items
-        if points:
-            for point in points:
-                row = point.row()
-                for tag_name in self.project.session.get_fields_names(
-                        COLLECTION_CURRENT):
-                    # We get the FileName of the scan from the first row
-                    scan_name = self.table_data.item(row, 0).text()
-                    value = self.project.session.get_value(COLLECTION_CURRENT,
-                                                          scan_name, tag_name)
-                    attributes.setdefault(tag_name, []).append(value)
-        else:
-            filter = self.table_data.get_current_filter()
-            for i in range(len(filter)):
-                scan_name = filter[i]
-                for tag_name in self.project.session.get_fields_names(
-                        COLLECTION_CURRENT):
-                    value = self.project.session.get_value(COLLECTION_CURRENT,
-                                                          scan_name, tag_name)
-                    attributes.setdefault(tag_name, []).append(value)
-
-        self.attributes_selected.emit(attributes)
 
