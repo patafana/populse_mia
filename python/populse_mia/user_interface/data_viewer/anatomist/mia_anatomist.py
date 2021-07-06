@@ -21,11 +21,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
     implementation based on `PyAnatomist <http://brainvisa.info/pyanatomist/sphinx/index.html>`_
     '''
 
-    def __init__(self):
+    def __init__(self, init_global_handlers = None):
 
         super(MiaViewer, self).__init__()
 
-        self.anaviewer = AnaSimpleViewer()
+        self.anaviewer = AnaSimpleViewer(init_global_handlers)
 
         # count global number of viewers using anatomist, in order to close it
         # nicely

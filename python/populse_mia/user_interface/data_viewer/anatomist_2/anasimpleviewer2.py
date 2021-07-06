@@ -141,10 +141,6 @@ class AnaSimpleViewer2(Qt.QObject):
 
         if init_global_handlers:
             self.init_global_handlers()
-        else:
-            #Config settings must be read even if control initialization is not done
-            a.config()['setAutomaticReferential'] = Config().get_referential()
-            a.config()['axialConvention'] = Config().getViewerConfig()
 
         #ui file for dataviewer anasimpleviewer_2
         uifile = 'mainwindow.ui'
@@ -246,9 +242,7 @@ class AnaSimpleViewer2(Qt.QObject):
             cd.addControl('VolRenderControl', VolRenderControl, 25)
 
             # tweak: override some user config options
-            a.config()['setAutomaticReferential'] = Config().get_referential()
             a.config()['windowSizeFactor'] = 1.
-            a.config()['axialConvention'] = Config().getViewerConfig()
             a.config()['commonScannerBasedReferential'] = 1
 
             # register controls
@@ -313,14 +307,13 @@ class AnaSimpleViewer2(Qt.QObject):
         a.config()['axialConvention'] = config
         self.newDisplay()
 
-    def changeRef(self, ref):
+    def changeRef(self):
         ''' change referential
             ref : Boolean
             0 : World coordinates
             1 : Image referential
         '''
         a = ana.Anatomist('-b')
-        a.config()['setAutomaticReferential'] = ref
         self.deleteObjects(self.aobjects)
         self.loadObject(self.files, config_changed = True)
 
@@ -626,6 +619,8 @@ class AnaSimpleViewer2(Qt.QObject):
         added to objectlist but not displayed
         '''
         a = ana.Anatomist('-b')
+        a.config()['setAutomaticReferential'] = Config().get_referential()
+        a.config()['axialConvention'] = Config().getViewerConfig()
 
         #Progress indication
         window = Qt.QWidget()

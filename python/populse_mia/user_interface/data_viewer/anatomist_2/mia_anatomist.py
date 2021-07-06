@@ -284,7 +284,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
             if new_config != config:
                 self.anaviewer.changeConfig(new_config)
             if new_ref != ref:
-                self.anaviewer.changeRef(new_ref)
+                self.anaviewer.changeRef()
 
     def close(self):
         super(MiaViewer, self).close()

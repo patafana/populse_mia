@@ -118,14 +118,7 @@ class DataViewerTab(Qt.QWidget):
                                if os.path.isdir(os.path.abspath(os.path.join(
                                        os.path.dirname(__file__), p)))
                                    and p != '__pycache__']
-            #detected_viewer = ['anatomist', 'anatomist_2']
 
-
-        
-        #print('\ntoto detected_viewer: ', detected_viewer)
-        #detected_viewer = ['anatomist_2', 'anatomist']
-        #print('\ntoto detected_viewer: ', detected_viewer)
-            
         if not self.viewers_loaded:
             self.stacks = Qt.QStackedLayout()
             self.lay.addLayout(self.stacks)
@@ -140,7 +133,7 @@ class DataViewerTab(Qt.QWidget):
                 try:
                     viewer_module = importlib.import_module(
                     '%s.%s' % (__name__.rsplit('.', 1)[0], viewer_name))
-                    self.viewers_loaded[viewer_name] = viewer_module.MiaViewer()
+                    self.viewers_loaded[viewer_name] = viewer_module.MiaViewer(init_global_handlers)
                     self.stacks.addWidget(self.viewers_loaded[viewer_name])
                     self.viewers_combo.addItem(viewer_name)
                     #Check if initialization of controls has been done:
