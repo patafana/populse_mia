@@ -999,7 +999,7 @@ class AnaSimpleViewer2(Qt.QObject):
         '''
         if not self.fdialog:
             self.fdialog = Qt.QFileDialog()
-            self.fdialog.setDirectory(os.getcwd())
+            self.fdialog.setDirectory(os.path.expanduser("~"))
         else:
             fd2 = self.fdialog
             self.fdialog = Qt.QFileDialog()
