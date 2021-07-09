@@ -302,9 +302,18 @@ class AnaSimpleViewer2(Qt.QObject):
         toolBar.insertWidget(actionAutoRunning, self.slider)
 
     def changeOpacity(self):
-        if self.selectedObjects():
+        if self.selectedObjects() and len(self.displayedObjects) == 1:
             diffuse_vect = self.selectedObjects()[0].getInfo()['material']['diffuse']
             self.selectedObjects()[0].setMaterial(diffuse=[diffuse_vect[0], diffuse_vect[1], diffuse_vect[2], self.slider.value()/100])
+        elif self.selectedObjects():
+            index = self.displayedObjects.index(self.selectedObjects()[0])
+            a = ana.Anatomist('-b')
+            list = Qt.QObject.findChild(self.awidget, QtCore.QObject, 'objectslist')
+            if index == 0:
+                a.execute("TexturingParams", objects = self.fusion2d, texture_index = 1, rate=self.slider.value()/100, mode = 'linear_B_if_A_black')
+            else:
+                corrected_val = abs(self.slider.value()-100)
+                a.execute("TexturingParams", objects = self.fusion2d, texture_index = index, rate=corrected_val/100, mode = 'linear_A_if_B_black')
 
     def newPalette(self):
         color = self.combobox.currentText()
