@@ -452,7 +452,7 @@ class Config:
         :return: String of path
 
         """
-        return self.config.get("matlab", "")
+        return self.config.get("matlab", None)
 
     def get_matlab_standalone_path(self):
         """Get the path to matlab compiler runtime.
