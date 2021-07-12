@@ -155,14 +155,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
         #new window popup for objects
         self.newWindow = NewWindowViewer()
-        self.popup_window = Qt.QWidget()
-        self.popups = []
-        layout = Qt.QVBoxLayout()
-        self.popup_window.setLayout(layout)
-        self.popup_window.resize(730,780)
-        layout.addWidget(self.newWindow.window)
-        #self.newViewLay = Qt.QHBoxLayout(self.newWindow.viewNewWindow)
-
+        
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
@@ -1081,6 +1074,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def closeAll(self, close_ana=True):
         '''Exit'''
         print("Exiting Ana2")
+        self.newWindow.close()
         a = ana.Anatomist('-b')
         # remove windows from their parent to prevent them to be brutally
         # deleted by Qt.
@@ -1252,15 +1246,14 @@ class AnaSimpleViewer2(Qt.QObject):
     def addNewView(self, object):
         a = ana.Anatomist('-b')
         print('Function in progress')
+
         #Not really what I was expecting but it's not too bad
-        #give the possibility to open more than one popup? 
-        self.popups.append(self.popup_window)
-        index = len(self.popups)-1
-        self.popups[index].setWindowTitle(self.selectedObjects()[0].name)
+        #give the possibility to open more than one popup?
+        self.newWindow.popups.append(self.newWindow.popup_window)
+        index = len(self.newWindow.popups)-1
+        self.newWindow.popups[index].setWindowTitle(self.selectedObjects()[0].name)
         self.newWindow.createNewWindow()
         self.newWindow.setObject(object)
         #result = self.newWindow.addNewObject(object)
         a.addObjects(object, self.newWindow.new_awindow)
-        self.popups[index].show()
-        self.newWindow.window.setSizePolicy(Qt.QSizePolicy.Expanding,
-                                          Qt.QSizePolicy.Expanding)
+        self.newWindow.popups[index].show()

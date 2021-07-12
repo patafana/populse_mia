@@ -1,4 +1,3 @@
-
 from soma.qt_gui.qt_backend import Qt, QtCore
 from soma.qt_gui.qt_backend.uic import loadUi
 import os
@@ -34,9 +33,19 @@ class NewWindowViewer(Qt.QObject):
         self.new_awindow = None
         self.object = None
 
+        self.popup_window = Qt.QWidget()
+        self.popups = []
+        layout = Qt.QVBoxLayout()
+        self.popup_window.setLayout(layout)
+        self.popup_window.resize(730,780)
+        self.window.setSizePolicy(Qt.QSizePolicy.Expanding,
+                                          Qt.QSizePolicy.Expanding)
+        layout.addWidget(self.window)
+
         #find views viewButtons
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.viewButtons[0].setChecked(True)
+        #For now 3D doesn't work:
         self.viewButtons[3].setEnabled(False)
 
         self.viewButtons[0].triggered.connect(lambda : self.changeDisplay(0, self.object))
@@ -129,3 +138,11 @@ class NewWindowViewer(Qt.QObject):
         elif obj.objectType == 'GRAPH':
             opts['add_graph_nodes'] = 1
             return [None, opts]
+
+    def close(self):
+        self.window.close()
+        self.window = None
+        self.viewNewWindow = []
+        self.newViewLay = None
+        self.new_awindow = None
+        self.object = []
