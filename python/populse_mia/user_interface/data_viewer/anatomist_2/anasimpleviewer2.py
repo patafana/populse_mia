@@ -155,7 +155,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
         #new window popup for objects
         self.newWindow = NewWindowViewer()
-        
+
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
@@ -1244,16 +1244,8 @@ class AnaSimpleViewer2(Qt.QObject):
         self.browser.addObjects(self.selectedObjects())
 
     def addNewView(self, object):
-        a = ana.Anatomist('-b')
-        print('Function in progress')
-
-        #Not really what I was expecting but it's not too bad
-        #give the possibility to open more than one popup?
-        self.newWindow.popups.append(self.newWindow.popup_window)
-        index = len(self.newWindow.popups)-1
-        self.newWindow.popups[index].setWindowTitle(self.selectedObjects()[0].name)
-        self.newWindow.createNewWindow()
-        self.newWindow.setObject(object)
-        #result = self.newWindow.addNewObject(object)
-        a.addObjects(object, self.newWindow.new_awindow)
-        self.newWindow.popups[index].show()
+        '''
+        Opens a popup with a view of the object
+        Default display is axial view but can be changed
+        '''
+        self.newWindow.showPopup(object)

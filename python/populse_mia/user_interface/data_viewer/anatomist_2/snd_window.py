@@ -10,7 +10,7 @@ class NewWindowViewer(Qt.QObject):
     """
     Class defined to open a new window for a selected object with only one view possible
     The user will be able to choose which view he wants to display (axial,
-    sagittal or coronal view)
+    sagittal, coronal view or 3D view)
     """
 
     def __init__(self):
@@ -32,21 +32,14 @@ class NewWindowViewer(Qt.QObject):
         self.newViewLay = Qt.QHBoxLayout(self.viewNewWindow)
         self.new_awindow = None
         self.object = None
+        self.window_index = 0
 
         self.popup_window = Qt.QWidget()
         self.popups = []
-        layout = Qt.QVBoxLayout()
-        self.popup_window.setLayout(layout)
-        self.popup_window.resize(730,780)
-        self.window.setSizePolicy(Qt.QSizePolicy.Expanding,
-                                          Qt.QSizePolicy.Expanding)
-        layout.addWidget(self.window)
 
         #find views viewButtons
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
         self.viewButtons[0].setChecked(True)
-        #For now 3D doesn't work:
-        self.viewButtons[3].setEnabled(False)
 
         self.viewButtons[0].triggered.connect(lambda : self.changeDisplay(0, self.object))
         self.viewButtons[1].triggered.connect(lambda : self.changeDisplay(1, self.object))
@@ -54,6 +47,11 @@ class NewWindowViewer(Qt.QObject):
         self.viewButtons[3].triggered.connect(lambda : self.changeDisplay(3, self.object))
 
     def changeDisplay(self, index, object):
+        '''
+        Changes display on user's demand
+        index : int between 0 and 3
+        object : object to display
+        '''
         a = ana.Anatomist('-b')
         views = ['Axial', 'Sagittal', 'Coronal', '3D']
         new_view = views[index]
@@ -63,18 +61,31 @@ class NewWindowViewer(Qt.QObject):
 
 
     def disableButton(self, index):
+        '''
+        Manages button availability and whether they should be checked or not
+        depending on which view is displayed
+        '''
+        self.viewButtons[index].setChecked(True)
         for i in [0, 1, 2, 3]:
-            #The i==3 will have to be removed when 3D is going to work
-            if i == index or i==3:
+            if i == index:
                 pass
             else:
                 self.viewButtons[i].setChecked(False)
-                self.viewButtons[i].setEnabled(True)
 
     def createNewWindow(self, wintype='Axial'):
+        '''
+        Opens a new window in the vertical layout
+        Function is nearly the same as createWindow in AnaSimpleViewer2
+        Default display each time a new popup opens is 'Axial' view
+        '''
         a = ana.Anatomist('-b')
         w = a.createWindow(wintype, no_decoration=True, options={'hidden': 1})
         w.setAcceptDrops(False)
+
+        #Set wanted view button checked and others unchecked
+        views = ['Axial', 'Sagittal', 'Coronal', '3D']
+        index = views.index(wintype)
+        self.disableButton(index)
 
         #Delete object if there is already one
         if self.newViewLay.itemAt(0):
@@ -99,10 +110,10 @@ class NewWindowViewer(Qt.QObject):
         self.new_awindow = w
         self._winlayouts[x][y] = 1
 
-        #For now 3D isn't working
         if wintype == '3D':
-            print("3D isn't working for now")
-        #    a.execute('SetControl', windows=[w], control=self.control_3d_type)
+            a.execute('SetControl', windows=[w], control='LeftSimple3DControl')
+            a.execute('Camera', windows=[self.new_awindow],
+                      view_quaternion=[0.404603, 0.143829, 0.316813, 0.845718])
         else:
             a.execute('SetControl', windows=[w], control='Simple2DControl')
             a.assignReferential(a.mniTemplateRef, w)
@@ -123,23 +134,39 @@ class NewWindowViewer(Qt.QObject):
 
 
     def setObject(self, object):
+        '''
+        Store object to display
+        '''
         self.object = object
 
-    def addNewObject(self, obj):
-        """ Not used, maybe will be usefull for 3D rendering but not sure
-        """
-        opts = {}
-        if obj.objectType == 'VOLUME':
-            # volumes have a specific function since several volumes have to be
-            # fusionned, and a volume rendering may occur
-            return ['volume', opts]
-        elif obj.objectType == 'SURFACE':
-            return  ['mesh', opts]
-        elif obj.objectType == 'GRAPH':
-            opts['add_graph_nodes'] = 1
-            return [None, opts]
+    def showPopup(self, object):
+        '''
+        Defines the dimensions of the popup which is a QWidget
+        QWidget is added to self.popups in order to keep the widget
+        but beeing able to replace the object inside
+
+        '''
+        a = ana.Anatomist('-b')
+        layout = Qt.QVBoxLayout()
+        self.popup_window.setLayout(layout)
+        self.popup_window.resize(730,780)
+        self.window.setSizePolicy(Qt.QSizePolicy.Expanding,
+                                          Qt.QSizePolicy.Expanding)
+        layout.addWidget(self.window)
+        self.popups.append(self.popup_window)
+        index = len(self.popups)-1
+        self.popups[index].setWindowTitle(object.name)
+        #Create empty view (Axial, Sagittal,...)
+        self.createNewWindow()
+        self.setObject(object)
+        #Add object into view
+        a.addObjects(object, self.new_awindow)
+        self.popups[index].show()
 
     def close(self):
+        '''
+        Close properly objects before exiting Mia
+        '''
         self.window.close()
         self.window = None
         self.viewNewWindow = []
