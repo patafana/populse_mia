@@ -250,14 +250,14 @@ class IterationTable(QWidget):
     def remove_tag(self):
         """Remove a tag to visualize in the iteration table.
 
-        Used only for tests.
         """
-        push_button = self.push_buttons[-1]
-        push_button.deleteLater()
-        push_button = None
-        del self.push_buttons[-1]
-        del self.values_list[-1]
-        self.refresh_layout()
+        if len(self.push_buttons) >= 1:
+            push_button = self.push_buttons[-1]
+            push_button.deleteLater()
+            push_button = None
+            del self.push_buttons[-1]
+            del self.values_list[-1]
+            self.refresh_layout()
 
     def select_iteration_tag(self):
         """Open a pop-up to let the user select on which tag to iterate."""
