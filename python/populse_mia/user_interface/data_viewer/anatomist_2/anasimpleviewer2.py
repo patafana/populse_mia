@@ -159,7 +159,7 @@ class AnaSimpleViewer2(Qt.QObject):
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        findChild(awin, 'actionprint_view').triggered.connect(self.addNewView)
+        #findChild(awin, 'actionprint_view').triggered.connect(self.addNewView)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)

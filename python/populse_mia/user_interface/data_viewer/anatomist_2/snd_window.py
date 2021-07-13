@@ -1,4 +1,4 @@
-from soma.qt_gui.qt_backend import Qt, QtCore
+from soma.qt_gui.qt_backend import Qt, QtCore, QtGui
 from soma.qt_gui.qt_backend.uic import loadUi
 import os
 import anatomist.direct.api as ana
@@ -6,7 +6,7 @@ import anatomist.direct.api as ana
 
 
 
-class NewWindowViewer(Qt.QObject):
+class NewWindowViewer(QtGui.QMainWindow):
     """
     Class defined to open a new window for a selected object with only one view possible
     The user will be able to choose which view he wants to display (axial,
@@ -14,7 +14,7 @@ class NewWindowViewer(Qt.QObject):
     """
 
     def __init__(self):
-        Qt.QObject.__init__(self)
+        QtGui.QMainWindow.__init__(self, None, QtCore.Qt.WindowStaysOnTopHint)
 
         #Load ui file
         uifile = 'second_window.ui'
@@ -35,7 +35,14 @@ class NewWindowViewer(Qt.QObject):
         self.window_index = 0
 
         self.popup_window = Qt.QWidget()
+        self.popup_window.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.popups = []
+
+        self.layout = Qt.QVBoxLayout()
+        self.popup_window.setLayout(self.layout)
+        self.popup_window.resize(730,780)
+        self.window.setSizePolicy(Qt.QSizePolicy.Expanding,
+                                          Qt.QSizePolicy.Expanding)
 
         #find views viewButtons
         self.viewButtons = [findChild(awin, 'actionAxial'), findChild(awin, 'actionSagittal'), findChild(awin, 'actionCoronal'), findChild(awin, 'action3D')]
@@ -147,12 +154,7 @@ class NewWindowViewer(Qt.QObject):
 
         '''
         a = ana.Anatomist('-b')
-        layout = Qt.QVBoxLayout()
-        self.popup_window.setLayout(layout)
-        self.popup_window.resize(730,780)
-        self.window.setSizePolicy(Qt.QSizePolicy.Expanding,
-                                          Qt.QSizePolicy.Expanding)
-        layout.addWidget(self.window)
+        self.layout.addWidget(self.window)
         self.popups.append(self.popup_window)
         index = len(self.popups)-1
         self.popups[index].setWindowTitle(object.name)
