@@ -61,6 +61,8 @@ from PyQt5.QtWidgets import QMessageBox
 from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, ResetFOVAction, \
     registerSimpleControls
 import importlib
+from populse_mia.user_interface.data_viewer.anatomist_2.snd_window import NewWindowViewer
+from populse_mia.user_interface.data_viewer.anatomist_2 import resources_snd_window
 
 class LeftSimple3DControl(Simple2DControl):
     '''
@@ -151,10 +153,13 @@ class AnaSimpleViewer2(Qt.QObject):
         os.chdir(cwd)
         self.awidget = awin
 
+        #new window popup for objects
+        self.newWindow = NewWindowViewer()
+
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        #findChild(awin, 'actionprint_view').triggered.connect(self.changeMaterial)
+        #findChild(awin, 'actionprint_view').triggered.connect(self.addNewView)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -216,10 +221,8 @@ class AnaSimpleViewer2(Qt.QObject):
         self.files = []
         self.available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "blue-red-bright-dark"]
 
-        findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
-        findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
-        findChild(awin, 'actionCoronal').triggered.connect(self.newDisplay)
-        findChild(awin, 'action3D').triggered.connect(self.newDisplay)
+        for action in self.viewButtons:
+            action.triggered.connect(self.newDisplay)
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
 
         self.setComboBox()
@@ -548,6 +551,7 @@ class AnaSimpleViewer2(Qt.QObject):
 
     def getViewsToDisplay (self):
         ''' Check which views must be displayed
+            return : array with strings
         '''
         views = []
         if self.viewButtons[0].isChecked():
@@ -1077,6 +1081,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def closeAll(self, close_ana=True):
         '''Exit'''
         print("Exiting Ana2")
+        self.newWindow.close()
         a = ana.Anatomist('-b')
         # remove windows from their parent to prevent them to be brutally
         # deleted by Qt.
@@ -1230,7 +1235,7 @@ class AnaSimpleViewer2(Qt.QObject):
         prop = menu.addAction('Object properties')
         prop.triggered.connect(self.object_properties)
         new_view = menu.addAction('Open in new view')
-        new_view.triggered.connect(self.addNewView)
+        new_view.triggered.connect(lambda : self.addNewView(sel[0]))
         menu.exec_(Qt.QCursor.pos())
 
     def object_properties(self):
@@ -1245,5 +1250,9 @@ class AnaSimpleViewer2(Qt.QObject):
             self.browser.removeObjects(self.browser.Objects())
         self.browser.addObjects(self.selectedObjects())
 
-    def addNewView(self):
-        print('Function in progress')
+    def addNewView(self, object):
+        '''
+        Opens a popup with a view of the object
+        Default display is axial view but can be changed
+        '''
+        self.newWindow.showPopup(object)
