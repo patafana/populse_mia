@@ -460,7 +460,7 @@ class AnaSimpleViewer2(Qt.QObject):
             running_time = time.time() - start_time
             if running_time > frame_rate:
                 #If iteration takes to much time we don't want to
-                #make it sleep any longer
+                #make it sleep any longer (happens when fusion of images)
                 pass
             else:
                 time.sleep(frame_rate- running_time)
