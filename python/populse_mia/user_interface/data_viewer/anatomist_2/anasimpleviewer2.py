@@ -449,11 +449,18 @@ class AnaSimpleViewer2(Qt.QObject):
             i=0
         playAction = findChild(self.awidget, 'actionTimeRunning')
         while playAction.isChecked() and i<len(list_im):
+            start_time = time.time()
             playAction.setIcon(pauseIcon)
             t.setText('%8.3f' % list_im[i])
             a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [list_im[i]])
             PyQt5.QtWidgets.QApplication.processEvents()
-            time.sleep(frame_rate)
+            running_time = time.time() - start_time
+            if running_time > frame_rate:
+                #If iteration takes to much time we don't want to
+                #make it sleep any longer
+                pass
+            else:
+                time.sleep(frame_rate- running_time)
             i +=1
         playAction.setIcon(playIcon)
 
