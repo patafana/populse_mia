@@ -61,6 +61,8 @@ from PyQt5.QtWidgets import QMessageBox
 from anatomist.cpp.simplecontrols import Simple2DControl, Simple3DControl, ResetFOVAction, \
     registerSimpleControls
 import importlib
+from populse_mia.user_interface.data_viewer.anatomist_2.snd_window import NewWindowViewer
+from populse_mia.user_interface.data_viewer.anatomist_2 import resources_snd_window
 
 class LeftSimple3DControl(Simple2DControl):
     '''
@@ -151,10 +153,13 @@ class AnaSimpleViewer2(Qt.QObject):
         os.chdir(cwd)
         self.awidget = awin
 
+        #new window popup for objects
+        self.newWindow = NewWindowViewer()
+
         # connect GUI actions callbacks
         def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
-        #findChild(awin, 'actionprint_view').triggered.connect(self.changeMaterial)
+        #findChild(awin, 'actionprint_view').triggered.connect(self.addNewView)
         findChild(awin, 'actionTimeRunning').triggered.connect(self.automaticRunning)
         findChild(awin, 'fileOpenAction').triggered.connect(self.fileOpen)
         findChild(awin, 'fileExitAction').triggered.connect(self.closeAll)
@@ -216,10 +221,8 @@ class AnaSimpleViewer2(Qt.QObject):
         self.files = []
         self.available_palettes = ["B-W LINEAR", "Yellow-red", "RAINBOW", "Yellow-Red-White-Blue-Green", "blue-red-bright-dark"]
 
-        findChild(awin, 'actionAxial').triggered.connect(self.newDisplay)
-        findChild(awin, 'actionSagittal').triggered.connect(self.newDisplay)
-        findChild(awin, 'actionCoronal').triggered.connect(self.newDisplay)
-        findChild(awin, 'action3D').triggered.connect(self.newDisplay)
+        for action in self.viewButtons:
+            action.triggered.connect(self.newDisplay)
         findChild(awin,'objectslist').itemSelectionChanged.connect(self.disableButtons)
 
         self.setComboBox()
@@ -263,6 +266,10 @@ class AnaSimpleViewer2(Qt.QObject):
             AnaSimpleViewer2._global_handlers_initialized = True
 
     def setComboBox(self):
+        '''
+        Inserts a drop down menu in the toolbar. This menu contains defined available color palettes
+        The default color palettes are in self.available_palettes
+        '''
         toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
         actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
         label = QLabel("Palette: ")
@@ -279,6 +286,10 @@ class AnaSimpleViewer2(Qt.QObject):
         self.combobox.setIconSize(size)
 
     def setSlider(self):
+        '''
+        Inserts opacity slider in the toolbar
+        Minimum returned value is 0 and maximum value is 100
+        '''
         toolBar = Qt.QObject.findChild(self.awidget, QtCore.QObject,'toolBar')
         actionAutoRunning = Qt.QObject.findChild(self.awidget, QtCore.QObject,'actionTimeRunning')
         space = QWidget().resize(5,0)
@@ -292,16 +303,37 @@ class AnaSimpleViewer2(Qt.QObject):
         toolBar.insertWidget(actionAutoRunning, self.slider)
 
     def changeOpacity(self):
-        if self.selectedObjects():
+        '''
+        Changes opacity of selected object (to be more precise it changes the mixing rate between objects when multiple ones are
+        displayed)
+        '''
+        if self.selectedObjects() and len(self.displayedObjects) == 1:
             diffuse_vect = self.selectedObjects()[0].getInfo()['material']['diffuse']
             self.selectedObjects()[0].setMaterial(diffuse=[diffuse_vect[0], diffuse_vect[1], diffuse_vect[2], self.slider.value()/100])
+        elif self.selectedObjects():
+            index = self.displayedObjects.index(self.selectedObjects()[0])
+            a = ana.Anatomist('-b')
+            list = Qt.QObject.findChild(self.awidget, QtCore.QObject, 'objectslist')
+            if index == 0:
+                a.execute("TexturingParams", objects = self.fusion2d, texture_index = 1, rate=self.slider.value()/100, mode = 'linear_B_if_A_black')
+            else:
+                corrected_val = abs(self.slider.value()-100)
+                a.execute("TexturingParams", objects = self.fusion2d, texture_index = index, rate=corrected_val/100, mode = 'linear_A_if_B_black')
 
     def newPalette(self):
+        '''
+        Sets chosen color palette in the toolbar drop down menu to selected object
+        '''
         color = self.combobox.currentText()
         if self.selectedObjects():
             self.selectedObjects()[0].setPalette(palette = color)
 
     def setColorPalette(self):
+        '''
+        Checks color palette of a selected object, displays it in the toolbar drop-down menu and adds it if it isn't already stored in
+        self.available_palettes
+        If corresponding palette image exists it is added, otherwise only the name of the palette appears
+        '''
         color = self.combobox.currentText()
         if self.selectedObjects():
             actual_pal = self.selectedObjects()[0].getInfo()['palette']['palette']
@@ -318,18 +350,20 @@ class AnaSimpleViewer2(Qt.QObject):
                     self.combobox.setItemIcon(index, icon)
 
     def changeConfig(self, config):
-        ''' change config depending on user settings
-            config : string "neuro" or "radio"
+        '''
+        change config depending on user settings
+        config : string "neuro" or "radio"
         '''
         a = ana.Anatomist('-b')
         a.config()['axialConvention'] = config
         self.newDisplay()
 
     def changeRef(self):
-        ''' change referential
-            ref : Boolean
-            0 : World coordinates
-            1 : Image referential
+        '''
+        change referential
+        ref : Boolean
+        0 : World coordinates
+        1 : Image referential
         '''
         a = ana.Anatomist('-b')
         self.deleteObjects(self.aobjects)
@@ -338,7 +372,8 @@ class AnaSimpleViewer2(Qt.QObject):
     def findChild(x, y): return Qt.QObject.findChild(x, QtCore.QObject, y)
 
     def clickHandler(self, eventName, params):
-        '''Callback for linked cursor. In volume rendering mode, it will sync
+        '''
+        Callback for linked cursor. In volume rendering mode, it will sync
         the VR slice to the linked cursor.
         It also updates the volumes values view
         '''
@@ -414,7 +449,8 @@ class AnaSimpleViewer2(Qt.QObject):
             clip.notifyObservers()
 
     def automaticRunning(self):
-        ''' Enable automatic running of functionnal images
+        '''
+        Enable automatic running of functionnal images
         frame rate can be changed in preferences by the user
         '''
         a = ana.Anatomist('-b')
@@ -440,16 +476,24 @@ class AnaSimpleViewer2(Qt.QObject):
             i=0
         playAction = findChild(self.awidget, 'actionTimeRunning')
         while playAction.isChecked() and i<len(list_im):
+            start_time = time.time()
             playAction.setIcon(pauseIcon)
             t.setText('%8.3f' % list_im[i])
             a.execute('LinkedCursor',window=self.awindows[0], position=pos[:3] + [list_im[i]])
             PyQt5.QtWidgets.QApplication.processEvents()
-            time.sleep(frame_rate)
+            running_time = time.time() - start_time
+            if running_time > frame_rate:
+                #If iteration takes to much time we don't want to
+                #make it sleep any longer (happens when fusion of images)
+                pass
+            else:
+                time.sleep(frame_rate- running_time)
             i +=1
         playAction.setIcon(playIcon)
 
     def createWindow(self, wintype='Axial'):
-        '''Opens a new window in the windows grid layout.
+        '''
+        Opens a new window in the windows grid layout.
         The new window will be set in MNI referential (except 3D for now
         because of a buf in volume rendering in direct referentials), will be
         assigned the custom control, and have no menu/toolbars.
@@ -506,7 +550,9 @@ class AnaSimpleViewer2(Qt.QObject):
 
 
     def createTotalWindow(self, views):
-        ''' Create the windows which will contain the views
+        '''
+        Create the windows which will contain the views
+        views : array containing strings "axial", "sagittal", "coronal" and/or "3D"
         '''
         for i in views:
             self.createWindow(str(i))
@@ -523,7 +569,8 @@ class AnaSimpleViewer2(Qt.QObject):
                 counter +=1
 
     def deleteTotalWindow (self):
-        ''' Clear windows and fusions in order to enable new display
+        '''
+        Clear windows and fusions in order to enable new display
         '''
         self.awindows.clear()
         self.fusion2d.clear()
@@ -531,7 +578,9 @@ class AnaSimpleViewer2(Qt.QObject):
             self.viewgridlay.itemAt(i).widget().deleteLater()
 
     def getViewsToDisplay (self):
-        ''' Check which views must be displayed
+        '''
+        Check which views must be displayed
+        return : array with strings
         '''
         views = []
         if self.viewButtons[0].isChecked():
@@ -545,7 +594,8 @@ class AnaSimpleViewer2(Qt.QObject):
         return(views)
 
     def viewReferential (self, object):
-        ''' Set referential at the object center to visualize it
+        '''
+        Set referential at the object center to visualize it
         '''
         a = ana.Anatomist('-b')
         bb = object.boundingbox()
@@ -607,9 +657,10 @@ class AnaSimpleViewer2(Qt.QObject):
             w.focusView()
 
     def checkviews(self):
-        '''Prevent from closing the last view opened
-            Checks how many views button are enabled and if only one is,
-            it disables the button
+        '''
+        Prevent from closing the last view opened
+        Checks how many views button are enabled and if only one is,
+        it disables the button
         '''
         nb_views_checked = 0
         for i in range (len(self.viewButtons)):
@@ -624,7 +675,8 @@ class AnaSimpleViewer2(Qt.QObject):
                 self.viewButtons[i].setEnabled(True)
 
     def newDisplay(self):
-        ''' New display of windows, objects and views
+        '''
+        New display of windows, objects and views
         '''
         self.checkviews()
         self.deleteTotalWindow()
@@ -635,7 +687,8 @@ class AnaSimpleViewer2(Qt.QObject):
             self.viewReferential(self.displayedObjects[i])
 
     def loadObject(self, files, config_changed = None):
-        '''Load objects in files and display
+        '''
+        Load objects in files and display
         Only the first object of files is displayed, the others are loaded and
         added to objectlist but not displayed
         '''
@@ -709,7 +762,8 @@ class AnaSimpleViewer2(Qt.QObject):
             p.allowExecWhileIdle(False)
 
     def registerObject(self, obj, views=None):
-        '''Register an object in anasimpleviewer objects list, and display it
+        '''
+        Register an object in anasimpleviewer objects list, and display it
         '''
         a = ana.Anatomist('-b')
         ojectlist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
@@ -742,7 +796,8 @@ class AnaSimpleViewer2(Qt.QObject):
         self.viewReferential(obj)
 
     def _displayVolume(self, obj, opts={}):
-        '''Display a volume or a Fusion2D in all windows.
+        '''
+        Display a volume or a Fusion2D in all windows.
         If volume rendering is allowed, 3D views will display a clipped volume
         rendering of the object.
         '''
@@ -764,7 +819,8 @@ class AnaSimpleViewer2(Qt.QObject):
             a.addObjects(obj, self.awindows, **opts)
 
     def addVolume(self, obj, opts={}):
-        '''Display a volume in all windows.
+        '''
+        Display a volume in all windows.
         If several volumes are displayed, a Fusion2D will be built to wrap all
         of them.
         If volume rendering is allowed, 3D views will display a clipped volume
@@ -817,7 +873,8 @@ class AnaSimpleViewer2(Qt.QObject):
         self._displayVolume(obj, opts)
 
     def removeVolume(self, obj, opts={}):
-        '''Hides a volume from views (low-level function: use removeObject)
+        '''
+        Hides a volume from views (low-level function: use removeObject)
         '''
         a = ana.Anatomist('-b')
         if obj in self.fusion2d:
@@ -896,7 +953,8 @@ class AnaSimpleViewer2(Qt.QObject):
         del self.meshes2d[obj.getInternalRep()]
 
     def disableButtons(self):
-        '''Disable plus or minus button depending on the selected object's display
+        '''
+        Disable plus or minus button depending on the selected object's display
         '''
         self.setColorPalette()
         displayedObNames = []
@@ -915,7 +973,8 @@ class AnaSimpleViewer2(Qt.QObject):
                 Qt.QObject.findChild(self.awidget, QtCore.QObject, 'editAddAction').setEnabled(True)
 
     def colorBackgroundList(self):
-        '''Color the background of displayed objects in objectlist and call
+        '''
+        Color the background of displayed objects in objectlist and call
         changeIcon to add the right icon
         '''
         displayedObNames = []
@@ -951,7 +1010,8 @@ class AnaSimpleViewer2(Qt.QObject):
         objectlist.insertItem(row, new_item)
 
     def addObject(self, obj):
-        '''Display an object in all windows
+        '''
+        Display an object in all windows
         '''
         a = ana.Anatomist('-b')
         if (obj not in self.displayedObjects):
@@ -972,7 +1032,8 @@ class AnaSimpleViewer2(Qt.QObject):
         a.addObjects(obj, self.awindows, **opts)
 
     def removeObject(self, obj):
-        '''Hides an object from views
+        '''
+        Hides an object from views
         '''
         a = ana.Anatomist('-b')
         if obj in self.displayedObjects:
@@ -986,11 +1047,12 @@ class AnaSimpleViewer2(Qt.QObject):
             a.removeObjects(obj, self.awindows, remove_children=True)
 
     def fileOpen(self):
-        '''File browser + load object(s)
+        '''
+        File browser + load object(s)
         '''
         if not self.fdialog:
             self.fdialog = Qt.QFileDialog()
-            self.fdialog.setDirectory(os.getcwd())
+            self.fdialog.setDirectory(os.path.expanduser("~"))
         else:
             fd2 = self.fdialog
             self.fdialog = Qt.QFileDialog()
@@ -1008,7 +1070,8 @@ class AnaSimpleViewer2(Qt.QObject):
             self.loadObject(files)
 
     def selectedObjects(self):
-        '''list of objects selected in the list box on the upper left panel
+        '''
+        list of objects selected in the list box on the upper left panel
         '''
         olist = Qt.QObject.findChild(self.awidget, QtCore.QObject,
                                      'objectslist')
@@ -1019,21 +1082,24 @@ class AnaSimpleViewer2(Qt.QObject):
 
 
     def editAdd(self):
-        '''Display selected objects'''
+        '''
+        Display selected objects'''
         objs = self.selectedObjects()
         for o in objs:
             self.addObject(o)
         self.colorBackgroundList()
 
     def editRemove(self):
-        '''Hide selected objects'''
+        '''
+        Hide selected objects'''
         objs = self.selectedObjects()
         for o in objs:
             self.removeObject(o)
         self.colorBackgroundList()
 
     def editDelete(self):
-        '''Delete selected objects'''
+        '''
+        Delete selected objects'''
         objs = self.selectedObjects()
         self.deleteObjects(objs)
 
@@ -1052,7 +1118,8 @@ class AnaSimpleViewer2(Qt.QObject):
         a.deleteObjects(objs)
 
     def deleteObjectsFromFiles(self, files):
-        '''Delete the given objects given by their file names
+        '''
+        Delete the given objects given by their file names
         '''
         a = ana.Anatomist('-b')
         objs = [o for o in a.getObjects() if o.filename in files]
@@ -1061,6 +1128,7 @@ class AnaSimpleViewer2(Qt.QObject):
     def closeAll(self, close_ana=True):
         '''Exit'''
         print("Exiting Ana2")
+        self.newWindow.close()
         a = ana.Anatomist('-b')
         # remove windows from their parent to prevent them to be brutally
         # deleted by Qt.
@@ -1214,7 +1282,7 @@ class AnaSimpleViewer2(Qt.QObject):
         prop = menu.addAction('Object properties')
         prop.triggered.connect(self.object_properties)
         new_view = menu.addAction('Open in new view')
-        new_view.triggered.connect(self.addNewView)
+        new_view.triggered.connect(lambda : self.addNewView(sel[0]))
         menu.exec_(Qt.QCursor.pos())
 
     def object_properties(self):
@@ -1229,5 +1297,9 @@ class AnaSimpleViewer2(Qt.QObject):
             self.browser.removeObjects(self.browser.Objects())
         self.browser.addObjects(self.selectedObjects())
 
-    def addNewView(self):
-        print('Function in progress')
+    def addNewView(self, object):
+        '''
+        Opens a popup with a view of the object
+        Default display is axial view but can be changed
+        '''
+        self.newWindow.showPopup(object)

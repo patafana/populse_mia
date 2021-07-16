@@ -8,7 +8,7 @@ from __future__ import absolute_import
 import anatomist.direct.api as ana
 
 
-from soma.qt_gui.qt_backend import Qt
+from soma.qt_gui.qt_backend import Qt, QtCore
 from ..data_viewer import DataViewer
 from populse_mia.user_interface.data_viewer.anatomist_2.anasimpleviewer2 import AnaSimpleViewer2
 from populse_mia.user_interface.data_viewer.anatomist_2 import resources
@@ -19,13 +19,8 @@ from populse_mia.data_manager.project import TAG_FILENAME, COLLECTION_CURRENT
 import os
 from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
 from populse_mia.software_properties import Config
-from PyQt5.QtWidgets import (QToolButton, QHBoxLayout, QLineEdit)
+from PyQt5.QtWidgets import (QToolButton, QHBoxLayout)
 from PyQt5.QtGui import QIcon, QIntValidator, QPixmap
-
-#import paletteViewer as PV
-#from soma import aims
-#from PIL import Image
-#import numpy as np
 
 not_defined_value = "*Not Defined*"
 
@@ -229,14 +224,19 @@ class MiaViewer(Qt.QWidget, DataViewer):
         frame_rate_layout = QHBoxLayout()
         title = Qt.QLabel()
         title.setText('Automatic time image display:')
-        line_edit = Qt.QLineEdit()
-        line_edit.setText(str(im_sec))
-        line_edit.setValidator(QIntValidator(1,100))
-        unit = Qt.QLabel()
-        unit.setText('image/s')
+        slider = Qt.QSlider(Qt.Qt.Horizontal)
+        slider.setRange(1,100)
+        slider.setValue(im_sec)
+        size = QtCore.QSize(180, 15)
+        slider.setMinimumSize(size)
+        slow_label = Qt.QLabel()
+        fast_label = Qt.QLabel()
+        slow_label.setText('slow')
+        fast_label.setText('fast')
         frame_rate_layout.addWidget(title)
-        frame_rate_layout.addWidget(line_edit)
-        frame_rate_layout.addWidget(unit)
+        frame_rate_layout.addWidget(slow_label)
+        frame_rate_layout.addWidget(slider)
+        frame_rate_layout.addWidget(fast_label)
         frame_rate_layout.insertSpacing(1, 200)
 
         #Change referential
@@ -272,13 +272,12 @@ class MiaViewer(Qt.QWidget, DataViewer):
         res = dialog.exec_()
 
         if res == Qt.QDialog.Accepted:
-            im_sec = float(line_edit.text())
             new_config = box.currentText().lower()
             new_ref = box2.currentIndex()
 
             #Save Config parameters and reload images
             #when config and referential have changed
-            Config().setViewerFramerate(im_sec)
+            Config().setViewerFramerate(slider.value())
             Config().setViewerConfig(new_config)
             Config().set_referential(new_ref)
             if new_config != config:
