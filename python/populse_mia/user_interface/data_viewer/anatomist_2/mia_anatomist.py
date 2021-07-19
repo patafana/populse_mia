@@ -62,8 +62,6 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.documents = []
         self.displayed = []
         self.table_data = []
-        self.im_sec = 5
-        self.config = 'neuro'
 
     def display_files(self, files):
         self.displayed += files
@@ -226,7 +224,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
         title.setText('Automatic time image display:')
         slider = Qt.QSlider(Qt.Qt.Horizontal)
         slider.setRange(1,100)
-        slider.setValue(im_sec)
+        slider.setValue(int(im_sec))
         size = QtCore.QSize(180, 15)
         slider.setMinimumSize(size)
         slow_label = Qt.QLabel()
