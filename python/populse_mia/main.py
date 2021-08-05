@@ -852,20 +852,30 @@ def verify_processes():
             elif _deepCompDic(old_dic[str(key)], new_dic[str(key)]):
                 new_dic[str(key)] = old_dic[str(key)]
 
-    proc_content = False
-    nipypeVer = False
-    miaProcVer = False
+    capsulVer = None # capsul version currently installed
+    miaProcVer = None # mia_processes version currently installed
+    nipypeVer = None # nipype version currently installed
+    othPckg = None
+    # othPckg: a list containing all packages, other than nipype, mia_processes
+    #          and capsul, used during the previous launch of mia.
     pack2install = []
     # pack2install: a list containing the package (nipype and/or
-    #               mia_processes) to install
+    #               mia_processes and/or capsul) to install
+    pkg_error = []
+    # pkg_error: a list containing nipype and/or mia_processes if not currently
+    #            installed
+    proc_content = None
+    # proc_content: python dictionary object corresponding to the
+    #               process_config.yml property file
+    
     config = Config()
     proc_config = os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml')
+
+    print('\nChecking the installed version for nipype, '
+          'mia_processes and capsul ...')
     # check if nipype and mia_processes are available on the station
-    # if not available inform the user to install them
-    print('\nChecking the installed versions of nipype and mia_processes ...')
-    print('processes config file:', proc_config)
-    pkg_error = []
+    # if not available ask the user to install them
 
     try:
         __import__('nipype')
@@ -887,9 +897,6 @@ def verify_processes():
         print('MIA warning {0}: {1}'.format(e.__class__, e))
         print('*' * 37 + '\n')
 
-    from capsul import info as capsul_info
-    capsulVer = capsul_info.__version__
-
     if len(pkg_error) > 0:
         app = QApplication(sys.argv)
         msg = QMessageBox()
@@ -910,6 +917,10 @@ def verify_processes():
         del app
         sys.exit(1)
 
+    # for capsul it's different, because mia can't run without capsul
+    from capsul import info as capsul_info
+    capsulVer = capsul_info.__version__
+
     if os.path.isfile(proc_config):
 
         with open(proc_config, 'r') as stream:
@@ -924,9 +935,9 @@ def verify_processes():
         othPckg = [f for f in proc_content['Packages']
                    if f not in ['mia_processes', 'nipype', 'capsul']]
 
-    if 'othPckg' in dir():
-        # othPckg: a list containing all packages, other than nipype and
-        # mia_processes, used during the previous launch of mia.
+    # checking that the packages used during the previous launch
+    # of mia are still available
+    if othPckg:
 
         for pckg in othPckg:
 
@@ -954,28 +965,26 @@ def verify_processes():
                                 and (isinstance(proc_content['Paths'], list))):
 
                             if ((not os.path.relpath(os.path.join(
-                                    config.get_mia_path(), 'processes')) in
-                                     proc_content['Paths'])
-                                    and (
-                                            not os.path.abspath(os.path.join(
-                                                config.get_mia_path(),
-                                                'processes')) in
-                                                proc_content['Paths'])):
+                                            config.get_mia_path(), 'processes'))
+                                                     in proc_content['Paths'])
+                                    and (not os.path.abspath(os.path.join(
+                                            config.get_mia_path(),'processes'))
+                                                     in proc_content['Paths'])):
                                 proc_content['Paths'].append(os.path.abspath(
-                                    os.path.join(
-                                        config.get_mia_path(), 'processes')))
+                                    os.path.join(config.get_mia_path(),
+                                                 'processes')))
 
                         else:
                             proc_content['Paths'] = [os.path.abspath(
-                                os.path.join(config.get_mia_path(),
-                                             'processes'))]
+                                             os.path.join(config.get_mia_path(),
+                                                          'processes'))]
 
                         with open(proc_config, 'w', encoding='utf8') as stream:
                             yaml.dump(proc_content, stream,
                                       default_flow_style=False,
                                       allow_unicode=True)
 
-                        # finally the processes/ directory currently used is
+                        # finally the processes directory currently used is
                         # removed from the sys.path because this directory is
                         # now added to the Paths parameter in the
                         # mia_path/properties/process_config.yml file
@@ -1028,14 +1037,14 @@ def verify_processes():
                     msg.exec()
                     del app
 
-    # the file mia_path/properties/process_config.yml is corrupted or
-    # no pipeline processes was available during the previous use of mia or
-    # their version is not known
     if ((not isinstance(proc_content, dict)) or
             ((isinstance(proc_content, dict))
              and ('Packages' not in proc_content)) or
             ((isinstance(proc_content, dict))
              and ('Versions' not in proc_content))):
+        # the process_config.yml fle is corrupted or no pipeline/process
+        # was available during the previous use of mia or their versions
+        # are not known
         pack2install = ['nipype.interfaces', 'mia_processes',
                         'capsul.pipeline']
         old_nipypeVer = None
@@ -1043,7 +1052,6 @@ def verify_processes():
         old_capsulVer = None
 
     else:
-
         # during the previous use of mia, nipype was not available or its
         # version was not known or its version was different from the one
         # currently available on the station
@@ -1057,8 +1065,8 @@ def verify_processes():
                     ('Versions' in proc_content) and
                     ('nipype' in proc_content['Versions'])):
                 print("\nThe process_config.yml file seems to be corrupted! "
-                      "Let's try to fix it by installing the nipype processes "
-                      "library again in mia ...")
+                      "Let's try to fix it by installing the current nipype "
+                      "processes library again in mia ...")
 
         else:
 
@@ -1169,11 +1177,11 @@ def verify_processes():
             final_pckgs["Versions"]["nipype"] = nipypeVer
 
             if old_nipypeVer is None:
-                print('\n** Installation in mia of the {0} processes library, '
+                print('\n\n** Installation in mia of the {0} processes library, '
                   '{1} version ...'.format(pckg, nipypeVer))
 
             else:
-                print('\n** Upgrading of the {0} processes library, '
+                print('\n\n** Upgrading of the {0} processes library, '
                   'from {1} to {2} version ...'.format(pckg,
                                                        old_nipypeVer,
                                                        nipypeVer))
@@ -1182,11 +1190,11 @@ def verify_processes():
             final_pckgs["Versions"]["mia_processes"] = miaProcVer
 
             if old_miaProcVer is None:
-                 print('\n** Installation in mia of the {0} processes library, '
+                 print('\n\n** Installation in mia of the {0} processes library, '
                   '{1} version ...'.format(pckg, miaProcVer ))
 
             else:
-                print('\n** Upgrading of the {0} processes library, '
+                print('\n\n** Upgrading of the {0} processes library, '
                   'from {1} to {2} version ...'.format(pckg,
                                                        old_miaProcVer,
                                                        miaProcVer))
@@ -1195,11 +1203,11 @@ def verify_processes():
             final_pckgs["Versions"]["capsul"] = capsulVer
 
             if old_capsulVer is None:
-                 print('\n** Installation in mia of the {0} processes library, '
+                 print('\n\n** Installation in mia of the {0} processes library, '
                   '{1} version ...'.format(pckg, capsulVer ))
 
             else:
-                print('\n** Upgrading of the {0} processes library, '
+                print('\n\n** Upgrading of the {0} processes library, '
                   'from {1} to {2} version ...'.format(pckg,
                                                        old_capsulVer,
                                                        capsulVer))
@@ -1216,20 +1224,42 @@ def verify_processes():
 
     if pack2install:
 
-        if not any("nipype" in s for s in pack2install):
-            print('\n** The nipype processes library in mia is '
-                  'already using the current installed version ({0}) '
-                  'for this station\n'.format(nipypeVer))
+        if len(pack2install) == 2:
 
-        elif not any("mia_processes" in s for s in pack2install):
-            print('\n** The mia_processes library in mia is '
-                  'already using the current installed version ({0}) '
-                  'for this station\n'.format(miaProcVer))
+            if not any("nipype" in s for s in pack2install):
+                print('\n** The nipype processes library in mia is '
+                      'already using the current installed version ({0}) '
+                      'for this station\n'.format(nipypeVer))
 
-        elif not any("capsul" in s for s in pack2install):
-            print('\n** The capsul library in mia is '
-                  'already using the current installed version ({0}) '
-                  'for this station\n'.format(capsulVer))
+            elif not any("mia_processes" in s for s in pack2install):
+                print('\n** The mia_processes library in mia is '
+                      'already using the current installed version ({0}) '
+                      'for this station\n'.format(miaProcVer))
+
+            elif not any("capsul" in s for s in pack2install):
+                print('\n** The capsul library in mia is '
+                      'already using the current installed version ({0}) '
+                      'for this station\n'.format(capsulVer))
+
+        elif len(pack2install) == 1:
+            
+                if any("nipype" in s for s in pack2install):
+                    print('\n** The mia_processes and capsul processes '
+                          'libraries are already using in mia the current '
+                          'installed version ({0} and {1} respectively) for '
+                          'this station\n'.format(miaProcVer, capsulVer))
+
+                elif any("mia_processes" in s for s in pack2install):
+                    print('\n** The nipype and capsul processes '
+                          'libraries are already using in mia the current '
+                          'installed version ({0} and {1} respectively) for '
+                          'this station\n'.format(nipypeVer, capsulVer))
+
+                elif any("capsul" in s for s in pack2install):
+                    print('\n** The mia_processes and nipype processes '
+                          'libraries are already using in mia the current '
+                          'installed version ({0} and {1} respectively) for '
+                          'this station\n'.format(miaProcVer, nipypeVer))
 
         if (isinstance(proc_content, dict)) and ('Paths' in proc_content):
 
