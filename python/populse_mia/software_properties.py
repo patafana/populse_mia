@@ -269,9 +269,11 @@ class Config:
         else:
             sconf.update(dict(use_fsl=False))
 
-        if use_spm_standalone and os.path.exists(
-                spm_standalone_path) and os.path.exists(
-                    matlab_standalone_path):
+        if (use_spm_standalone and
+                spm_standalone_path and
+                matlab_standalone_path and
+                os.path.exists(spm_standalone_path) and
+                os.path.exists(matlab_standalone_path)):
 
             spm_exec = glob.glob(os.path.join(spm_standalone_path,
                                               'run_spm*.sh'))
