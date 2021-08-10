@@ -92,8 +92,9 @@ class PipelineManagerTab(QWidget):
     Widget that handles the Pipeline Manager tab.
 
     .. Methods:
-        - _register_node_io_in_database:
-        - _set_anim_frame:
+        - _register_node_io_in_database: bla bla bla
+        - _set_anim_frame: Callback which sets the animated icon frame to
+          the status action icon
         - _show_preview:
         - add_plug_value_to_database: add the plug value to the database.
         - add_process_to_preview: add a process to the pipeline
@@ -295,6 +296,8 @@ class PipelineManagerTab(QWidget):
             self.controller_value_changed)
 
     def _register_node_io_in_database(self, node, pipeline_name=''):
+        """bla bla bla"""
+
         if isinstance(node, (PipelineNode, Pipeline)):
             # only leaf processes produce output data
             return
@@ -387,6 +390,7 @@ class PipelineManagerTab(QWidget):
         """
         Callback which sets the animated icon frame to the status action icon
         """
+
         self.show_pipeline_status_action.setIcon(
             QIcon(self._mmovie.currentPixmap()))        
 
@@ -424,6 +428,7 @@ class PipelineManagerTab(QWidget):
             attributes set coming from Capsul completion engine to be set on
             all outputs of the node
         """
+
         if isinstance(p_value, (list, TraitListObject)):
             inner_trait = trait.handler.inner_traits()[0]
             for i, elt in enumerate(p_value):
@@ -850,6 +855,7 @@ class PipelineManagerTab(QWidget):
         Build a new pipeline with an iteration node, iterating over the current
         pipeline
         """
+
         from capsul.attributes.completion_engine import ProcessCompletionEngine
 
         pipeline = self.get_pipeline_or_process()
@@ -975,6 +981,7 @@ class PipelineManagerTab(QWidget):
         This engine works using a set of attributes which can be retreived from
         the database.
         """
+
         # get a working / configured CapsulEngine
         engine = self.get_capsul_engine()
         if not pipeline:
@@ -1113,6 +1120,7 @@ class PipelineManagerTab(QWidget):
         """
         Callback called after a pipeline execution ends (in any way)
         """
+
         from soma_workflow import constants as swconstants
         self.stop_pipeline_action.setEnabled(False)
         status = self.progress.worker.status
@@ -1154,6 +1162,7 @@ class PipelineManagerTab(QWidget):
         This performs a posptocessing on current and older pipelines, and
         cleans up the database.
         """
+
         self.postprocess_pipeline_execution()
         self.project.cleanup_orphan_bricks()
         self.project.cleanup_orphan_nonexisting_files()
@@ -1166,6 +1175,7 @@ class PipelineManagerTab(QWidget):
         Get a CapsulEngine object from the edited pipeline, and set it up from
         MIA config object
         """
+
         return self.pipelineEditorTabs.get_capsul_engine()
 
     def get_pipeline_or_process(self, pipeline=None):
@@ -1174,6 +1184,7 @@ class PipelineManagerTab(QWidget):
         process, if it only has one unconnected child. It allows to use a
         single process node from the GUI as a pipeline to iterate or run.
         """
+
         if pipeline is None:
             c_e = self.pipelineEditorTabs.get_current_editor()
             pipeline = c_e.scene.pipeline
@@ -1219,7 +1230,6 @@ class PipelineManagerTab(QWidget):
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful
-
         self.run_pipeline_action.setDisabled(True)
         self.init_clicked = True
         self.pipelineEditorTabs.update_current_node()
@@ -1237,6 +1247,7 @@ class PipelineManagerTab(QWidget):
         :param pipeline: not None if this method call a sub-pipeline
         :param pipeline_name: name of the parent pipeline
         """
+
         print('- Pipeline initialising ...\n')
         t0 = time.time()
 
@@ -1499,8 +1510,8 @@ class PipelineManagerTab(QWidget):
     def loadParameters(self):
         """
         Load pipeline parameters to the current pipeline of the pipeline editor
-
         """
+
         self.pipelineEditorTabs.load_pipeline_parameters()
 
         self.nodeController.update_parameters()
@@ -1508,8 +1519,8 @@ class PipelineManagerTab(QWidget):
     def loadPipeline(self):
         """
         Load a pipeline to the pipeline editor
-
         """
+
         self.pipelineEditorTabs.load_pipeline()       
 
     def postprocess_pipeline_execution(self, pipeline=None):
@@ -1541,6 +1552,7 @@ class PipelineManagerTab(QWidget):
         soma-workflow (or maybe mia one day), thus they should be postprocessed
         again then.
         """
+
         if not pipeline:
             pipeline = getattr(self, 'last_run_pipeline', None)
             if pipeline is None:
@@ -1596,6 +1608,7 @@ class PipelineManagerTab(QWidget):
             - delete_link
 
         """
+
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can redo if we have an action to make again
@@ -1692,6 +1705,7 @@ class PipelineManagerTab(QWidget):
 
     def register_completion_attributes(self, pipeline):
         # get a working / configured CapsulEngine
+
         engine = self.get_capsul_engine()
         completion = ProcessCompletionEngine.get_completion_engine(
             pipeline)
@@ -1826,8 +1840,8 @@ class PipelineManagerTab(QWidget):
         """
         Save the pipeline parameters of the the current pipeline of the
         pipeline editor
-
         """
+
         self.pipelineEditorTabs.save_pipeline_parameters()
 
     def savePipeline(self, uncheck=False):
@@ -1836,8 +1850,8 @@ class PipelineManagerTab(QWidget):
 
         :param uncheck: a flag to warn (False) or not (True) if a pipeline is
                         going to be overwritten during saving operation
-
         """
+
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         # QApplication.processEvents()
@@ -1892,8 +1906,8 @@ class PipelineManagerTab(QWidget):
     def savePipelineAs(self):
         """
         Save the current pipeline of the pipeline editor under another name
-
         """
+
         self.main_window.statusBar().showMessage(
             'The pipeline is getting saved. Please wait.')
         saveResult = self.pipelineEditorTabs.save_pipeline()
@@ -1911,6 +1925,7 @@ class PipelineManagerTab(QWidget):
         """
         Show the last run status and execution info, errors etc.
         """
+
         print('show_status')
         log = getattr(self, 'last_run_log', '')
         status_widget = StatusWidget(self)
@@ -1921,6 +1936,7 @@ class PipelineManagerTab(QWidget):
         """
         Request interruption of pipeline execution
         """
+
         print('stop_execution')
         self.progress.stop_execution()
 
@@ -1938,8 +1954,8 @@ class PipelineManagerTab(QWidget):
             - update_plug_value
             - add_link
             - delete_link
-
         """
+
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can undo if we have an action to revert
@@ -2077,6 +2093,7 @@ class PipelineManagerTab(QWidget):
         how to solve them, which is not very convenient, and error-prone, thus
         should be avoided.
         '''
+
         # print('update_auto_inheritance:', node.name)
 
         process = node
@@ -2274,6 +2291,7 @@ class PipelineManagerTab(QWidget):
 
         :param project: current project in the software
         """
+
         self.project = project
         self.nodeController.project = project
         self.pipelineEditorTabs.project = project
@@ -2290,7 +2308,16 @@ class PipelineManagerTab(QWidget):
 
         :param iteration_list: current list of scans in the iteration table
         """
-        self.run_pipeline_action.setDisabled(True)
+
+        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
+                    'initialized') and
+                      self.pipelineEditorTabs.get_current_editor().initialized):
+            self.run_pipeline_action.setDisabled(False)
+
+        else:
+            self.run_pipeline_action.setDisabled(True)
+
+        #self.run_pipeline_action.setDisabled(True)
         self.init_pipeline_action.setDisabled(False)
 
         c_e = self.pipelineEditorTabs.get_current_editor()
@@ -2332,8 +2359,8 @@ class PipelineManagerTab(QWidget):
     def update_user_mode(self):
         """
         Update the visibility of widgets/actions depending of the chosen mode
-
         """
+
         config = Config()
 
         # If the user mode is chosen, the process library is not available
@@ -2398,6 +2425,7 @@ class RunProgress(QWidget):
         self.worker.finished.connect(self.close)
 
     def close(self):
+
         super().close()
         self.worker.wait()
         QApplication.instance().restoreOverrideCursor()
@@ -2427,10 +2455,12 @@ class RunProgress(QWidget):
         mbox.exec()       
 
     def start(self):
+
         self.worker.start()
         #self.progressbar.setValue(20)
 
     def stop_execution(self):
+
         print('*** CANCEL ***')
         with self.worker.lock:
             self.worker.interrupt_request = True
@@ -2451,7 +2481,9 @@ class RunWorker(QThread):
         self.interrupt_request = False
 
     def run(self):
+
         def _check_nipype_processes(pplne):
+
             if isinstance(pplne, Pipeline):
                 for node_name, node in pplne.nodes.items():
                     if not hasattr(node, 'process'):
@@ -2533,7 +2565,9 @@ class StatusWidget(QWidget):
     """
     Status widget: displays info about the current or last pipeline execution
     """
+
     def __init__(self, pipeline_manager):
+
         super().__init__()
         self.pipeline_manager = pipeline_manager
         layout = QVBoxLayout()
@@ -2566,6 +2600,7 @@ class StatusWidget(QWidget):
         self.setWindowTitle('Execution status')
 
     def toggle_soma_workflow(self, checked):
+
         if self.swf_widget is not None:
             self.swf_widget.setVisible(checked)
             if not checked:

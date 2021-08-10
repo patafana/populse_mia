@@ -459,7 +459,6 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(self.data_browser, "Data Browser")
 
-        # To uncomment when the Data Viewer will be created
         self.tabs.addTab(self.data_viewer, "Data Viewer")
         self.tabs.addTab(self.pipeline_manager, "Pipeline Manager")
 
