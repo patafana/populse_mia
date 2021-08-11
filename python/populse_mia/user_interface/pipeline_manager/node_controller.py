@@ -542,7 +542,7 @@ class CapsulNodeController(QWidget):
 
         :param pipeline: current pipeline
         :param new_node_name: new node name (is None except when this method
-        is called from an undo/redo)
+         is called from an undo/redo)
         """
         # Copying the old node
         old_node = pipeline.nodes[self.node_name]
@@ -920,7 +920,7 @@ class NodeController(QWidget):
         :param node_name: name of the node
         :param plug_name: name of the plug
         :param parameters: tuple containing the index of the plug, the current
-           pipeline instance and the type of the plug value
+                           pipeline instance and the type of the plug value
         :param process: process of the node
         """
         self.pop_up = PlugFilter(self.project, self.scan_list, process,
@@ -1113,7 +1113,7 @@ class NodeController(QWidget):
 
         :param pipeline: current pipeline
         :param new_node_name: new node name (is None except when this method
-        is called from an undo/redo)
+                              is called from an undo/redo)
         """
         # Copying the old node
         old_node = pipeline.nodes[self.node_name]
@@ -1189,7 +1189,7 @@ class NodeController(QWidget):
         :param pipeline: current pipeline
         :param value_type: type of the plug value
         :param new_value: new value for the plug (is None except when this
-        method is called from an undo/redo)
+                          method is called from an undo/redo)
         """
 
         index = self.get_index_from_plug_name(plug_name, in_or_out)
@@ -1265,8 +1265,8 @@ class NodeController(QWidget):
         """Update the plug value from a filter result.
 
         :param plug_name: name of the plug
-        :param parameters: tuple containing the index of the plug,
-        the current pipeline instance and the type of the plug value
+        :param parameters: tuple containing the index of the plug, the current
+                           pipeline instance and the type of the plug value
         :param filter_res_list: list of the filtered files
         """
 
@@ -1288,7 +1288,7 @@ class NodeController(QWidget):
 
     def release_process(self):
         """
-        remove notification from process
+        Remove notification from process
         """
         # only implemented in CapsulNodeController
         pass

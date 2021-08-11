@@ -158,7 +158,8 @@ class DatabaseSessionMIA(DatabaseSession):
 
         :param collection: Field collection (str, must be existing)
 
-        :param field: Field name (str, must be existing), or list of fields (list of str, must all be existing)
+        :param field: Field name (str, must be existing), or list of fields
+         (list of str, must all be existing)
 
         :raise ValueError: - If the collection does not exist
                            - If the field does not exist
@@ -192,9 +193,7 @@ class DatabaseSessionMIA(DatabaseSession):
     def get_shown_tags(self):
         """Give the list of visible tags.
 
-        Returns
-        -------
-        the list of visible tags
+        :return: the list of visible tags
         """
         visible_names = []
         names_set = set()
@@ -208,10 +207,7 @@ class DatabaseSessionMIA(DatabaseSession):
     def set_shown_tags(self, fields_shown):
         """Set the list of visible tags.
 
-        Parameters
-        ----------
-        fields_shown: list
-            list of visible tags
+        :param fields_shown: list of visible tags
         """
 
         for field in self.get_documents(FIELD_ATTRIBUTES_COLLECTION):

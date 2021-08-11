@@ -924,16 +924,14 @@ class Project():
         """
         Get the processing history for the given data file.
 
-        the history dict contains several elements:
+        The history dict contains several elements:
 
-        - 'parent_files': set of other data used (directy or indirectly) to
-        produce the data.
-        - 'processes': processing bricks set from each ancestor data which
-        lead to the given one. Elements are process (brick) UUIDs.
+        - `parent_files`: set of other data used (directy or indirectly) to
+          produce the data.
+        - `processes`: processing bricks set from each ancestor data which
+          lead to the given one. Elements are process (brick) UUIDs.
 
-        Returns
-        -------
-        history: dict
+        :return: history (dict)
         """
 
         def latest_before(datetimes, timepoint):
@@ -1035,10 +1033,7 @@ class Project():
         more recent runs). This function only updates data status (bricks
         list), it does not remove obsolete bricks from the database.
 
-        Returns
-        -------
-        obsolete: set
-            set of obsolete bricks thay may become orphan.
+        :return: a set of obsolete bricks thay may become orphan.
         """
         #
         scan_bricks = list(self.session.get_documents(

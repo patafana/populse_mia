@@ -947,12 +947,12 @@ class PopUpCloneTag(QDialog):
 class PopUpClosePipeline(QDialog):
     """Is called when the user closes a pipeline editor that has been modified.
 
-    bool_save_as: boolean to True if the pipeline needs to be saved
-    bool_exit: boolean to True if we can exit the editor
-    save_as_signal: signal emitted to save the pipeline under another
-       name
-    do_not_save_signal: signal emitted to close the editor
-    cancel_signal: signal emitted to cancel the action
+    :param bool_save_as: boolean to True if the pipeline needs to be saved
+    :param bool_exit: boolean to True if we can exit the editor
+    :param save_as_signal: signal emitted to save the pipeline under 
+                           another name
+    :param do_not_save_signal: signal emitted to close the editor
+    :param cancel_signal: signal emitted to cancel the action
 
     .. Methods:
         - can_exit: returns the value of bool_exit

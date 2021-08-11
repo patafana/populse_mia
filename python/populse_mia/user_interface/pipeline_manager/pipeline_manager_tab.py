@@ -404,29 +404,20 @@ class PipelineManagerTab(QWidget):
                                    attributes):
         """Add the plug value to the database.
 
-        Parameters
-        ----------
-        p_value: any
-            plug value, a file name or a list of file names
-        brick_id: str
-            brick id in the database
-        node_name: str
-            name of the node
-        plug_name: str
-            name of the plug
-        full_name:  str
-            full name of the node, including parent brick(s).
-            If there is no parent brick, full_name = node_name.
-        node: Node
-            node containing the plug
-        trait: Trait
-            handler of the plug trait, or sub-trait if the plug is a list.
-            It will be used to check the value type (file or not)
-        inputs: dict
-            input values for the process/node
-        attributes: dict
-            attributes set coming from Capsul completion engine to be set on
-            all outputs of the node
+        :param p_value: plug value, a file name or a list of file names (any)
+        :param brick_id: brick id in the database (str)
+        :param node_name: name of the node (str)
+        :param plug_name: name of the plug (str)
+        :param full_name: full name of the node, including parent
+                          brick(s) (str). If there is no parent brick,
+                          full_name = node_name.
+        :param node: node containing the plug (Node)
+        :param trait: handler of the plug trait, or sub-trait if the plug is
+                      a list (Trait). It will be used to check the value type
+                      (file or not).
+        :param inputs: input values for the process/node (dict)
+        :param attributes: attributes set coming from Capsul completion engine
+                           to be set on all outputs of the node (dict)
         """
 
         if isinstance(p_value, (list, TraitListObject)):

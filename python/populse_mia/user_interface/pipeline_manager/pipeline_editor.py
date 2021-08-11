@@ -1042,9 +1042,9 @@ class PipelineEditor(PipelineDevelopperView):
         :param plug_name: name of the plug to change (str)
         :param value_type: type of the new value
         :param from_undo: boolean, True if the action has been made using an
-        undo
+                          undo
         :param from_redo: boolean, True if the action has been made using a
-        redo
+                          redo
         """
 
         old_value = self.scene.pipeline.nodes[node_name].get_plug_value(

@@ -36,6 +36,7 @@ def verCmp(first_ver, sec_ver, comp):
     The verCmp() function returns a boolean value to indicate whether its
     first argument (first_ver) is equal to, less or equal to, or greater or
     equal to its second argument (sec_ver), as follows:
+
       - if third argument (comp) is 'eq': when the first argument is equal to the
         second argument, return True (False if not).
       - if third argument (comp) is 'sup': when the first argument is greater
@@ -404,9 +405,8 @@ class Config:
     def get_user_level(self):
         """Get the user level in the Capsul config
 
-        Returns
-        -------
-        userlevel: int
+        :return: integer
+
         """
         return self.config.get("capsul_config", {}).get(
             "engine", {}).get("global", {}).get(

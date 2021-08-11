@@ -337,7 +337,7 @@ class InstallProcesses(QDialog):
         """Open a file dialog to get the folder or zip file to install.
 
         :param folder: True if the dialog installs from folder, False if
-        from zip file
+                       from zip file
 
         """
         
@@ -1077,7 +1077,7 @@ class PackageLibrary(QTreeWidget):
         - recursive_checks: checks/unchecks all child items
         - recursive_checks_from_child: checks/unchecks all parent items
         - set_module_view: sets if a module has to be enabled or disabled in
-        the process library
+                           the process library
         - update_checks: updates the checks of the tree from an item
 
     """
@@ -1205,9 +1205,9 @@ class PackageLibrary(QTreeWidget):
         library.
 
         :param item: item selected in the current tree
-        :param state: checked or not checked (Qt.Checked == 2. So if val ==
-        2 -> checkbox is checked, and if val == 0 -> checkbox is not checked)
-
+        :param state: checked or not checked (Qt.Checked == 2. So if
+                      val == 2 -> checkbox is checked, and if
+                      val == 0 -> checkbox is not checked)
         """
         
         if state == Qt.Checked:
@@ -2236,7 +2236,7 @@ class ProcessLibrary(QTreeView):
     """
     Tree to display the available Capsul's processes
 
-    :param d: dictionary: dictionary corresponding to the tree
+    :param d: dictionary corresponding to the tree (dict)
 
     .. Methods:
         - keyPressEvent: event when the delete key is pressed
@@ -2278,7 +2278,7 @@ class ProcessLibrary(QTreeView):
         """Load a dictionary to the tree.
 
         :param d: dictionary to load. See the packages attribute in the
-        ProcessLibraryWidget class
+                  ProcessLibraryWidget class
 
         """
         
