@@ -1,7 +1,20 @@
 
-'''
-MIA data viewer implementation based on `Anatomist <http://brainvisa.info/anatomist/user_doc/index.html>`_
-'''
+"""
+MIA data viewer implementation based on
+`Anatomist <http://brainvisa.info/anatomist/user_doc/index.html>`_
+
+Contains:
+    Class:
+        - MiaViewer
+"""
+
+##########################################################################
+# Populse_mia - Copyright (C) IRMaGe/CEA, 2018
+# Distributed under the terms of the CeCILL license, as published by
+# the CEA-CNRS-INRIA. Refer to the LICENSE file or to
+# http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
+# for details.
+##########################################################################
 
 from __future__ import print_function
 from __future__ import absolute_import
@@ -10,17 +23,19 @@ import anatomist.direct.api as ana
 
 from soma.qt_gui.qt_backend import Qt, QtCore
 from ..data_viewer import DataViewer
-from populse_mia.user_interface.data_viewer.anatomist_2.anasimpleviewer2 import AnaSimpleViewer2
+from populse_mia.user_interface.data_viewer.anatomist_2.\
+                                        anasimpleviewer2 import AnaSimpleViewer2
 from populse_mia.user_interface.data_viewer.anatomist_2 import resources
 from populse_mia.user_interface.data_browser.rapid_search import RapidSearch
-from populse_mia.user_interface.data_browser.data_browser \
-    import TableDataBrowser
+from populse_mia.user_interface.data_browser.data_browser import (
+                                                               TableDataBrowser)
 from populse_mia.data_manager.project import TAG_FILENAME, COLLECTION_CURRENT
 import os
-from populse_mia.user_interface.data_browser.advanced_search import AdvancedSearch
+from populse_mia.user_interface.data_browser.advanced_search import (
+                                                                 AdvancedSearch)
 from populse_mia.software_properties import Config
-from PyQt5.QtWidgets import (QToolButton, QHBoxLayout)
-from PyQt5.QtGui import QIcon, QIntValidator, QPixmap
+from PyQt5.QtWidgets import QToolButton, QHBoxLayout
+from PyQt5.QtGui import QIcon, QIntValidator, QPixmap, QMessageBox
 
 not_defined_value = "*Not Defined*"
 
@@ -28,6 +43,19 @@ class MiaViewer(Qt.QWidget, DataViewer):
     '''
     :class:`MIA data viewer <populse_mia.user_interface.data_viewer.data_viewer.DataViewer>`
     implementation based on `PyAnatomist <http://brainvisa.info/pyanatomist/sphinx/index.html>`_
+
+    .. Methods:
+        - close: Exit
+        - display_files: Load objects in files and display
+        - displayed_files: Get the list of displayed files
+        - filter_documents: Filter documents already loaded in the Databrowser
+        - preferences: Preferences for the dataviewer
+        - remove_files: Delete the given objects given by their file names
+        - reset_search_bar: Reset the rapid search bar
+        - screenshot: The screenshot of mia_anatomist_2
+        - search_str: Update the *Not Defined*" values in visualised documents
+        - set_documents: Initialise current documents in the viewer
+        
     '''
 
     def __init__(self, init_global_handlers = None):
@@ -48,9 +76,11 @@ class MiaViewer(Qt.QWidget, DataViewer):
 
         filter_action = findChild(awidget, 'filterAction')
         preferences_action = findChild(awidget, 'actionPreferences')
+        screenshot_action = findChild(awidget, 'actionprint_view')
 
         filter_action.triggered.connect(self.filter_documents)
         preferences_action.triggered.connect(self.preferences)
+        screenshot_action.triggered.connect(self.screenshot)
 
         layout = Qt.QVBoxLayout()
         self.setLayout(layout)
@@ -63,67 +93,26 @@ class MiaViewer(Qt.QWidget, DataViewer):
         self.displayed = []
         self.table_data = []
 
+    def close(self):
+        """Exit"""
+        super(MiaViewer, self).close()
+        close_ana = False
+        DataViewer.mia_viewers -= 1 # dec count
+        if DataViewer.mia_viewers == 0:
+            close_ana = True
+        self.anaviewer.closeAll(close_ana)
+
     def display_files(self, files):
+        """Load objects in files and display"""
         self.displayed += files
         self.anaviewer.loadObject(files)
 
     def displayed_files(self):
+        """Get the list of displayed files"""
         return self.displayed
 
-    def remove_files(self, files):
-        self.anaviewer.deleteObjectsFromFiles(files)
-        self.files = [doc for doc in self.displayed
-                      if doc not in files]
-
-    def set_documents(self, project, documents):
-        if self.project is not project:
-            self.clear()
-        self.project = project
-        self.documents = documents
-
-    def reset_search_bar(self):
-        """Reset the rapid search bar."""
-        self.search_bar.setText("")
-
-    def search_str(self, str_search):
-        """Search a string in the table and updates the vnot_defined_value = "*Not Defined*"isualized documents.
-
-        :param str_search: string to search
-        """
-
-        old_scan_list = self.table_data.scans_to_visualize
-        return_list = []
-
-        # Every scan taken if empty search
-        if str_search == "":
-            return_list = self.table_data.scans_to_search
-        else:
-            # Scans with at least a not defined value
-            if str_search == not_defined_value:
-                filter = self.search_bar.prepare_not_defined_filter(
-                    self.project.session.get_shown_tags())
-            # Scans matching the search
-            else:
-                filter = self.search_bar.prepare_filter(
-                    str_search, self.project.session.get_shown_tags(),
-                    self.table_data.scans_to_search)
-
-            generator = self.project.session.filter_documents(
-                COLLECTION_CURRENT, filter)
-
-            # Creating the list of scans
-            return_list = [getattr(scan, TAG_FILENAME) for scan in generator]
-
-        self.table_data.scans_to_visualize = return_list
-
-        # Rows updated
-        self.table_data.update_visualized_rows(old_scan_list)
-
-        self.project.currentFilter.search_bar = str_search
-
     def filter_documents(self):
-        '''Filter documents already loaded in the Databrowser
-        '''
+        """Filter documents already loaded in the Databrowser"""
         dialog = Qt.QDialog()
         dialog.setWindowTitle('Filter documents')
         dialog.resize(1150,500)
@@ -192,8 +181,7 @@ class MiaViewer(Qt.QWidget, DataViewer):
             self.display_files(result_names)
 
     def preferences(self):
-        '''Preferences for the dataviewer
-        '''
+        """Preferences for the dataviewer"""
         #Get initial config:
         im_sec = Config().getViewerFramerate()
         config = Config().getViewerConfig()
@@ -283,10 +271,66 @@ class MiaViewer(Qt.QWidget, DataViewer):
             if new_ref != ref:
                 self.anaviewer.changeRef()
 
-    def close(self):
-        super(MiaViewer, self).close()
-        close_ana = False
-        DataViewer.mia_viewers -= 1 # dec count
-        if DataViewer.mia_viewers == 0:
-            close_ana = True
-        self.anaviewer.closeAll(close_ana)
+    def remove_files(self, files):
+        """Delete the given objects given by their file names"""
+        self.anaviewer.deleteObjectsFromFiles(files)
+        self.files = [doc for doc in self.displayed
+                      if doc not in files]
+
+    def reset_search_bar(self):
+        """Reset the rapid search bar"""
+        self.search_bar.setText("")
+
+    def screenshot(self):
+        """The screenshot of mia_anatomist_2"""
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Not yet implemented!')
+        msg.setWindowTitle("Information")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.buttonClicked.connect(msg.close)
+        msg.exec()
+
+    def search_str(self, str_search):
+        """Search a string in the table and updates the
+        not_defined_value = "*Not Defined*" in visualized documents.
+
+        :param str_search: string to search
+        """
+
+        old_scan_list = self.table_data.scans_to_visualize
+        return_list = []
+
+        # Every scan taken if empty search
+        if str_search == "":
+            return_list = self.table_data.scans_to_search
+        else:
+            # Scans with at least a not defined value
+            if str_search == not_defined_value:
+                filter = self.search_bar.prepare_not_defined_filter(
+                    self.project.session.get_shown_tags())
+            # Scans matching the search
+            else:
+                filter = self.search_bar.prepare_filter(
+                    str_search, self.project.session.get_shown_tags(),
+                    self.table_data.scans_to_search)
+
+            generator = self.project.session.filter_documents(
+                COLLECTION_CURRENT, filter)
+
+            # Creating the list of scans
+            return_list = [getattr(scan, TAG_FILENAME) for scan in generator]
+
+        self.table_data.scans_to_visualize = return_list
+
+        # Rows updated
+        self.table_data.update_visualized_rows(old_scan_list)
+
+        self.project.currentFilter.search_bar = str_search
+
+    def set_documents(self, project, documents):
+        """Initialise current documents in the viewer"""
+        if self.project is not project:
+            self.clear()
+        self.project = project
+        self.documents = documents
