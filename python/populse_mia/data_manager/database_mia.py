@@ -144,7 +144,7 @@ class DatabaseSessionMIA(DatabaseSession):
         """Add the list of fields.
 
         :param fields: list of fields (collection, name, type, description,
-        visibility, origin, unit, default_value)
+                       visibility, origin, unit, default_value)
         """
 
         for field in fields:

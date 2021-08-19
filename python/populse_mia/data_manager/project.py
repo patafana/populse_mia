@@ -83,7 +83,7 @@ class Project():
         - getSortOrder: return the sort order of the project
         - getSortedTag: return the sorted tag of the project
         - hasUnsavedModifications: return if the project has unsaved
-          modifications or not
+                                   modifications or not
         - init_filters: initialize the filters at project opening
         - loadProperties: load the properties file
         - redo: redo the last action made by the user on the project
@@ -93,13 +93,14 @@ class Project():
         - setCurrentFilter: set the current filter of the project
         - setDate: set the date of the project
         - saveModifications: save the pending operations of the project
-          (actions still not saved)
+                             (actions still not saved)
         - setName: set the name of the project
         - setSortOrder: set the sort order of the project
         - setSortedTag: set the sorted tag of the project
         - undo: undo the last action made by the user on the project
-        - unsavedModifications(self, value): Modify the window title
-          depending of whether the project has unsaved modifications or not.
+        - unsavedModifications(self, value): Modify the window title depending
+                                             of whether the project has unsaved
+                                             modifications or not.
         - unsaveModifications: unsaves the pending operations of the project
     """
 
@@ -302,7 +303,7 @@ class Project():
         """Return the date of creation of the project.
 
         :returns: string of the date of creation of the project if it's not
-        Unnamed project, otherwise empty string
+                  Unnamed project, otherwise empty string
         """
 
         return self.properties["date"]
@@ -334,8 +335,7 @@ class Project():
         """Return the name of the project.
 
         :returns: string of the name of the project if it's not Unnamed
-        project,
-        otherwise empty string
+                  project, otherwise empty string
         """
 
         return self.properties["name"]
@@ -344,7 +344,7 @@ class Project():
         """Return the sorted tag of the project.
 
         :returns: string of the sorted tag of the project if it's not Unnamed
-        project, otherwise empty string
+                  project, otherwise empty string
         """
 
         return self.properties["sorted_tag"]
@@ -353,7 +353,7 @@ class Project():
         """Return the sort order of the project.
 
         :returns: string of the sort order of the project if it's not Unnamed
-        project, otherwise empty string
+                  project, otherwise empty string
         """
 
         return self.properties["sort_order"]
@@ -362,7 +362,7 @@ class Project():
         """Return if the project has unsaved modifications or not.
 
         :returns: boolean, True if the project has pending modifications,
-        False otherwise
+                  False otherwise
         """
 
         return self.unsavedModifications;

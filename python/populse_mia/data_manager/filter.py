@@ -4,7 +4,7 @@ rapid and advanced search
 
 Contains:
     Class:
-    -Filter
+    - Filter
 
 """
 
@@ -44,7 +44,7 @@ class Filter:
     :param fields: list of list of fields
     :param links: list of links (AND/OR)
     :param conditions: list of conditions (==, !=, <, >, <=, >=, IN,
-    BETWEEN, CONTAINS, HAS VALUE, HAS NO VALUE)
+                       BETWEEN, CONTAINS, HAS VALUE, HAS NO VALUE)
     :param search_bar: value in the rapid search bar
 
     """
