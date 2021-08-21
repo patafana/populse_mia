@@ -465,7 +465,7 @@ class AnaSimpleViewer2(Qt.QObject):
         playIcon = QIcon(os.path.join(sources_images_dir, 'play.png'))
 
         for i in range (len(self.displayedObjects)):
-            objects.append(ana.cpp.AObjectConverter.aims(self.displayedObjects[i]).dimT())
+            objects.append(ana.cpp.AObjectConverter.aims(self.displayedObjects[i]).getSizeT())
         if objects:
             nb_images = np.max(objects)
         else:
