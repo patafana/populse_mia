@@ -13,9 +13,10 @@ A data viewer is identified after its module name, and is currently searched for
 as a sumbodule of :mod:`populse_mia.user_interface.data_viewer`. The data viewer
 module may be implemented as a "regular" module (.py file) or a package
 (directory) and should contain at least a class named ``MiaViewer`` which:
-  * is a Qt ``QWidget`` (inherits ``QWidget`` as 1st inheritance as is required
+
+  - is a Qt ``QWidget`` (inherits ``QWidget`` as 1st inheritance as is required
     by Qt)
-  * implements the :class:`DataViewer` API (normally by inheriting it as second
+  - implements the :class:`DataViewer` API (normally by inheriting it as second
     inheritance after ``QWidget`` but this is not technically required if the
     API is implemented)
 
