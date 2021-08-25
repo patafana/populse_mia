@@ -16,6 +16,19 @@
 # for details.
 ##########################################################################
 
+import os, sys
+
+if not os.path.dirname(os.path.dirname(
+        os.path.realpath(__file__))) in sys.path:           # "developer" mode
+    root_dev_dir = os.path.dirname(
+                     os.path.dirname(
+                       os.path.dirname(
+                         os.path.dirname(os.path.realpath(__file__)))))
+    # Adding populse_mia
+    print('\n- Mia in "developer" mode\n')
+    mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
+    sys.path.insert(0, mia_dev_dir)
+
 # PyQt5 import
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
@@ -53,7 +66,7 @@ from populse_db.database import (FIELD_TYPE_BOOLEAN, FIELD_TYPE_DATE,
 from capsul.api import get_process_instance
 
 # other import
-import os, shutil, sys, yaml, threading, unittest
+import shutil, yaml, threading, unittest
 from datetime import datetime
 from packaging import version
 
