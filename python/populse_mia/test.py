@@ -581,7 +581,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(config.get_mri_conv_path(), "")
 
         self.assertEqual(config.get_matlab_command(), None)
-        self.assertEqual(config.get_matlab_path(), "")
+        self.assertEqual(config.get_matlab_path(), None)
         self.assertEqual(config.get_matlab_standalone_path(), "")
         self.assertEqual(config.get_spm_path(), "")
         self.assertEqual(config.get_spm_standalone_path(), "")
@@ -1758,7 +1758,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
         self.assertEqual(pipeline_editor_tabs.tabText(0)[-2:], " *")
 
         # # Still some bug with the pop-up execution
@@ -1768,7 +1768,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # pipeline_editor_tabs.close_tab(0)
         # pop_up_close = pipeline_editor_tabs.pop_up_close
         # # QTest.mouseClick(pop_up_close.push_button_cancel, Qt.LeftButton)
-        # # QtCore.QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
+        # # QtCore.QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
         # pop_up_close.cancel_clicked()
         # self.assertEqual(pipeline_editor_tabs.count(), 2)
         #
@@ -1794,9 +1794,9 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth1"
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth2"
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth3"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth3"
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
@@ -1855,7 +1855,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "threshold1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold1"
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
         # Exporting the input plugs and modifying the "synchronize" input plug
@@ -2177,7 +2177,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
@@ -2209,7 +2209,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(
             450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
         # Creates a node called "smooth1"
         pipeline = pipeline_editor_tabs.get_current_pipeline()
         self.assertTrue("smooth1" in pipeline.nodes.keys())
@@ -2233,7 +2233,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Adding a new process
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
 
         # Exporting the "out_prefix" plug
         pipeline_editor_tabs.get_current_editor()._export_plug(temp_plug_name=("smooth1", "out_prefix"),
@@ -2263,7 +2263,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Adding a new process
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 550)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth2"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
 
         # Adding a link
         pipeline_editor_tabs.get_current_editor().add_link(("smooth1", "_smoothed_files"),
@@ -2347,7 +2347,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
@@ -2357,8 +2357,8 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.assertTrue("smooth_test" in pipeline.nodes.keys())
 
         # Adding another Smooth process
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth1"
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "smooth2"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
 
         # Adding link between nodes
         source = ('smooth_test', '_smoothed_files')
@@ -2397,7 +2397,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "threshold1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold1"
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
@@ -2549,12 +2549,12 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Adding the "test_pipeline" as a process
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Added another Smooth process
         from nipype.interfaces.spm import Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 550)
-        pipeline_editor_tabs.get_current_editor().add_process(Smooth)
+        pipeline_editor_tabs.get_current_editor().add_named_process(Smooth)
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
@@ -2621,7 +2621,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Adding the "test_pipeline" as a process
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_process(process_class)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Opening the sub-pipeline in a new editor
         pipeline = pipeline_editor_tabs.get_current_pipeline()
