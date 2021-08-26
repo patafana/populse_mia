@@ -117,7 +117,7 @@ class Config:
         - get_max_thumbnails:  get max thumbnails number at the data browser
           bottom
         - get_mia_path: returns the software's install path
-        - get_mri_conv_path: sets the MRIManager.jar path
+        - get_mri_conv_path: returns the MRIManager.jar path
         - getNbAllSlicesMax: returns the maximum number of slices to display in
           the mini viewer
         - get_opened_projects: returns the opened projects
