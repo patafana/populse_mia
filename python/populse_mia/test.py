@@ -28,6 +28,15 @@ if not os.path.dirname(os.path.dirname(
     print('\n- Mia in "developer" mode\n')
     mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
     sys.path.insert(0, mia_dev_dir)
+    del mia_dev_dir
+
+    # Adding mia_processes:
+    if os.path.isdir(os.path.join(root_dev_dir, 'mia_processes')):
+        mia_processes_dev_dir = os.path.join(root_dev_dir, 'mia_processes', 'python')
+        print('- Using mia_processes package from {} '
+              '...'.format(mia_processes_dev_dir))
+        sys.path.insert(1, mia_processes_dev_dir)
+        del mia_processes_dev_dir
 
 # PyQt5 import
 from PyQt5 import QtCore
@@ -1886,9 +1895,8 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().find_process('nipype.interfaces.spm.Smooth')
-
-        self.assertTrue('smooth1' in pipeline_editor_tabs.get_current_pipeline().nodes.keys())
+        pipeline_editor_tabs.get_current_editor().drop_process('nipype.interfaces.spm.Smooth')
+        self.assertTrue('smooth_1' in pipeline_editor_tabs.get_current_pipeline().nodes.keys())
 
     # def test_init_MIA_processes(self):
     #     """
@@ -2180,14 +2188,14 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class) # Creates a node called "smooth_1"
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        node_controller.display_parameters("smooth1", get_process_instance(process_class), pipeline)
+        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
 
         # Exporting the input plugs
-        pipeline_editor_tabs.get_current_editor().current_node_name = "smooth1"
+        pipeline_editor_tabs.get_current_editor().current_node_name = "smooth_1"
         pipeline_editor_tabs.get_current_editor().export_node_unconnected_mandatory_plugs()
         pipeline_editor_tabs.get_current_editor().export_node_all_unconnected_outputs()
 
@@ -2210,36 +2218,36 @@ class TestMIAPipelineManager(unittest.TestCase):
         # Adding a process
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(
-            450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
-        # Creates a node called "smooth1"
+
+        # Creates a node called "smooth_1"
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
         pipeline_manager.undo()
-        self.assertFalse("smooth1" in pipeline.nodes.keys())
+        self.assertFalse("smooth_1" in pipeline.nodes.keys())
 
         pipeline_manager.redo()
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
         # Deleting the process
-        pipeline_editor_tabs.get_current_editor().current_node_name = "smooth1"
+        pipeline_editor_tabs.get_current_editor().current_node_name = "smooth_1"
         pipeline_editor_tabs.get_current_editor().del_node()
-        self.assertFalse("smooth1" in pipeline.nodes.keys())
+        self.assertFalse("smooth_1" in pipeline.nodes.keys())
 
         pipeline_manager.undo()
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
         pipeline_manager.redo()
         self.assertFalse("smooth1" in pipeline.nodes.keys())
 
         # Adding a new process
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
 
         # Exporting the "out_prefix" plug
-        pipeline_editor_tabs.get_current_editor()._export_plug(temp_plug_name=("smooth1", "out_prefix"),
+        pipeline_editor_tabs.get_current_editor()._export_plug(temp_plug_name=("smooth_1", "out_prefix"),
                                                                pipeline_parameter="prefix_smooth",
                                                                optional=False,
                                                                weak_link=False)
@@ -2269,48 +2277,48 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
 
         # Adding a link
-        pipeline_editor_tabs.get_current_editor().add_link(("smooth1", "_smoothed_files"),
-                                                           ("smooth2", "in_files"),
+        pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
+                                                           ("smooth_2", "in_files"),
                                                            active=True, weak=False)
 
-        self.assertEqual(1, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_manager.undo()
-        self.assertEqual(0, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(0, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_manager.redo()
-        self.assertEqual(1, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         # Removing a link
-        link = "smooth1._smoothed_files->smooth2.in_files"
+        link = "smooth_1._smoothed_files->smooth_2.in_files"
         pipeline_editor_tabs.get_current_editor()._del_link(link)
-        self.assertEqual(0, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(0, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_manager.undo()
-        self.assertEqual(1, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_manager.redo()
-        self.assertEqual(0, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(0, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         # Re-adding a link
-        pipeline_editor_tabs.get_current_editor().add_link(("smooth1", "_smoothed_files"),
-                                                           ("smooth2", "in_files"),
+        pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
+                                                           ("smooth_2", "in_files"),
                                                            active=True, weak=False)
 
         # Updating the node name
-        node_controller.display_parameters("smooth2", get_process_instance(process_class), pipeline)
+        node_controller.display_parameters("smooth_2", get_process_instance(process_class), pipeline)
         node_controller.line_edit_node_name.setText("my_smooth")
         node_controller.update_node_name(pipeline)
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
-        self.assertFalse("smooth2" in pipeline.nodes.keys())
+        self.assertFalse("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["my_smooth"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_manager.undo()
         self.assertFalse("my_smooth" in pipeline.nodes.keys())
@@ -2320,9 +2328,9 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline_manager.redo()
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
-        self.assertFalse("smooth2" in pipeline.nodes.keys())
+        self.assertFalse("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["my_smooth"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
         # Updating a plug value
         if hasattr(node_controller, 'get_index_from_plug_name'):
@@ -2400,27 +2408,27 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold_1"
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        node_controller.display_parameters("threshold1", get_process_instance(process_class), pipeline)
+        node_controller.display_parameters("threshold_1", get_process_instance(process_class), pipeline)
 
         # Updating the value of the "synchronize" plug
         if hasattr(node_controller, 'get_index_from_plug_name'):
             index = node_controller.get_index_from_plug_name("synchronize", "in")
             node_controller.line_edit_input[index].setText("1")
             node_controller.line_edit_input[index].returnPressed.emit()  # This calls "update_plug_value" method
-            self.assertEqual(1, pipeline.nodes["threshold1"].get_plug_value("synchronize"))
+            self.assertEqual(1, pipeline.nodes["threshold_1"].get_plug_value("synchronize"))
 
             # Updating the value of the "_activation_forced" plug
             index = node_controller.get_index_from_plug_name("_activation_forced", "out")
             node_controller.line_edit_output[index].setText("True")
             node_controller.line_edit_output[index].returnPressed.emit()  # This calls "update_plug_value" method
-            self.assertEqual(True, pipeline.nodes["threshold1"].get_plug_value("_activation_forced"))
+            self.assertEqual(True, pipeline.nodes["threshold_1"].get_plug_value("_activation_forced"))
 
         # Exporting the input plugs and modifying the "synchronize" input plug
-        pipeline_editor_tabs.get_current_editor().current_node_name = "threshold1"
+        pipeline_editor_tabs.get_current_editor().current_node_name = "threshold_1"
         pipeline_editor_tabs.get_current_editor().export_node_all_unconnected_inputs()
 
         input_process = pipeline.nodes[""].process
@@ -2430,7 +2438,7 @@ class TestMIAPipelineManager(unittest.TestCase):
             index = node_controller.get_index_from_plug_name("synchronize", "in")
             node_controller.line_edit_input[index].setText("2")
             node_controller.line_edit_input[index].returnPressed.emit()  # This calls "update_plug_value" method
-            self.assertEqual(2, pipeline.nodes["threshold1"].get_plug_value("synchronize"))
+            self.assertEqual(2, pipeline.nodes["threshold_1"].get_plug_value("synchronize"))
 
     def test_z_get_editor(self):
         """
@@ -2562,12 +2570,12 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
         # Verifying that all the processes are here
-        self.assertTrue('test_pipeline1' in pipeline.nodes.keys())
-        self.assertTrue('smooth1' in pipeline.nodes.keys())
+        self.assertTrue('test_pipeline_1' in pipeline.nodes.keys())
+        self.assertTrue('smooth_1' in pipeline.nodes.keys())
 
         # Adding a link
-        pipeline_editor_tabs.get_current_editor().add_link(("smooth1", "_smoothed_files"),
-                                                           ("test_pipeline1", "in_files"),
+        pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
+                                                           ("test_pipeline_1", "in_files"),
                                                            active=True, weak=False)
 
         # Choosing a nii file from the project_8's raw_data folder
@@ -2577,16 +2585,16 @@ class TestMIAPipelineManager(unittest.TestCase):
         nii_path = os.path.abspath(os.path.join(folder, nii_file))
 
         # Setting values to verify that the initialization works well
-        pipeline.nodes['smooth1'].set_plug_value('in_files', nii_path)
-        pipeline.nodes['smooth1'].set_plug_value('out_prefix', 'TEST')
+        pipeline.nodes['smooth_1'].set_plug_value('in_files', nii_path)
+        pipeline.nodes['smooth_1'].set_plug_value('out_prefix', 'TEST')
 
         # Initialization of the pipeline
         self.main_window.pipeline_manager.init_pipeline()
 
         # Verifying the results
-        self.assertEqual(pipeline.nodes['smooth1'].get_plug_value('_smoothed_files'),
+        self.assertEqual(pipeline.nodes['smooth_1'].get_plug_value('_smoothed_files'),
                          os.path.abspath(os.path.join(folder, 'TEST' + nii_file)))
-        self.assertEqual(pipeline.nodes['test_pipeline1'].get_plug_value('_smoothed_files'),
+        self.assertEqual(pipeline.nodes['test_pipeline_1'].get_plug_value('_smoothed_files'),
                          os.path.abspath(os.path.join(folder, 'sTEST' + nii_file)))
 
     def test_z_load_pipeline(self):
@@ -2601,7 +2609,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.load_pipeline(filename)
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
     def test_z_open_sub_pipeline(self):
         """
@@ -2628,7 +2636,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Opening the sub-pipeline in a new editor
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        process_instance = pipeline.nodes["test_pipeline1"].process
+        process_instance = pipeline.nodes["test_pipeline_1"].process
         pipeline_editor_tabs.open_sub_pipeline(process_instance)
 
         self.assertTrue(pipeline_editor_tabs.count(), 3)
@@ -2680,50 +2688,49 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.load_pipeline(filename)
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
         pipeline_editor_tabs.new_tab()
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
 
-        pipeline_editor_tabs.get_current_editor().find_process("User_processes.Test_pipeline")
+        pipeline_editor_tabs.get_current_editor().drop_process("User_processes.Test_pipeline")
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
-        self.assertTrue("test_pipeline1" in pipeline.nodes.keys())
+        self.assertTrue("test_pipeline_1" in pipeline.nodes.keys())
 
-        pipeline_editor_tabs.get_current_editor().find_process("nipype.interfaces.spm.Smooth")
-        pipeline_editor_tabs.get_current_editor().find_process("nipype.interfaces.spm.Smooth")
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
-        self.assertTrue("smooth2" in pipeline.nodes.keys())
+        pipeline_editor_tabs.get_current_editor().drop_process("nipype.interfaces.spm.Smooth")
+        pipeline_editor_tabs.get_current_editor().drop_process("nipype.interfaces.spm.Smooth")
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_2" in pipeline.nodes.keys())
 
-        pipeline_editor_tabs.get_current_editor().add_link(("smooth1", "_smoothed_files"),
-
-                                                           ("test_pipeline1", "in_files"),
+        pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
+                                                           ("test_pipeline_1", "in_files"),
                                                            active=True, weak=False)
 
-        self.assertEqual(1, len(pipeline.nodes["test_pipeline1"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["test_pipeline_1"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
-        pipeline_editor_tabs.get_current_editor().add_link(("test_pipeline1", "_smoothed_files"),
-                                                           ("smooth2", "in_files"),
+        pipeline_editor_tabs.get_current_editor().add_link(("test_pipeline_1", "_smoothed_files"),
+                                                           ("smooth_2", "in_files"),
                                                            active=True, weak=False)
 
-        self.assertEqual(1, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["test_pipeline1"].plugs["_smoothed_files"].links_to))
+        self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["test_pipeline_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("test_pipeline.py")
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
 
-        pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth1", optional=True)
+        pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth_1", optional=True)
         #threading.Timer(1, self.execute_click).start()
         self.main_window.pipeline_manager.savePipeline(uncheck=True)
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
-        pipeline_editor_tabs.get_current_editor().scene.pos["test_pipeline1"] = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().scene.pos["test_pipeline_1"] = QtCore.QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().check_modifications()
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        self.assertTrue("fwhm" in pipeline.nodes["test_pipeline1"].plugs.keys())
+        self.assertTrue("fwhm" in pipeline.nodes["test_pipeline_1"].plugs.keys())
 
     def execute_click(self):
         """

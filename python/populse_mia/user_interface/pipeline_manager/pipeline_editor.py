@@ -271,7 +271,6 @@ class PipelineEditor(PipelineDevelopperView):
                     return None
 
             else:
-                
                 # For history
                 if multi_export:
                     return temp_plug_name[1]
@@ -446,7 +445,8 @@ class PipelineEditor(PipelineDevelopperView):
 
         else:
             # Adding the arguments to make the undo correctly
-            history_maker.append(node_name)
+            #history_maker.append(node_name)
+            history_maker.append(process.context_name.split('.')[-1])
             history_maker.append(class_process)
 
         self.update_history(history_maker, from_undo, from_redo)
