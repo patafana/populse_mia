@@ -42,7 +42,7 @@ if not os.path.dirname(os.path.dirname(
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit, QDialog
 
 # populse_mia import
 from populse_mia.data_manager.project import (COLLECTION_BRICK,
@@ -1888,7 +1888,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         #        Implement the switch to V1 controller to enable the last if
         # TODO2: open a project and modify the filter pop-up
 
-    def test_find_process(self):
+    def test_drop_process(self):
         """
         Adds a Nipype SPM's Smooth process using the find_process method
         """
@@ -2079,6 +2079,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.main_window.switch_project(project_8_path, "project_8")
 
         iteration_table = self.main_window.pipeline_manager.iterationTable
+        QtCore.QTimer.singleShot(1000, self.execute_QDialogAccept)
         iteration_table.check_box_iterate.setChecked(True)
         iteration_table.update_iterated_tag("BandWidth")
         self.assertEqual(iteration_table.iterated_tag_label.text(),
@@ -2093,6 +2094,8 @@ class TestMIAPipelineManager(unittest.TestCase):
         iteration_table.update_table()
         self.assertTrue(iteration_table.combo_box.currentText() in [
          "25000.0", "65789.48", "50000.0"])
+
+
 
     '''def test_open_filter(self):
         """
@@ -2722,7 +2725,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
 
         pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth_1", optional=True)
-        #threading.Timer(1, self.execute_click).start()
+        #threading.Timer(1, self.execute_QMessageBox_clickYes).start()
         self.main_window.pipeline_manager.savePipeline(uncheck=True)
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
@@ -2732,16 +2735,27 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline = pipeline_editor_tabs.get_current_pipeline()
         self.assertTrue("fwhm" in pipeline.nodes["test_pipeline_1"].plugs.keys())
 
-    def execute_click(self):
+    def execute_QMessageBox_clickYes(self):
         """
         Is supposed to allow to press the Yes button if a pipeline is 
         overwritten in the test_zz_check_modifications method
         """
 
         w = QApplication.activeWindow()
+
         if isinstance(w, QMessageBox):
             close_button = w.button(QMessageBox.Yes)
             QTest.mouseClick(close_button, Qt.LeftButton)
+
+    def execute_QDialogAccept(self):
+        """
+        Is supposed to accept (close) a QDialog window
+        """
+
+        w = QApplication.activeWindow()
+
+        if isinstance(w, QDialog):
+            w.accept()
 
 
 if __name__ == '__main__':
