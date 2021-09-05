@@ -42,7 +42,7 @@ if not os.path.dirname(os.path.dirname(
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit, QDialog
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit
 
 # populse_mia import
 from populse_mia.data_manager.project import (COLLECTION_BRICK,
