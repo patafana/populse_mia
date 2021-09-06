@@ -2361,43 +2361,46 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
 
         # Displaying the node parameters
-        pipeline = pipeline_editor_tabs.get_current_pipeline()
-        # node_controller.display_parameters("smooth1", get_process_instance(process_class), pipeline)
-        self.main_window.pipeline_manager.displayNodeParameters("smooth1", get_process_instance(process_class))
+        pipeline = pipeline_editor_tabs.get_current_pipeline()      
+        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
+        #self.main_window.pipeline_manager.displayNodeParameters("smooth_1", get_process_instance(process_class))
+
+        # Change the node name
         node_controller.update_node_name(pipeline, "smooth_test")
         self.assertTrue("smooth_test" in pipeline.nodes.keys())
 
-        # Adding another Smooth process
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth1"
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
 
+        # Adding 2 another Smooth process
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_2"
+        
         # Adding link between nodes
         source = ('smooth_test', '_smoothed_files')
-        dest = ('smooth1', 'in_files')
+        dest = ('smooth_1', 'in_files')
         pipeline_editor_tabs.get_current_editor().add_link(source, dest, True, False)
 
-        source = ('smooth1', '_smoothed_files')
-        dest = ('smooth2', 'in_files')
+        source = ('smooth_1', '_smoothed_files')
+        dest = ('smooth_2', 'in_files')
         pipeline_editor_tabs.get_current_editor().add_link(source, dest, True, False)
 
-        # Displaying the node parameters (smooth1)
-        #  node_controller.display_parameters("smooth1", get_process_instance(process_class), pipeline)
-        self.main_window.pipeline_manager.displayNodeParameters("smooth1", get_process_instance(process_class))
+        # Displaying the node parameters (smooth_1)
+        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
+        #self.main_window.pipeline_manager.displayNodeParameters("smooth_1", get_process_instance(process_class))
 
         # This should not change the node name because there is already a "smooth_test" process in the pipeline
         node_controller.update_node_name(pipeline, "smooth_test")
-        self.assertTrue("smooth1" in pipeline.nodes.keys())
+        self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
         # Changing to another value
-        node_controller.update_node_name(pipeline, "smooth_test2")
-        self.assertTrue("smooth_test2" in pipeline.nodes.keys())
+        node_controller.update_node_name(pipeline, "smooth_test_2")
+        self.assertTrue("smooth_test_2" in pipeline.nodes.keys())
 
         # Verifying that the updated node has the same links
-        self.assertEqual(len(pipeline.nodes["smooth_test2"].plugs["in_files"].links_from), 1)
-        self.assertEqual(len(pipeline.nodes["smooth_test2"].plugs["_smoothed_files"].links_to), 1)
+        self.assertEqual(len(pipeline.nodes["smooth_test_2"].plugs["in_files"].links_from), 1)
+        self.assertEqual(len(pipeline.nodes["smooth_test_2"].plugs["_smoothed_files"].links_to), 1)
 
     def test_update_plug_value(self):
         """

@@ -414,9 +414,12 @@ class PipelineEditor(PipelineDevelopperView):
           using a redo
         :param links: list of links (using when undo/redo)
         """
-        
+
         process = super(PipelineEditor, self).add_named_process(
             class_process, node_name)
+
+        if node_name is None:
+            node_name = process.context_name.split('.')[-1]
 
         if hasattr(process, 'use_project') and process.use_project:
             process.project = self.project
@@ -445,8 +448,7 @@ class PipelineEditor(PipelineDevelopperView):
 
         else:
             # Adding the arguments to make the undo correctly
-            #history_maker.append(node_name)
-            history_maker.append(process.context_name.split('.')[-1])
+            history_maker.append(node_name)
             history_maker.append(class_process)
 
         self.update_history(history_maker, from_undo, from_redo)
