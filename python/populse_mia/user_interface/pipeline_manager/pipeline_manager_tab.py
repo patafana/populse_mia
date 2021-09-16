@@ -987,11 +987,12 @@ class PipelineManagerTab(QWidget):
         Update history when a pipeline node is changed
 
         :param signal_list: list of the needed parameters to update history
-         According to populse_mia.user_interface.pipeline_manager.node_controller.CapsulNodeController.parameters_changed()
-         the list should be, for a parameter change:
-         ["plug_value", self.node_name, old_value, param, value_type, value]
-         This is not the case!
         """
+        # TODO: According to
+        # populse_mia.user_interface.pipeline_manager.node_controller.CapsulNodeController.parameters_changed()
+        # the list should be, for a parameter change:
+        # ["plug_value", self.node_name, old_value, param, value_type, value]
+        # This is not the case!
 
         case = signal_list.pop(0)
 
@@ -1056,7 +1057,6 @@ class PipelineManagerTab(QWidget):
         :param process: process instance of the corresponding node
         :return:
         """
-
         config = Config()
 
         if not config.isControlV1():
@@ -1599,7 +1599,6 @@ class PipelineManagerTab(QWidget):
             - delete_link
 
         """
-
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can redo if we have an action to make again
@@ -1620,14 +1619,10 @@ class PipelineManagerTab(QWidget):
                 node_name = to_redo[1]
                 c_e.del_node(node_name, from_redo=True)
 
-            elif action == "export_plug":
-                temp_plug_name = to_redo[1]
+            elif action == "export_plugs":
+                temp_plug_name = ('inputs', to_redo[1])
                 c_e._remove_plug(
                     _temp_plug_name=temp_plug_name, from_redo=True)
-
-            elif action == "export_plugs":
-                # No redo possible
-                pass
 
             elif action == "remove_plug":
                 temp_plug_name = to_redo[1]
@@ -1642,12 +1637,14 @@ class PipelineManagerTab(QWidget):
                 # Connecting all the plugs that were connected
                 # to the original plugs
                 for plug_tuple in new_temp_plugs:
+
                     # Checking if the original plug is a pipeline
                     # input or output to adapt
                     # the links to add.
                     if temp_plug_name[0] == 'inputs':
                         source = ('', temp_plug_name[1])
                         dest = plug_tuple
+
                     else:
                         source = plug_tuple
                         dest = ('', temp_plug_name[1])
@@ -1946,7 +1943,6 @@ class PipelineManagerTab(QWidget):
             - add_link
             - delete_link
         """
-
         c_e = self.pipelineEditorTabs.get_current_editor()
 
         # We can undo if we have an action to revert
@@ -1967,22 +1963,21 @@ class PipelineManagerTab(QWidget):
                 c_e.add_named_process(
                     class_name, node_name, from_undo=True, links=links)
 
-            elif action == "export_plug":
-                temp_plug_name = to_undo[1]
-                c_e._remove_plug(
-                    _temp_plug_name=temp_plug_name, from_undo=True)
-
             elif action == "export_plugs":
-                parameter_list = to_undo[1]
+                parameters = to_undo[1]
                 node_name = to_undo[2]
-                for parameter in parameter_list:
+
+                if isinstance(parameters, str):
+                    parameters= [parameters]
+
+                for parameter in parameters:
                     temp_plug_name = ('inputs', parameter)
-                    c_e._remove_plug(
-                        _temp_plug_name=temp_plug_name,
-                        from_undo=True,
-                        from_export_plugs=True)
+                    c_e._remove_plug(_temp_plug_name=temp_plug_name,
+                                     from_undo=True,
+                                     from_export_plugs=False)
+
                 self.main_window.statusBar().showMessage(
-                    "Plugs {0} have been removed.".format(str(parameter_list)))
+                    "Plugs {0} have been removed.".format(str(parameters)))
 
             elif action == "remove_plug":
                 temp_plug_name = to_undo[1]

@@ -120,7 +120,6 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean, True if the action has been made using a
            redo
         """
-
         if not link:
             link = self._current_link
 
@@ -163,10 +162,10 @@ class PipelineEditor(PipelineDevelopperView):
            name of the plug) to export
         :param multi_export: True if this method is called in export plugs case
         """
-
         # Bug: the first parameter (here pipeline_parameter) cannot be None
         # even if we write pipeline_parameter=None in the line above,
         # it will be False...
+
         if temp_plug_name is None:
             temp_plug_name = self._temp_plug_name
         
@@ -325,20 +324,20 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_export_plugs: True if this method is called from a
            "from_export_plugs" undo or redo action
         """
-
         if not _temp_plug_name:
             _temp_plug_name = self._temp_plug_name
 
         if _temp_plug_name[0] in ('inputs', 'outputs'):
-            print(_temp_plug_name, from_undo, from_redo, from_export_plugs)
             plug_name = _temp_plug_name[1]
             plug = self.scene.pipeline.pipeline_node.plugs[plug_name]
             optional = plug.optional
             # contains the plugs that are connected to the input or output plug
             new_temp_plugs = []
+
             for link in plug.links_to:
                 temp_plug = (link[0], link[1])
                 new_temp_plugs.append(temp_plug)
+
             for link in plug.links_from:
                 temp_plug = (link[0], link[1])
                 new_temp_plugs.append(temp_plug)
@@ -358,7 +357,6 @@ class PipelineEditor(PipelineDevelopperView):
                 # For history
                 history_maker = ["remove_plug", _temp_plug_name,
                                  new_temp_plugs, optional]
-
                 self.update_history(history_maker, from_undo, from_redo)
                 self.main_window.pipeline_manager.run_pipeline_action\
                     .setDisabled(
@@ -379,7 +377,6 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean that is True if the action has been made
            using a redo
         """
-
         self.scene.add_link(source, dest, active, weak)
 
         # Writing a string to represent the link
@@ -414,7 +411,6 @@ class PipelineEditor(PipelineDevelopperView):
           using a redo
         :param links: list of links (using when undo/redo)
         """
-
         process = super(PipelineEditor, self).add_named_process(
             class_process, node_name)
 
@@ -627,25 +623,29 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean, True if the action has been made using a
            redo
         """
-
         pipeline = self.scene.pipeline
 
         if not node_name:
             node_name = self.current_node_name
+
         node = pipeline.nodes[node_name]
 
         # Collecting the links from the node that is being deleted
         links = []
         for plug_name, plug in node.plugs.items():
+
             if plug.output:
+
                 for link_to in plug.links_to:
-                    (dest_node_name, dest_parameter, dest_node, dest_plug,
-                     weak_link) = link_to
+                    (dest_node_name, dest_parameter,
+                     dest_node, dest_plug, weak_link) = link_to
                     active = plug.activated
 
                     # Looking for the name of dest_plug in dest_node
                     dest_plug_name = None
+
                     for plug_name_d, plug_d in dest_node.plugs.items():
+        
                         if plug_d == dest_plug:
                             dest_plug_name = plug_name_d
                             break
@@ -656,15 +656,19 @@ class PipelineEditor(PipelineDevelopperView):
                     link_to_add.append(weak_link)
 
                     links.append(link_to_add)
+
             else:
+
                 for link_from in plug.links_from:
-                    (source_node_name, source_parameter, source_node,
-                     source_plug, weak_link) = link_from
+                    (source_node_name, source_parameter,
+                     source_node, source_plug, weak_link) = link_from
                     active = plug.activated
 
                     # Looking for the name of source_plug in source_node
                     source_plug_name = None
+
                     for plug_name_d, plug_d in source_node.plugs.items():
+
                         if plug_d == source_plug:
                             source_plug_name = plug_name_d
                             break
@@ -681,15 +685,18 @@ class PipelineEditor(PipelineDevelopperView):
 
         # For history
         process = node
+
         if isinstance(process, ProcessNode):
             process = node.process
+
         history_maker = ["delete_process", node_name, process, links]
 
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
+        
+        if not (self.main_window.pipeline_manager.iterationTable
+                .check_box_iterate).isChecked():
             self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+                                                                           True)
         self.main_window.statusBar().showMessage(
             "Node {0} has been deleted.".format(node_name))
 
@@ -697,8 +704,8 @@ class PipelineEditor(PipelineDevelopperView):
             process = node
             if isinstance(process, ProcessNode):
                 process = node.process
-            self.main_window.pipeline_manager.displayNodeParameters(
-                node_name, process)
+            self.main_window.pipeline_manager.displayNodeParameters(node_name,
+                                                                    process)
 
     def export_node_plugs(self, node_name, inputs=True, outputs=True,
                           optional=False, from_undo=False, from_redo=False):
@@ -711,7 +718,6 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_undo: True if this method is called from an undo action
         :param from_redo: True if this method is called from a redo action
         """
-
         pipeline = self.scene.pipeline
         node = pipeline.nodes[node_name]
         parameter_list = []
@@ -741,6 +747,7 @@ class PipelineEditor(PipelineDevelopperView):
 
         parameter_list = list(filter(None, parameter_list))
         self.scene.update_pipeline()
+
         # For history
         history_maker = ["export_plugs", parameter_list, node_name]
         self.update_history(history_maker, from_undo, from_redo)
@@ -961,15 +968,27 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean that is True if the action has been made
             using a redo
         """
-
         if from_undo:
             self.redos.append(history_maker)
+
         else:
             self.undos.append(history_maker)
             # If the action does not come from an undo or a redo,
-            # the redos has to be cleared
+            # redos must be updated with care
             if not from_redo:
-                self.redos.clear()
+
+                if history_maker[0] == 'add_process':
+                    to_redo = 'delete_process'
+
+                elif history_maker[0] == 'delete_process':
+                    to_redo = 'add_process'
+
+                else: to_redo = None
+
+                for i, item in enumerate(self.redos):
+
+                    if item[0] == to_redo and history_maker[1] == item[1]:
+                        self.redos.pop(i)
 
         self.pipeline_modified.emit(self)
 
@@ -985,13 +1004,14 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean, True if the action has been made using a
            redo
         """
-
         pipeline = self.scene.pipeline
 
         # Removing links of the selected node and copy the origin/destination
         links_to_copy = []
-        for source_parameter, source_plug \
-                in six.iteritems(old_node.plugs):
+
+        for (source_parameter,
+             source_plug) in six.iteritems(old_node.plugs):
+
             for (dest_node_name, dest_parameter, dest_node, dest_plug,
                  weak_link) in source_plug.links_to.copy():
                 pipeline.remove_link(old_node_name + "." + source_parameter +

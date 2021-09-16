@@ -38,9 +38,41 @@ if not os.path.dirname(os.path.dirname(
         sys.path.insert(1, mia_processes_dev_dir)
         del mia_processes_dev_dir
 
+     # Adding populse_db:
+    if os.path.isdir(os.path.join(root_dev_dir, 'populse_db')):
+        populse_db_dev_dir = os.path.join(root_dev_dir, 'populse_db', 'python')
+        print('- Using populse_db package from {} '
+              '...'.format(populse_db_dev_dir))
+        sys.path.insert(1, populse_db_dev_dir)
+        del populse_db_dev_dir
+
+    # Adding capsul:
+    if os.path.isdir(os.path.join(root_dev_dir, 'capsul')):
+        capsul_dev_dir = os.path.join(root_dev_dir, 'capsul')
+        print('- Using capsul package from {} '
+              '...'.format(capsul_dev_dir))
+        sys.path.insert(1, capsul_dev_dir)
+        del capsul_dev_dir
+
+     # Adding soma-base:
+    if os.path.isdir(os.path.join(root_dev_dir, 'soma-base')):
+        soma_base_dev_dir = os.path.join(root_dev_dir, 'soma-base', 'python')
+        print('- Using soma-base package from {} '
+              '...'.format(soma_base_dev_dir))
+        sys.path.insert(1, soma_base_dev_dir)
+        del soma_base_dev_dir
+
+     # Adding soma-workflow:
+    if os.path.isdir(os.path.join(root_dev_dir, 'soma-workflow')):
+        soma_workflow_dev_dir = os.path.join(root_dev_dir, 'soma-workflow', 'python')
+        print('- Using soma-workflow package from {} '
+              '...'.format(soma_workflow_dev_dir))
+        sys.path.insert(1, soma_workflow_dev_dir)
+        del soma_workflow_dev_dir
+
 # PyQt5 import
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt5 import QtGui
+from PyQt5.QtCore import Qt, QCoreApplication, QEvent, QPoint, QTimer
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit
 
@@ -57,27 +89,22 @@ from populse_mia.user_interface.data_browser.modify_table import ModifyTable
 from populse_mia.user_interface.main_window import MainWindow
 from populse_mia.user_interface.pipeline_manager.process_library import *
 from populse_mia.user_interface.pop_ups import (PopUpNewProject,
-                                                PopUpOpenProject,
-                                                PopUpSaveProjectAs)
+                                                PopUpOpenProject)
 from populse_mia.utils.utils import *
 
 # populse_db import
 from populse_db.database import (FIELD_TYPE_BOOLEAN, FIELD_TYPE_DATE,
-                                 FIELD_TYPE_DATETIME, FIELD_TYPE_FLOAT,
-                                 FIELD_TYPE_INTEGER, FIELD_TYPE_LIST_BOOLEAN,
-                                 FIELD_TYPE_LIST_DATE,
-                                 FIELD_TYPE_LIST_DATETIME,
-                                 FIELD_TYPE_LIST_FLOAT, FIELD_TYPE_LIST_INTEGER,
-                                 FIELD_TYPE_LIST_STRING, FIELD_TYPE_LIST_TIME,
-                                 FIELD_TYPE_STRING, FIELD_TYPE_TIME)
+                                 FIELD_TYPE_DATETIME, FIELD_TYPE_INTEGER, FIELD_TYPE_TIME)
 
 # capsul import
 from capsul.api import get_process_instance
 
 # other import
-import shutil, yaml, threading, unittest
+import shutil, yaml, unittest
 from datetime import datetime
 from packaging import version
+#import time
+
 
 # Working from the scripts directory
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -1766,7 +1793,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # Modifying the pipeline editor
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
         self.assertEqual(pipeline_editor_tabs.tabText(0)[-2:], " *")
 
@@ -1777,7 +1804,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # pipeline_editor_tabs.close_tab(0)
         # pop_up_close = pipeline_editor_tabs.pop_up_close
         # # QTest.mouseClick(pop_up_close.push_button_cancel, Qt.LeftButton)
-        # # QtCore.QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
+        # # QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
         # pop_up_close.cancel_clicked()
         # self.assertEqual(pipeline_editor_tabs.count(), 2)
         #
@@ -1785,7 +1812,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # pipeline_editor_tabs.close_tab(0)
         # pop_up_close = pipeline_editor_tabs.pop_up_close
         # # QTest.mouseClick(pop_up_close.push_button_do_not_save, Qt.LeftButton)
-        # # QtCore.QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
+        # # QTimer.singleShot(0, pop_up_close.push_button_cancel.clicked)
         # pop_up_close.do_not_save_clicked()
         # self.assertEqual(pipeline_editor_tabs.count(), 1)
 
@@ -1803,7 +1830,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
 
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_2"
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_3"
@@ -1864,7 +1891,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # Adding a process
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold_1"
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
@@ -1894,7 +1921,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().drop_process('nipype.interfaces.spm.Smooth')
         self.assertTrue('smooth_1' in pipeline_editor_tabs.get_current_pipeline().nodes.keys())
 
@@ -1912,7 +1939,7 @@ class TestMIAPipelineManager(unittest.TestCase):
     #
     #     pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
     #
-    #     pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+    #     pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
     #
     #     # Importing the package
     #     package_name = 'MIA_processes.IRMaGe.Tools'
@@ -1981,7 +2008,7 @@ class TestMIAPipelineManager(unittest.TestCase):
     #
     #     pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
     #
-    #     pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+    #     pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
     #
     #     # Importing the package
     #     package_name = 'MIA_processes.SPM'
@@ -2079,7 +2106,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.main_window.switch_project(project_8_path, "project_8")
 
         iteration_table = self.main_window.pipeline_manager.iterationTable
-        QtCore.QTimer.singleShot(1000, self.execute_QDialogAccept)
+        QTimer.singleShot(1000, self.execute_QDialogAccept)
         iteration_table.check_box_iterate.setChecked(True)
         iteration_table.update_iterated_tag("BandWidth")
         self.assertEqual(iteration_table.iterated_tag_label.text(),
@@ -2122,7 +2149,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_process(process_class)  # Creates a node called "input_filter1"
         pipeline_editor_tabs.open_filter("input_filter1")
         pipeline_editor_tabs.filter_widget.close()
@@ -2190,7 +2217,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # Adding a process
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class) # Creates a node called "smooth_1"
 
         # Displaying the node parameters
@@ -2213,123 +2240,143 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Tests the undo/redo actions
         """
-
         pipeline_manager = self.main_window.pipeline_manager
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         node_controller = self.main_window.pipeline_manager.nodeController
 
-        # Adding a process
+        # Adding a process => creates a node called "smooth_1", test if Smooth_1 is a node in the current pipelne / editor
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
-
-        # Creates a node called "smooth_1"
         pipeline = pipeline_editor_tabs.get_current_pipeline()
         self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
+        # Undo (remove the node), test if the node was removed
         pipeline_manager.undo()
         self.assertFalse("smooth_1" in pipeline.nodes.keys())
 
+        # Redo (add again the node), test if the node was added
         pipeline_manager.redo()
         self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
-        # Deleting the process
+        # Delete the node, test if the node was removed
         pipeline_editor_tabs.get_current_editor().current_node_name = "smooth_1"
         pipeline_editor_tabs.get_current_editor().del_node()
         self.assertFalse("smooth_1" in pipeline.nodes.keys())
 
+        # Undo (add again the node), test if the node was added
         pipeline_manager.undo()
         self.assertTrue("smooth_1" in pipeline.nodes.keys())
 
+        # Redo (delete again the node), test if the node was removed
         pipeline_manager.redo()
         self.assertFalse("smooth1" in pipeline.nodes.keys())
 
-        # Adding a new process
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        # Adding a new process => creates a node called "smooth_1"
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
 
-        # Exporting the "out_prefix" plug
+        # Exporting the "out_prefix" plug, test if the Input node have a prefix_smooth plug
         pipeline_editor_tabs.get_current_editor()._export_plug(temp_plug_name=("smooth_1", "out_prefix"),
                                                                pipeline_parameter="prefix_smooth",
                                                                optional=False,
                                                                weak_link=False)
-
         self.assertTrue("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
+        # Undo (remove prefix_smooth from Input node), test if the prefix_smooth plug was deleted from Input node
         pipeline_manager.undo()
         self.assertFalse("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
+        # redo (export again the "out_prefix" plug), test if the Input node have a prefix_smooth plug
         pipeline_manager.redo()
         self.assertTrue("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
-        # Deleting the "out_prefix" plug
+        # Deleting the "prefix_smooth" plug from the Input node, test if the Input node have not a prefix_smooth plug
         pipeline_editor_tabs.get_current_editor()._remove_plug(_temp_plug_name=("inputs", "prefix_smooth"))
         self.assertFalse("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
+        # Undo (export again the "out_prefix" plug), test if the Input node have a prefix_smooth plug
         pipeline_manager.undo()
         self.assertTrue("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
+        # redo (deleting the "prefix_smooth" plug from the Input node), test if the Input node have not a prefix_smooth plug
         pipeline_manager.redo()
         self.assertFalse("prefix_smooth" in pipeline.nodes[''].plugs.keys())
 
         # TODO: export_plugs (currently there is a bug when a plug is of type list)
 
-        # Adding a new process
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 550)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth2"
+        # Adding a new process => creates a node called "smooth_2"
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 550)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Adding a link
         pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
                                                            ("smooth_2", "in_files"),
                                                            active=True, weak=False)
 
+        # test if the 2 nodes have the good links
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
+        # Undo (remove the link), test if the 2 nodes have not the links
         pipeline_manager.undo()
         self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
+        # Redo (add again the link), test if the 2 nodes have the good links
         pipeline_manager.redo()
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
-        # Removing a link
+        # Removing the link, test if the 2 nodes have not the links
         link = "smooth_1._smoothed_files->smooth_2.in_files"
         pipeline_editor_tabs.get_current_editor()._del_link(link)
         self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-
+        
+        # Undo (add again the link), test if the 2 nodes have the good links
         pipeline_manager.undo()
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-
+        
+        # Redo (remove the link), test if the 2 nodes have not the links
         pipeline_manager.redo()
         self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-
+        
         # Re-adding a link
         pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
                                                            ("smooth_2", "in_files"),
                                                            active=True, weak=False)
 
         # Updating the node name
-        node_controller.display_parameters("smooth_2", get_process_instance(process_class), pipeline)
+        process = pipeline.nodes['smooth_2'].process
+        pipeline_manager.displayNodeParameters("smooth_2", process)
+        node_controller = self.main_window.pipeline_manager.nodeController
+        node_controller.display_parameters("smooth_2", process, pipeline)
         node_controller.line_edit_node_name.setText("my_smooth")
-        node_controller.update_node_name(pipeline)
+        keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
+        QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
+        QTest.qWait(1000)
+
+        # test if the smooth_2 node has been replaced by the my_smooth node and test the links
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
         self.assertFalse("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["my_smooth"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
 
+        # Undo (Updating the node name from my_smooth to smooth_2), test if it's ok
         pipeline_manager.undo()
+        QTest.qWait(1000)
         self.assertFalse("my_smooth" in pipeline.nodes.keys())
-        self.assertTrue("smooth2" in pipeline.nodes.keys())
-        self.assertEqual(1, len(pipeline.nodes["smooth2"].plugs["in_files"].links_from))
-        self.assertEqual(1, len(pipeline.nodes["smooth1"].plugs["_smoothed_files"].links_to))
-
+        self.assertTrue("smooth_2" in pipeline.nodes.keys())
+        self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
+        self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
+        
+        # Redo (Updating the node name from smooth_2 to my_smooth), test if it's ok
         pipeline_manager.redo()
+        QTest.qWait(1000)
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
         self.assertFalse("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["my_smooth"].plugs["in_files"].links_from))
@@ -2353,49 +2400,60 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Displays parameters of a node and updates its name
         """
+        
+        pipeline_manager = self.main_window.pipeline_manager
+        pipeline_editor_tabs = pipeline_manager.pipelineEditorTabs
 
-        pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        node_controller = self.main_window.pipeline_manager.nodeController
-
-        # Adding a process
+        # Adding a process => creates a node called "smooth_1"
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)        
 
-        # Displaying the node parameters
-        pipeline = pipeline_editor_tabs.get_current_pipeline()      
-        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
-        #self.main_window.pipeline_manager.displayNodeParameters("smooth_1", get_process_instance(process_class))
+        # Displaying the smooth_1 node parameters
+        pipeline = pipeline_editor_tabs.get_current_pipeline()
+        process = pipeline.nodes['smooth_1'].process
+        pipeline_manager.displayNodeParameters("smooth_1", process)
+        node_controller = pipeline_manager.nodeController
 
-        # Change the node name
-        node_controller.update_node_name(pipeline, "smooth_test")
+        # Change the node name from smooth_1 to smooth_test, test if it's ok
+        node_controller.line_edit_node_name.setText("smooth_test")
+        keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
+        QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
+        QTest.qWait(1000)
         self.assertTrue("smooth_test" in pipeline.nodes.keys())
 
+        # Adding 2 another Smooth process =>  Creates nodes called smooth_1 and smooth_2
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
-        # Adding 2 another Smooth process
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_2"
-        
-        # Adding link between nodes
+        # Adding link between smooth_test and smooth_1 nodes
         source = ('smooth_test', '_smoothed_files')
         dest = ('smooth_1', 'in_files')
         pipeline_editor_tabs.get_current_editor().add_link(source, dest, True, False)
 
+        # Adding link between smooth_2 and smooth_1 nodes
         source = ('smooth_1', '_smoothed_files')
         dest = ('smooth_2', 'in_files')
         pipeline_editor_tabs.get_current_editor().add_link(source, dest, True, False)
 
-        # Displaying the node parameters (smooth_1)
-        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
-        #self.main_window.pipeline_manager.displayNodeParameters("smooth_1", get_process_instance(process_class))
-
-        # This should not change the node name because there is already a "smooth_test" process in the pipeline
-        node_controller.update_node_name(pipeline, "smooth_test")
+        # Displaying the smooth_1 node parameters
+        process = pipeline.nodes['smooth_1'].process
+        pipeline_manager.displayNodeParameters("smooth_1", process)
+        node_controller = pipeline_manager.nodeController
+        
+        # Change node name from smooth_1 to smooth_test.
+        # This should not change the node name because there is already a "smooth_test" process in the pipeline.
+        # Test if smooth_1 is still in the pipeline
+        node_controller.line_edit_node_name.setText("smooth_test")
+        keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
+        QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
+        QTest.qWait(1000)
         self.assertTrue("smooth_1" in pipeline.nodes.keys())
-
-        # Changing to another value
-        node_controller.update_node_name(pipeline, "smooth_test_2")
+        node_controller.line_edit_node_name.setText("smooth_test_2")
+        keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
+        QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
+        QTest.qWait(1000)
         self.assertTrue("smooth_test_2" in pipeline.nodes.keys())
 
         # Verifying that the updated node has the same links
@@ -2413,7 +2471,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         # Adding a process
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold_1"
 
         # Displaying the node parameters
@@ -2565,12 +2623,12 @@ class TestMIAPipelineManager(unittest.TestCase):
                 process_class = cls
 
         # Adding the "test_pipeline" as a process
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Added another Smooth process
         from nipype.interfaces.spm import Smooth
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 550)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 550)
         pipeline_editor_tabs.get_current_editor().add_named_process(Smooth)
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
@@ -2637,7 +2695,7 @@ class TestMIAPipelineManager(unittest.TestCase):
                 process_class = cls
 
         # Adding the "test_pipeline" as a process
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Opening the sub-pipeline in a new editor
@@ -2687,7 +2745,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         config = Config(config_path=self.config_path)
 
         filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
@@ -2698,7 +2756,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         pipeline_editor_tabs.new_tab()
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
 
         pipeline_editor_tabs.get_current_editor().drop_process("User_processes.Test_pipeline")
         pipeline = pipeline_editor_tabs.get_current_pipeline()
@@ -2725,14 +2783,14 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.assertEqual(1, len(pipeline.nodes["test_pipeline_1"].plugs["_smoothed_files"].links_to))
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("test_pipeline.py")
-        pipeline_editor_tabs.get_current_editor().click_pos = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
 
         pipeline_editor_tabs.get_current_editor().export_node_plugs("smooth_1", optional=True)
         #threading.Timer(1, self.execute_QMessageBox_clickYes).start()
         self.main_window.pipeline_manager.savePipeline(uncheck=True)
 
         pipeline_editor_tabs.set_current_editor_by_tab_name("New Pipeline 1")
-        pipeline_editor_tabs.get_current_editor().scene.pos["test_pipeline_1"] = QtCore.QPoint(450, 500)
+        pipeline_editor_tabs.get_current_editor().scene.pos["test_pipeline_1"] = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().check_modifications()
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
