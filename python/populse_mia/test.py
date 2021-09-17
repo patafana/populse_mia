@@ -1726,6 +1726,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
 
         self.main_window.project.unsaveModifications()
+        self.main_window.remove_raw_files_useless()
         self.main_window.close()
 
         # Removing the opened projects (in CI, the tests are run twice)
