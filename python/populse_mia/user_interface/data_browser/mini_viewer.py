@@ -67,6 +67,8 @@ class MiniViewer(QWidget):
           for a selected index
         - changePosValue: change the value of a cursor for the selected index
         - check_box_cursors_state_changed: updates the config file
+        - clear: remove the Nibabel images to be able to remove it in the
+          unit tests 
         - clearLayouts: clear the final layout
         - create_slider: create a slider
         - createDimensionLabels: create the dimension labels for the
@@ -205,6 +207,12 @@ class MiniViewer(QWidget):
             self.config.setChainCursors(True)
         elif self.check_box_cursors.checkState() == Qt.Unchecked:
             self.config.setChainCursors(False)
+
+    def clear(self):
+        """
+        Remove the Nibabel images to be able to remove it in the unit tests 
+        """
+        delattr(self, 'img')
 
     def clearLayouts(self):
         """Clear the final layout"""

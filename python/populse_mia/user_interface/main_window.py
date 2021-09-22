@@ -233,7 +233,6 @@ class MainWindow(QMainWindow):
 
         :param event: closing event
         """
-
         if self.check_unsaved_modifications() is False or self.test:
             can_exit = True
 
@@ -261,6 +260,14 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+        if self.data_browser.viewer:
+            self.data_browser.viewer.clear()
+
+        if self.data_viewer:
+            self.data_viewer.clear()
+
+        super().close()
 
     def create_view_actions(self):
         """Create the actions and their shortcuts in each menu"""
@@ -1346,8 +1353,3 @@ class MainWindow(QMainWindow):
                     self.saved_projects_actions[i].setData(
                         self.saved_projects_list[i])
                     self.saved_projects_actions[i].setVisible(True)
-
-    def closeEvent(self, event):
-        if self.data_viewer:
-            self.data_viewer.clear()
-        super().close()

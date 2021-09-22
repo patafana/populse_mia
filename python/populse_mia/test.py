@@ -32,7 +32,8 @@ if not os.path.dirname(os.path.dirname(
 
     # Adding mia_processes:
     if os.path.isdir(os.path.join(root_dev_dir, 'mia_processes')):
-        mia_processes_dev_dir = os.path.join(root_dev_dir, 'mia_processes', 'python')
+        mia_processes_dev_dir = os.path.join(root_dev_dir, 'mia_processes',
+                                             'python')
         print('- Using mia_processes package from {} '
               '...'.format(mia_processes_dev_dir))
         sys.path.insert(1, mia_processes_dev_dir)
@@ -64,7 +65,8 @@ if not os.path.dirname(os.path.dirname(
 
      # Adding soma-workflow:
     if os.path.isdir(os.path.join(root_dev_dir, 'soma-workflow')):
-        soma_workflow_dev_dir = os.path.join(root_dev_dir, 'soma-workflow', 'python')
+        soma_workflow_dev_dir = os.path.join(root_dev_dir, 'soma-workflow',
+                                             'python')
         print('- Using soma-workflow package from {} '
               '...'.format(soma_workflow_dev_dir))
         sys.path.insert(1, soma_workflow_dev_dir)
@@ -94,7 +96,8 @@ from populse_mia.utils.utils import *
 
 # populse_db import
 from populse_db.database import (FIELD_TYPE_BOOLEAN, FIELD_TYPE_DATE,
-                                 FIELD_TYPE_DATETIME, FIELD_TYPE_INTEGER, FIELD_TYPE_TIME)
+                                 FIELD_TYPE_DATETIME, FIELD_TYPE_INTEGER,
+                                 FIELD_TYPE_TIME)
 
 # capsul import
 from capsul.api import get_process_instance
@@ -117,7 +120,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Called before each test
         """
-
         # All the tests are run in regular mode
         config = Config(config_path=self.config_path)
         config.set_user_mode(False)
@@ -132,9 +134,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Called after each test
         """
-
-        self.main_window.project.unsaveModifications()
-        self.main_window.remove_raw_files_useless()
         self.main_window.close()
 
         # Removing the opened projects (in CI, the tests are run twice)
@@ -146,6 +145,9 @@ class TestMIADataBrowser(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """
+        Called once at the beginning of the class
+        """
         cls.config_path = tempfile.mkdtemp(prefix='mia_tests')
         # hack the Config class to get config_path, because some Config
         # instances are created out of our control in the code
@@ -153,11 +155,16 @@ class TestMIADataBrowser(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """
+        Called once at the end of the class
+        """
         if os.path.exists(cls.config_path):
             shutil.rmtree(cls.config_path)
 
     def get_new_test_project(self):
-        # copy the test project in a location we can modify safely
+        """
+        Copy the test project in a location we can modify safely
+        """
         project_path = os.path.join(self.config_path, 'project_8')
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
@@ -172,14 +179,15 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the popup to add a path
         """
-
-        QTest.mouseClick(self.main_window.data_browser.addRowLabel, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.addRowLabel,
+                         Qt.LeftButton)
         add_path = self.main_window.data_browser.table_data.pop_up_add_path
 
         QTest.mouseClick(add_path.ok_button, Qt.LeftButton)
         self.assertEqual(add_path.msg.text(), "Invalid arguments")
 
-        add_path.file_line_edit.setText(os.path.join(".", "test_not_existing.py"))
+        add_path.file_line_edit.setText(os.path.join(".",
+                                                     "test_not_existing.py"))
         add_path.type_line_edit.setText("Python")
         QTest.mouseClick(add_path.ok_button, Qt.LeftButton)
         self.assertEqual(add_path.msg.text(), "Invalid arguments")
@@ -201,7 +209,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the pop up adding a tag
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -244,10 +251,14 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_CURRENT))
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_INITIAL))
+
         for document in self.main_window.project.session.get_documents_names(COLLECTION_CURRENT):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT, document, "Test"), "def_value")
+            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT, document, "Test"),
+                             "def_value")
+
         for document in self.main_window.project.session.get_documents_names(COLLECTION_INITIAL):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_INITIAL, document, "Test"), "def_value")
+            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_INITIAL, document, "Test"),
+                             "def_value")
 
         test_column = self.main_window.data_browser.table_data.get_tag_column("Test")
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
@@ -262,8 +273,10 @@ class TestMIADataBrowser(unittest.TestCase):
         add_tag.text_edit_tag_name.setText("Test_list")
         add_tag.combo_box_type.setCurrentText("Integer List")
         QTest.mouseClick(add_tag.text_edit_default_value, Qt.LeftButton)
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label, Qt.LeftButton)
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label, Qt.LeftButton)
+        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label,
+                         Qt.LeftButton)
+        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label,
+                         Qt.LeftButton)
         table = add_tag.text_edit_default_value.list_creation.table
         item = QTableWidgetItem()
         item.setText(str(1))
@@ -274,7 +287,8 @@ class TestMIADataBrowser(unittest.TestCase):
         item = QTableWidgetItem()
         item.setText(str(3))
         table.setItem(0, 2, item)
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.ok_button, Qt.LeftButton)
+        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.ok_button,
+                         Qt.LeftButton)
         self.assertEqual(add_tag.text_edit_default_value.text(), "[1, 2, 3]")
         QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
 
@@ -289,18 +303,20 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the advanced search widget
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
@@ -338,11 +354,14 @@ class TestMIADataBrowser(unittest.TestCase):
 
         # Testing that only G1 scans are displayed with the filter applied
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 2)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
@@ -350,11 +369,14 @@ class TestMIADataBrowser(unittest.TestCase):
         # Testing that every scan is back when clicking again on advanced search
         QTest.mouseClick(self.main_window.data_browser.advanced_search_button, Qt.LeftButton)
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
@@ -370,7 +392,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the brick history popup
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -403,15 +424,16 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(brick_table.item(0, 5).text(), "0")
         self.assertEqual(brick_table.item(0, 6).text(), "6, 6, 6")
         self.assertEqual(brick_table.item(0, 7).text(), "False")
-        self.assertEqual(brick_table.cellWidget(0, 8).children()[1].text(), "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
+        self.assertEqual(brick_table.cellWidget(0, 8).children()[1].text(),
+                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
         self.assertEqual(brick_table.item(0, 9).text(), "s")
-        self.assertEqual(brick_table.cellWidget(0, 10).children()[1].text(), "data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
+        self.assertEqual(brick_table.cellWidget(0, 10).children()[1].text(),
+                         "data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
 
     def test_clear_cell(self):
         """
         Tests the method clearing cells
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -422,7 +444,10 @@ class TestMIADataBrowser(unittest.TestCase):
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_item.setSelected(True)
         self.assertEqual(int(bw_item.text()), 50000)
-        self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT, "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii", "BandWidth"), 50000)
+        self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                                    "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                    "BandWidth"),
+                         50000)
 
         # Clearing the cell
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
@@ -434,13 +459,14 @@ class TestMIADataBrowser(unittest.TestCase):
         # Checking that it's empty
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         self.assertEqual(bw_item.text(), "*Not Defined*")
-        self.assertIsNone(self.main_window.project.session.get_value(COLLECTION_CURRENT, "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii", "BandWidth"))
+        self.assertIsNone(self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                                     "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                     "BandWidth"))
 
     def test_clone_tag(self):
         """
         Tests the pop up cloning a tag
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -474,8 +500,10 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(clone_tag.push_button_ok, Qt.LeftButton)
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_CURRENT))
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_INITIAL))
-        test_row = self.main_window.project.session.get_field(COLLECTION_CURRENT, "Test")
-        bandwidth_row = self.main_window.project.session.get_field(COLLECTION_CURRENT, "BandWidth")
+        test_row = self.main_window.project.session.get_field(COLLECTION_CURRENT,
+                                                              "Test")
+        bandwidth_row = self.main_window.project.session.get_field(COLLECTION_CURRENT,
+                                                                   "BandWidth")
         self.assertEqual(test_row.description, bandwidth_row.description)
         self.assertEqual(test_row.unit, bandwidth_row.unit)
         self.assertEqual(test_row.default_value, bandwidth_row.default_value)
@@ -492,12 +520,24 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(test_row.visibility, True)
 
         for document in self.main_window.project.session.get_documents_names(COLLECTION_CURRENT):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT, document, "Test"), self.main_window.project.session.get_value(COLLECTION_CURRENT, document, "BandWidth"))
+            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                                        document,
+                                                                        "Test"),
+                             self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                                        document,
+                                                                        "BandWidth"))
+
         for document in self.main_window.project.session.get_documents_names(COLLECTION_INITIAL):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_INITIAL, document, "Test"), self.main_window.project.session.get_value(COLLECTION_INITIAL, document, "BandWidth"))
+            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                        document,
+                                                                        "Test"),
+                             self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                        document,
+                                                                        "BandWidth"))
 
         test_column = self.main_window.data_browser.table_data.get_tag_column("Test")
         bw_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item_bw = self.main_window.data_browser.table_data.item(row, bw_column)
             item_test = self.main_window.data_browser.table_data.item(row, test_column)
@@ -507,7 +547,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the count table popup
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -534,12 +573,14 @@ class TestMIADataBrowser(unittest.TestCase):
 
         QApplication.processEvents()
 
-        self.assertEqual(count_table.table.horizontalHeaderItem(0).text(), "BandWidth")
+        self.assertEqual(count_table.table.horizontalHeaderItem(0).text(),
+                         "BandWidth")
         self.assertEqual(count_table.table.horizontalHeaderItem(1).text(), "75")
         self.assertAlmostEqual(
             float(count_table.table.horizontalHeaderItem(2).text()), 5.8239923)
         self.assertEqual(count_table.table.horizontalHeaderItem(3).text(), "5")
-        self.assertEqual(count_table.table.verticalHeaderItem(3).text(), "Total")
+        self.assertEqual(count_table.table.verticalHeaderItem(3).text(),
+                         "Total")
         self.assertEqual(count_table.table.item(0, 0).text(), "50000")
         self.assertEqual(count_table.table.item(1, 0).text(), "25000")
         self.assertAlmostEqual(float(count_table.table.item(2, 0).text()),
@@ -562,7 +603,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the MIA preferences popup
         """
-
         config = Config(config_path=self.config_path)
         old_auto_save = config.isAutoSave()
         self.assertEqual(old_auto_save, False)
@@ -632,9 +672,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(config.getTextColor(), "")
         self.assertEqual(config.getThumbnailTag(), "SequenceName")
 
-        #self.assertEqual(version.parse(yaml.__version__) > version.parse("5.1"), True)
         self.assertEqual(version.parse(yaml.__version__) > version.parse("9.1"), False)
-        #self.assertEqual(version.parse(yaml.__version__) < version.parse("5.1"), False)
         self.assertEqual(version.parse(yaml.__version__) < version.parse("9.1"), True)
 
         self.assertEqual(config.get_projects_save_path(),
@@ -644,7 +682,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Test the modify table module
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -660,8 +697,9 @@ class TestMIADataBrowser(unittest.TestCase):
             scans_displayed.append(scan_name)
 
         # Test that the value will not change if the tag's type is incorrect
-        old_value = self.main_window.project.session.get_value(
-            COLLECTION_CURRENT, scans_displayed[0], "FOV")
+        old_value = self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                               scans_displayed[0],
+                                                               "FOV")
 
         mod = ModifyTable(self.main_window.project,
                           value,
@@ -669,21 +707,23 @@ class TestMIADataBrowser(unittest.TestCase):
                           scans_displayed,
                           tag_name)
         mod.update_table_values(True)
-        new_value = self.main_window.project.session.get_value(
-            COLLECTION_CURRENT, scans_displayed[0], "FOV")
+        new_value = self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                               scans_displayed[0],
+                                                               "FOV")
         self.assertEqual(old_value, new_value)
 
         # Test that the value will change when all parameters are correct
-        tag_object = self.main_window.project.session.get_field(
-            COLLECTION_CURRENT, "FOV")
+        tag_object = self.main_window.project.session.get_field(COLLECTION_CURRENT,
+                                                                "FOV")
         mod = ModifyTable(self.main_window.project,
                           value,
                           [tag_object.field_type],
                           scans_displayed,
                           tag_name)
         mod.update_table_values(True)
-        new_value = self.main_window.project.session.get_value(
-            COLLECTION_CURRENT, scans_displayed[0], "FOV")
+        new_value = self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                               scans_displayed[0],
+                                                               "FOV")
         self.assertEqual(mod.table.columnCount(), 2)
         self.assertEqual(value, new_value)
 
@@ -691,7 +731,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the multiple sort popup
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -731,15 +770,17 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests project opening
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         self.assertEqual(self.main_window.project.getName(), "project_8")
-        self.assertEqual(self.main_window.windowTitle(), "MIA - Multiparametric Image Analysis - project_8")
+        self.assertEqual(self.main_window.windowTitle(),
+                         "MIA - Multiparametric Image Analysis - project_8")
+        
         documents = self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)
+
         self.assertEqual(len(documents), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in documents)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in documents)
@@ -766,7 +807,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests project filter opening
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -778,22 +818,22 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(open_popup.push_button_ok, Qt.LeftButton)
 
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 2)
-        self.assertTrue(
-            "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
-        self.assertTrue(
-            "data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
 
     def test_project_properties(self):
         """
         Tests saved projects addition and removal
         """
-
         saved_projects = self.main_window.saved_projects
         self.assertEqual(saved_projects.pathsList, [])
 
@@ -827,7 +867,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests that the projects are removed from the list of current projects
         """
-
         config = Config(config_path=self.config_path)
         projects = config.get_opened_projects()
         self.assertEqual(len(projects), 1)
@@ -837,7 +876,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the rapid search bar
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -846,11 +884,14 @@ class TestMIADataBrowser(unittest.TestCase):
         # Checking that the 8 scans are shown in the databrowser
         self.assertEqual(self.main_window.data_browser.table_data.rowCount(), 9)
         scans_displayed = []
+        
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+            
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+                
         self.assertEqual(len(scans_displayed), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
@@ -865,11 +906,14 @@ class TestMIADataBrowser(unittest.TestCase):
         # Testing G1 rapid search
         self.main_window.data_browser.search_bar.setText("G1")
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 2)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
@@ -878,11 +922,14 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(self.main_window.data_browser.button_cross, Qt.LeftButton)
 
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
@@ -898,29 +945,34 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(self.main_window.data_browser.button_cross, Qt.LeftButton)
         self.main_window.data_browser.search_bar.setText("*Not Defined*")
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(scans_displayed, ["data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii"])
 
     def test_remove_scan(self):
         """
         Tests scans removal in the databrowser
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
         scans_displayed = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 scans_displayed.append(scan_name)
+
         self.assertEqual(len(scans_displayed), 9)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
         self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
@@ -956,7 +1008,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the popup removing user tags
         """
-
         # Adding a tag
         self.main_window.data_browser.add_tag_action.trigger()
         add_tag = self.main_window.data_browser.pop_up_add_tag
@@ -990,20 +1041,17 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the method resetting the selected cells
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
-
         bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
-
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(50000))
@@ -1014,11 +1062,11 @@ class TestMIADataBrowser(unittest.TestCase):
         item.setText("25000")
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(25000))
@@ -1031,11 +1079,11 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.table_data.change_cell_color)
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(50000))
@@ -1046,7 +1094,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the method resetting the columns selected
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1055,11 +1102,11 @@ class TestMIADataBrowser(unittest.TestCase):
         bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(50000))
@@ -1068,11 +1115,11 @@ class TestMIADataBrowser(unittest.TestCase):
         item.setSelected(True)
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(1, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(25000))
@@ -1083,11 +1130,11 @@ class TestMIADataBrowser(unittest.TestCase):
         item.setText("70000")
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(70000))
@@ -1095,11 +1142,11 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(value_initial, float(50000))
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(1, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(70000))
@@ -1111,11 +1158,11 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.table_data.itemChanged.connect(self.main_window.data_browser.table_data.change_cell_color)
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(50000))
@@ -1123,11 +1170,11 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(value, value_initial)
 
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(1, bandwidth_column)
         databrowser = float(item.text())
         self.assertEqual(value, float(25000))
@@ -1138,14 +1185,11 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests row reset
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
-
         bw_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
-
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         old_bw = bw_item.text()
         self.assertEqual(int(old_bw), 50000)
@@ -1173,7 +1217,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Test opening & saving of a project
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         something_path = os.path.join(mia_path, 'projects', 'something')
@@ -1226,7 +1269,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the popup sending the documents to the pipeline manager
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1270,7 +1312,8 @@ class TestMIADataBrowser(unittest.TestCase):
         item2.setSelected(True)
 
         # Sending the selection (first 2 scans)
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
+                         Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
         send_popup.ok_clicked()
 
@@ -1285,7 +1328,8 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.search_bar.setText("G3")
 
         # Sending the selection (G3 scans)
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
+                         Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
         send_popup.ok_clicked()
 
@@ -1301,7 +1345,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the popup sending the documents to the pipeline manager
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1311,7 +1354,8 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(self.main_window.pipeline_manager.scan_list, [])
 
         # Sending the selection (all scans), but closing the popup
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
+                         Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
         send_popup.close()
 
@@ -1376,14 +1420,16 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the values modifications
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
-
-        value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT, "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii", "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL, "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii", "BandWidth"))
+        value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
+                                                                 "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                 "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         bandwidth_column  = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         G1_bandwidth_databrowser = float(item.text())
@@ -1393,13 +1439,12 @@ class TestMIADataBrowser(unittest.TestCase):
 
         item.setSelected(True)
         item.setText("25000")
-
         value = float(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                              "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                              "BandWidth"))
-        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
                                                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
                                                                  "BandWidth"))
+        value_initial = float(self.main_window.project.session.get_value(COLLECTION_INITIAL,
+                                                                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
+                                                                         "BandWidth"))
         item = self.main_window.data_browser.table_data.item(0, bandwidth_column)
         G1_bandwidth_databrowser = float(item.text())
         self.assertEqual(value, float(25000))
@@ -1410,7 +1455,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the sorting in the databrowser
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1427,10 +1471,12 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.table_data.horizontalHeader().setSortIndicator(bandwidth_column, 0)
 
         up_bandwidths = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
             item = self.main_window.data_browser.table_data.item(row, bandwidth_column)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 up_bandwidths.append(scan_name)
 
@@ -1440,10 +1486,12 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.table_data.horizontalHeader().setSortIndicator(bandwidth_column, 1)
 
         down_bandwidths = []
+
         for row in range(0, self.main_window.data_browser.table_data.rowCount()):
             bandwidth_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
             item = self.main_window.data_browser.table_data.item(row, bandwidth_column)
             scan_name = item.text()
+
             if not self.main_window.data_browser.table_data.isRowHidden(row):
                 down_bandwidths.append(scan_name)
 
@@ -1451,6 +1499,9 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(sorted(mixed_bandwidths, reverse=True), down_bandwidths)
 
     def test_tab_change(self):
+        """
+        Tests the tab change from data browser to pipeline manager
+        """
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1458,8 +1509,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         self.main_window.tabs.setCurrentIndex(2)
         index = self.main_window.tabs.currentIndex()
-        scans = self.main_window.project.session.get_documents_names(
-            COLLECTION_CURRENT)
+        scans = self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)
         self.assertEqual(scans, self.main_window.pipeline_manager.scan_list)
         self.assertEqual(self.main_window.tabs.tabText(index), "Pipeline "
                                                                "Manager")
@@ -1472,7 +1522,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the databrowser undo/redo
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -1488,7 +1537,12 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertEqual(float(bw_old), 50000)
         bw_item.setSelected(True)
         bw_item.setText("0")
-        self.assertEqual(self.main_window.project.undos, [['modified_values', [['data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii', 'BandWidth', 50000.0, 0.0]]]])
+        self.assertEqual(self.main_window.project.undos, [['modified_values',
+                                                           [['data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
+                                                             'BandWidth',
+                                                             50000.0,
+                                                             0.0]]
+                                                         ]])
         self.assertEqual(self.main_window.project.redos, [])
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_set = bw_item.text()
@@ -1497,14 +1551,20 @@ class TestMIADataBrowser(unittest.TestCase):
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_undo = bw_item.text()
         self.assertEqual(float(bw_undo), 50000)
-        self.assertEqual(self.main_window.project.redos, [['modified_values', [[
-                                                                                   'data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
-                                                                                   'BandWidth', 50000.0, 0.0]]]])
+        self.assertEqual(self.main_window.project.redos, [['modified_values',
+                                                           [['data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
+                                                             'BandWidth',
+                                                             50000.0,
+                                                             0.0]]
+                                                         ]])
         self.assertEqual(self.main_window.project.undos, [])
         self.main_window.action_redo.trigger()
-        self.assertEqual(self.main_window.project.undos, [['modified_values', [[
-                                                                                   'data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
-                                                                                   'BandWidth', 50000.0, 0.0]]]])
+        self.assertEqual(self.main_window.project.undos, [['modified_values',
+                                                           [['data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii',
+                                                             'BandWidth',
+                                                             50000.0,
+                                                             0.0]]
+                                                         ]])
         self.assertEqual(self.main_window.project.redos, [])
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_redo = bw_item.text()
@@ -1556,9 +1616,9 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests unnamed project creation at software opening
         """
-
         self.assertIsInstance(self.project, Project)
-        self.assertEqual(self.main_window.project.getName(), "Unnamed project")
+        self.assertEqual(self.main_window.project.getName(),
+                         "Unnamed project")
         tags = self.main_window.project.session.get_fields_names(COLLECTION_CURRENT)
         self.assertEqual(len(tags), 5)
         self.assertTrue(TAG_CHECKSUM in tags)
@@ -1573,13 +1633,13 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertTrue(COLLECTION_INITIAL in collections)
         self.assertTrue(COLLECTION_CURRENT in collections)
         self.assertTrue(COLLECTION_BRICK in collections)
-        self.assertEqual(self.main_window.windowTitle(), "MIA - Multiparametric Image Analysis - Unnamed project")
+        self.assertEqual(self.main_window.windowTitle(),
+                         "MIA - Multiparametric Image Analysis - Unnamed project")
 
     def test_utils(self):
         """
         Test the utils functions
         """
-
         self.assertEqual(table_to_database(True, FIELD_TYPE_BOOLEAN), True)
         self.assertEqual(table_to_database("False", FIELD_TYPE_BOOLEAN), False)
 
@@ -1607,7 +1667,6 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Tests the popup modifying the visualized tags
         """
-
         # Testing default tags visibility
         visibles = self.main_window.project.session.get_shown_tags()
         self.assertEqual(len(visibles), 4)
@@ -1617,16 +1676,21 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertTrue(TAG_EXP_TYPE in visibles)
 
         # Testing columns displayed in the databrowser
-        self.assertEqual(self.main_window.data_browser.table_data.columnCount(), 4)
+        self.assertEqual(self.main_window.data_browser.table_data.columnCount(),
+                         4)
         columns_displayed = []
+
         for column in range (0, self.main_window.data_browser.table_data.columnCount()):
             tag_displayed = self.main_window.data_browser.table_data.horizontalHeaderItem(column).text()
+
             if not self.main_window.data_browser.table_data.isColumnHidden(column):
                 columns_displayed.append(tag_displayed)
+
         self.assertEqual(sorted(visibles), sorted(columns_displayed))
 
         # Testing that FileName tag is the first column
-        self.assertEqual(self.main_window.data_browser.table_data.horizontalHeaderItem(0).text(), TAG_FILENAME)
+        self.assertEqual(self.main_window.data_browser.table_data.horizontalHeaderItem(0).text(),
+                         TAG_FILENAME)
 
         # Trying to set the visibles tags
         QTest.mouseClick(self.main_window.data_browser.visualized_tags_button, Qt.LeftButton)
@@ -1639,9 +1703,11 @@ class TestMIADataBrowser(unittest.TestCase):
         # Testing that FileName is not displayed in the list of visible tags
         settings.tab_tags.search_bar.setText("")
         visible_tags = []
+
         for row in range (0, settings.tab_tags.list_widget_selected_tags.count()):
             item = settings.tab_tags.list_widget_selected_tags.item(row).text()
             visible_tags.append(item)
+
         self.assertEqual(len(visible_tags), 3)
         self.assertTrue(TAG_BRICKS in visible_tags)
         self.assertTrue(TAG_EXP_TYPE in visible_tags)
@@ -1651,9 +1717,11 @@ class TestMIADataBrowser(unittest.TestCase):
         settings.tab_tags.list_widget_selected_tags.item(2).setSelected(True) # Bricks tag selected
         QTest.mouseClick(settings.tab_tags.push_button_unselect_tag, Qt.LeftButton)
         visible_tags = []
+
         for row in range(0, settings.tab_tags.list_widget_selected_tags.count()):
             item = settings.tab_tags.list_widget_selected_tags.item(row).text()
             visible_tags.append(item)
+
         self.assertEqual(len(visible_tags), 2)
         self.assertTrue(TAG_TYPE in visible_tags)
         self.assertTrue(TAG_EXP_TYPE in visible_tags)
@@ -1666,10 +1734,13 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertTrue(TAG_TYPE in new_visibles)
 
         columns_displayed = []
+
         for column in range(0, self.main_window.data_browser.table_data.columnCount()):
             item = self.main_window.data_browser.table_data.horizontalHeaderItem(column)
+
             if not self.main_window.data_browser.table_data.isColumnHidden(column):
                 columns_displayed.append(item.text())
+
         self.assertEqual(len(columns_displayed), 3)
         self.assertTrue(TAG_FILENAME in columns_displayed)
         self.assertTrue(TAG_EXP_TYPE in columns_displayed)
@@ -1691,10 +1762,13 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertTrue(TAG_BRICKS in new_visibles)
 
         columns_displayed = []
+
         for column in range(0, self.main_window.data_browser.table_data.columnCount()):
             item = self.main_window.data_browser.table_data.horizontalHeaderItem(column)
+
             if not self.main_window.data_browser.table_data.isColumnHidden(column):
                 columns_displayed.append(item.text())
+
         self.assertEqual(len(columns_displayed), 4)
         self.assertTrue(TAG_FILENAME in columns_displayed)
         self.assertTrue(TAG_EXP_TYPE in columns_displayed)
@@ -1709,14 +1783,15 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Called before each test
         """
-
         # All the tests are run in regular mode
         config = Config(config_path=self.config_path)
         config.set_user_mode(False)
 
         self.app = QApplication.instance()
+
         if self.app is None:
             self.app = QApplication(sys.argv)
+
         self.project = Project(None, True)
         self.main_window = MainWindow(self.project, test=True)
 
@@ -1724,9 +1799,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Called after each test
         """
-
-        self.main_window.project.unsaveModifications()
-        self.main_window.remove_raw_files_useless()
         self.main_window.close()
 
         # Removing the opened projects (in CI, the tests are run twice)
@@ -1738,6 +1810,9 @@ class TestMIAPipelineManager(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """
+        Called once at the beginning of the class
+        """
         cls.config_path = tempfile.mkdtemp(prefix='mia_tests')
         # hack the Config class to get config_path, because some Config
         # instances are created out of our control in the code
@@ -1745,14 +1820,21 @@ class TestMIAPipelineManager(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """
+        Called once at the end of the class
+        """
         if os.path.exists(cls.config_path):
             shutil.rmtree(cls.config_path)
 
     def get_new_test_project(self):
-        # copy the test project in a location we can modify safely
+        """
+        Copy the test project in a location we can modify safely
+        """
         project_path = os.path.join(self.config_path, 'project_8')
+
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
+
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = os.path.join(mia_path, 'resources', 'mia',
@@ -1764,7 +1846,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Adds tabs to the PipelineEditorTabs
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
 
         # Adding two new tabs
@@ -1779,7 +1860,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Closes a tab to the PipelineEditorTabs
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
 
         # Adding a new tab and closing the first one
@@ -1824,7 +1904,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Deletes a process and makes the undo/redo action
         """
-
         pipeline_manager = self.main_window.pipeline_manager
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
 
@@ -1833,9 +1912,12 @@ class TestMIAPipelineManager(unittest.TestCase):
         process_class = Smooth
 
         pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_1"
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_2"
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "smooth_3"
+        # Creates a node called "smooth_1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
+        # Creates a node called "smooth_2"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
+        # Creates a node called "smooth_3"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
@@ -1886,7 +1968,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Displays parameters of a node and displays a plug filter
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         node_controller = self.main_window.pipeline_manager.nodeController
 
@@ -1894,7 +1975,8 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Threshold
         process_class = Threshold
         pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)  # Creates a node called "threshold_1"
+        # Creates a node called "threshold_1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
         pipeline = pipeline_editor_tabs.get_current_pipeline()
 
         # Exporting the input plugs and modifying the "synchronize" input plug
@@ -1907,7 +1989,8 @@ class TestMIAPipelineManager(unittest.TestCase):
         if hasattr(node_controller, 'get_index_from_plug_name'):
             index = node_controller.get_index_from_plug_name("synchronize", "in")
             node_controller.line_edit_input[index].setText("2")
-            node_controller.line_edit_input[index].returnPressed.emit()  # This calls "update_plug_value" method
+            # This calls "update_plug_value" method
+            node_controller.line_edit_input[index].returnPressed.emit()
 
             # Calling the display_filter method
             node_controller.display_filter("inputs", "synchronize", (), input_process)
@@ -1921,7 +2004,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Adds a Nipype SPM's Smooth process using the find_process method
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         pipeline_editor_tabs.get_current_editor().drop_process('nipype.interfaces.spm.Smooth')
@@ -2101,7 +2183,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Plays with the iteration table
         """
-
         config = Config(config_path=self.config_path)
         mia_path = config.get_mia_path()
         project_8_path = self.get_new_test_project()
@@ -2121,8 +2202,9 @@ class TestMIAPipelineManager(unittest.TestCase):
         iteration_table.push_buttons[2].setText("AcquisitionTime")
         iteration_table.fill_values(2)
         iteration_table.update_table()
-        self.assertTrue(iteration_table.combo_box.currentText() in [
-         "25000.0", "65789.48", "50000.0"])
+        self.assertTrue(iteration_table.combo_box.currentText() in ["25000.0",
+                                                                    "65789.48",
+                                                                    "50000.0"])
 
 
 
@@ -2164,7 +2246,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Install the brick_test and mia_processes libraries and then remove them
         """
-
         config = Config(config_path=self.config_path)
         QMessageBox.exec = lambda x: True
 
@@ -2180,30 +2261,33 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         with open(os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml'), 'r') as stream:
+
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+
             else:
                 pro_dic = yaml.load(stream)
+
             self.assertIn("mia_processes", pro_dic["Packages"])
             self.assertIn("brick_test", pro_dic["Packages"])
 
         pkg.remove_package("mia_processes")
-
         pkg.remove_package("brick_test")
-
         pkg.save_config()
         process = os.path.join(config.get_mia_path(), 'processes',
                                'brick_test')
-
         shutil.rmtree(process)
 
         with open(os.path.join(config.get_mia_path(),
                                'properties',
                                'process_config.yml'), 'r') as stream:
+
             if verCmp(yaml.__version__, '5.1', 'sup'):
                 pro_dic = yaml.load(stream, Loader=yaml.FullLoader)
+
             else:
                 pro_dic = yaml.load(stream)
+
             self.assertNotIn("mia_processes", pro_dic["Packages"])
             self.assertNotIn("brick_test", pro_dic["Packages"])
 
@@ -2211,7 +2295,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Saves a simple pipeline
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         node_controller = self.main_window.pipeline_manager.nodeController
         config = Config(config_path=self.config_path)
@@ -2220,11 +2303,14 @@ class TestMIAPipelineManager(unittest.TestCase):
         from nipype.interfaces.spm import Smooth
         process_class = Smooth
         pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
-        pipeline_editor_tabs.get_current_editor().add_named_process(process_class) # Creates a node called "smooth_1"
+        # Creates a node called "smooth_1"
+        pipeline_editor_tabs.get_current_editor().add_named_process(process_class)
 
         # Displaying the node parameters
         pipeline = pipeline_editor_tabs.get_current_pipeline()
-        node_controller.display_parameters("smooth_1", get_process_instance(process_class), pipeline)
+        node_controller.display_parameters("smooth_1",
+                                           get_process_instance(process_class),
+                                           pipeline)
 
         # Exporting the input plugs
         pipeline_editor_tabs.get_current_editor().current_node_name = "smooth_1"
@@ -2232,10 +2318,13 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor().export_node_all_unconnected_outputs()
 
         from populse_mia.user_interface.pipeline_manager.pipeline_editor import save_pipeline
-        filename = os.path.join(config.get_mia_path(), 'processes', 'User_processes', 'test_pipeline.py')
+        filename = os.path.join(config.get_mia_path(), 'processes',
+                                'User_processes', 'test_pipeline.py')
         save_pipeline(pipeline, filename)
         self.main_window.pipeline_manager.updateProcessLibrary(filename)
-        self.assertTrue(os.path.isfile(os.path.join(config.get_mia_path(), 'processes', 'User_processes',
+        self.assertTrue(os.path.isfile(os.path.join(config.get_mia_path(),
+                                                    'processes',
+                                                    'User_processes',
                                                     'test_pipeline.py')))
 
     def test_undo_redo(self):
@@ -2336,17 +2425,17 @@ class TestMIAPipelineManager(unittest.TestCase):
         pipeline_editor_tabs.get_current_editor()._del_link(link)
         self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-        
+
         # Undo (add again the link), test if the 2 nodes have the good links
         pipeline_manager.undo()
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-        
+
         # Redo (remove the link), test if the 2 nodes have not the links
         pipeline_manager.redo()
         self.assertEqual(0, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(0, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-        
+
         # Re-adding a link
         pipeline_editor_tabs.get_current_editor().add_link(("smooth_1", "_smoothed_files"),
                                                            ("smooth_2", "in_files"),
@@ -2375,7 +2464,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         self.assertTrue("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
         self.assertEqual(1, len(pipeline.nodes["smooth_1"].plugs["_smoothed_files"].links_to))
-        
+
         # Redo (Updating the node name from smooth_2 to my_smooth), test if it's ok
         pipeline_manager.redo()
         QTest.qWait(1000)
@@ -2402,7 +2491,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Displays parameters of a node and updates its name
         """
-        
         pipeline_manager = self.main_window.pipeline_manager
         pipeline_editor_tabs = pipeline_manager.pipelineEditorTabs
 
@@ -2466,7 +2554,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Displays parameters of a node and updates a plug value
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         node_controller = self.main_window.pipeline_manager.nodeController
 
@@ -2516,7 +2603,6 @@ class TestMIAPipelineManager(unittest.TestCase):
          - PipelineEditorTabs.get_editor_by_tab_name
          - PipelineEditorTabs.get_editor_by_filename
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2545,7 +2631,6 @@ class TestMIAPipelineManager(unittest.TestCase):
          - PipelineEditorTabs.get_filename_by_index
          - PipelineEditorTabs.get_current_filename
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2565,7 +2650,6 @@ class TestMIAPipelineManager(unittest.TestCase):
          - PipelineEditorTabs.get_index_by_filename
          - PipelineEditorTabs.get_index_by_editor
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2595,7 +2679,6 @@ class TestMIAPipelineManager(unittest.TestCase):
          - PipelineEditorTabs.get_tab_name_by_index
          - PipelineEditorTabs.get_current_tab_name
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
 
         self.assertEqual(pipeline_editor_tabs.get_tab_name_by_index(0), "New Pipeline")
@@ -2606,7 +2689,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Initializes the pipeline (z to run at the end)
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2667,7 +2749,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Loads a pipeline (z to run at the end)
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2681,7 +2762,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Opens a sub_pipeline (z to run at the end)
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2717,7 +2797,6 @@ class TestMIAPipelineManager(unittest.TestCase):
          - PipelineEditorTabs.set_current_editor_by_file_name
          - PipelineEditorTabs.set_current_editor_by_editor
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         config = Config(config_path=self.config_path)
 
@@ -2745,7 +2824,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Opens a pipeline, opens it as a process in another tab, modifies it and check the modifications
         """
-
         pipeline_editor_tabs = self.main_window.pipeline_manager.pipelineEditorTabs
         pipeline_editor_tabs.get_current_editor().click_pos = QPoint(450, 500)
         config = Config(config_path=self.config_path)
@@ -2803,7 +2881,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         Is supposed to allow to press the Yes button if a pipeline is 
         overwritten in the test_zz_check_modifications method
         """
-
         w = QApplication.activeWindow()
 
         if isinstance(w, QMessageBox):
@@ -2814,7 +2891,6 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Is supposed to accept (close) a QDialog window
         """
-
         w = QApplication.activeWindow()
 
         if isinstance(w, QDialog):
