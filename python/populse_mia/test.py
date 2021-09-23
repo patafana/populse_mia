@@ -2246,41 +2246,25 @@ class TestMIAPipelineManager(unittest.TestCase):
 
 
     def test_process_library(self):
+#        """
+#        Install the brick_test and mia_processes libraries and then remove them
+#        """
         """
-        Install the brick_test and mia_processes libraries and then remove them
+        Install the brick_test and then remove it
         """
         config = Config(config_path=self.config_path)
         QMessageBox.exec = lambda x: True
 
-
-        #input('1')
-
         pkg = InstallProcesses(self.main_window, folder=False)
-        
-
-        #input('2')
-
-        
         brick = os.path.join(config.get_mia_path(), 'resources',
-                       'mia', 'brick_test.zip')
-
-        #input('3')
-        
+                             'mia', 'brick_test.zip')
         pkg.path_edit.text = lambda: brick
         pkg.install()
 
-
-        #input('4')
-        
         pkg = PackageLibraryDialog(self.main_window)
-        pkg.line_edit.text = lambda: "mia_processes"
-        pkg.add_package_with_text()
-
-        #input('5')
-        
+        #pkg.line_edit.text = lambda: "mia_processes"
+        #pkg.add_package_with_text()
         pkg.save()
-
-        #input('6')
 
         with open(os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml'), 'r') as stream:
@@ -2291,12 +2275,13 @@ class TestMIAPipelineManager(unittest.TestCase):
             else:
                 pro_dic = yaml.load(stream)
 
-            self.assertIn("mia_processes", pro_dic["Packages"])
+            #self.assertIn("mia_processes", pro_dic["Packages"])
             self.assertIn("brick_test", pro_dic["Packages"])
 
-        pkg.remove_package("mia_processes")
+        #pkg.remove_package("mia_processes")
         pkg.remove_package("brick_test")
         pkg.save_config()
+
         process = os.path.join(config.get_mia_path(), 'processes',
                                'brick_test')
         shutil.rmtree(process)
@@ -2311,9 +2296,8 @@ class TestMIAPipelineManager(unittest.TestCase):
             else:
                 pro_dic = yaml.load(stream)
 
-            self.assertNotIn("mia_processes", pro_dic["Packages"])
+            #self.assertNotIn("mia_processes", pro_dic["Packages"])
             self.assertNotIn("brick_test", pro_dic["Packages"])
-
 
     def test_save_pipeline(self):
         """
