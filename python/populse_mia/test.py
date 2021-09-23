@@ -76,7 +76,7 @@ if not os.path.dirname(os.path.dirname(
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QCoreApplication, QEvent, QPoint, QTimer
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLineEdit
+from PyQt5.QtWidgets import QApplication, QDialog, QLineEdit, QMessageBox, QTableWidgetItem
 
 # populse_mia import
 from populse_mia.data_manager.project import (COLLECTION_BRICK,
@@ -89,10 +89,11 @@ from populse_mia.data_manager.project_properties import SavedProjects
 from populse_mia.software_properties import Config, verCmp
 from populse_mia.user_interface.data_browser.modify_table import ModifyTable
 from populse_mia.user_interface.main_window import MainWindow
-from populse_mia.user_interface.pipeline_manager.process_library import *
+from populse_mia.user_interface.pipeline_manager.process_library import (InstallProcesses,
+                                                                         PackageLibraryDialog)
 from populse_mia.user_interface.pop_ups import (PopUpNewProject,
                                                 PopUpOpenProject)
-from populse_mia.utils.utils import *
+from populse_mia.utils.utils import check_value_type, table_to_database
 
 # populse_db import
 from populse_db.database import (FIELD_TYPE_BOOLEAN, FIELD_TYPE_DATE,
@@ -104,6 +105,7 @@ from capsul.api import get_process_instance
 
 # other import
 import shutil, yaml, unittest
+import tempfile
 from datetime import datetime
 from packaging import version
 #import time
@@ -2241,7 +2243,8 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # TODO: open a project and modify the filter pop-up
     '''
-    '''
+
+
     def test_process_library(self):
         """
         Install the brick_test and mia_processes libraries and then remove them
@@ -2249,32 +2252,35 @@ class TestMIAPipelineManager(unittest.TestCase):
         config = Config(config_path=self.config_path)
         QMessageBox.exec = lambda x: True
 
-        input('1')
+
+        #input('1')
 
         pkg = InstallProcesses(self.main_window, folder=False)
+        
 
-        input('2')
+        #input('2')
 
         
         brick = os.path.join(config.get_mia_path(), 'resources',
                        'mia', 'brick_test.zip')
 
-        input('3')
+        #input('3')
         
         pkg.path_edit.text = lambda: brick
         pkg.install()
 
-        input('4')
+
+        #input('4')
         
         pkg = PackageLibraryDialog(self.main_window)
         pkg.line_edit.text = lambda: "mia_processes"
         pkg.add_package_with_text()
 
-        input('5')
+        #input('5')
         
         pkg.save()
 
-        input('6')
+        #input('6')
 
         with open(os.path.join(config.get_mia_path(), 'properties',
                                'process_config.yml'), 'r') as stream:
@@ -2307,7 +2313,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
             self.assertNotIn("mia_processes", pro_dic["Packages"])
             self.assertNotIn("brick_test", pro_dic["Packages"])
-    '''
+
 
     def test_save_pipeline(self):
         """
