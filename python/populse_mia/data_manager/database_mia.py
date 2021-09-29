@@ -18,13 +18,6 @@ populse_db and some of its methods
 # for details.
 ##########################################################################
 
-from sqlalchemy import (
-    create_engine, MetaData, String, Boolean, Integer,
-    Enum, Column, Table)
-from sqlalchemy.exc import ArgumentError
-from sqlalchemy.schema import CreateTable
-from sqlalchemy.orm import mapper
-
 # Populse_db imports
 from populse_db.database import (
     Database, FIELD_TYPE_STRING,

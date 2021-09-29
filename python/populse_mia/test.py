@@ -24,9 +24,16 @@ if not os.path.dirname(os.path.dirname(
                      os.path.dirname(
                        os.path.dirname(
                          os.path.dirname(os.path.realpath(__file__)))))
+    
     # Adding populse_mia
     print('\n- Mia in "developer" mode\n')
-    mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
+    
+    if os.path.isdir(os.path.join(root_dev_dir, 'populse-mia')):
+        mia_dev_dir = os.path.join(root_dev_dir, 'populse-mia', 'python')
+
+    else:
+        mia_dev_dir = os.path.join(root_dev_dir, 'populse_mia', 'python')
+    
     sys.path.insert(0, mia_dev_dir)
     del mia_dev_dir
 

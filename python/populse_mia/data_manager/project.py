@@ -113,7 +113,9 @@ class Project():
 
         if project_root_folder is None:
             self.isTempProject = True
-            self.folder = os.path.relpath(tempfile.mkdtemp())
+            #self.folder = os.path.relpath(tempfile.mkdtemp())
+            self.folder = tempfile.mkdtemp(prefix='temp_mia_project')
+
         else:
             self.isTempProject = False
             self.folder = project_root_folder
@@ -121,9 +123,11 @@ class Project():
         # Checks that the project is not already opened
         config = Config()
         opened_projects = config.get_opened_projects()
+
         if self.folder not in opened_projects:
             opened_projects.append(self.folder)
             config.set_opened_projects(opened_projects)
+
         else:
             raise IOError(
                 "The project at " + str(self.folder) + " is already opened "
@@ -131,8 +135,10 @@ class Project():
                                                        "of the software.")
         
         db_folder = os.path.join(self.folder, 'database')
+        
         if not os.path.exists(db_folder):
             os.makedirs(db_folder)
+
         db = 'sqlite:///' + os.path.join(db_folder, 'mia.db')
         self.database = DatabaseMIA(db)
         self.session = self.database.__enter__()
@@ -152,18 +158,18 @@ class Project():
             if not os.path.exists(os.path.join(self.folder, "data")):
                 os.makedirs(os.path.join(self.folder, "data"))
 
-            if not os.path.exists(os.path.join(self.folder, "data",
-                                               "raw_data")):
+            if not os.path.exists(os.path.join(
+                                              self.folder, "data", "raw_data")):
                 os.makedirs(os.path.join(self.folder, "data", "raw_data"))
 
-            if not os.path.exists(os.path.join(self.folder, "data",
-                                               "derived_data")):
+            if not os.path.exists(os.path.join(
+                                          self.folder, "data", "derived_data")):
                 os.makedirs(os.path.join(self.folder, "data", "derived_data"))
 
-            if not os.path.exists(os.path.join(self.folder, "data",
-                                               "downloaded_data")):
-                os.makedirs(os.path.join(self.folder, "data",
-                                         "downloaded_data"))
+            if not os.path.exists(os.path.join(
+                                       self.folder, "data", "downloaded_data")):
+                os.makedirs(os.path.join(
+                                        self.folder, "data", "downloaded_data"))
 
             # Properties file created
             os.mkdir(os.path.join(self.folder, 'properties'))
