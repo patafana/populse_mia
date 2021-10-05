@@ -1404,6 +1404,11 @@ class TableDataBrowser(QTableWidget):
         self.progress.setAttribute(Qt.WA_DeleteOnClose, True)
         self.progress.show()
 
+        # Quick fix for #168 populse_mia issue
+        if getattr(self.data_browser.main_window, 'test', False):
+            from PyQt5.QtTest import QTest
+            QTest.qWait(100)
+
         idx = 0
         row = 0
 

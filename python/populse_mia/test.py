@@ -257,6 +257,9 @@ class TestMIADataBrowser(unittest.TestCase):
         add_tag = self.main_window.data_browser.pop_up_add_tag
         add_tag.text_edit_tag_name.setText("Test")
         add_tag.text_edit_default_value.setText("def_value")
+
+        QTest.qWait(100)
+        
         QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_CURRENT))
         self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_INITIAL))
@@ -296,6 +299,9 @@ class TestMIADataBrowser(unittest.TestCase):
         item = QTableWidgetItem()
         item.setText(str(3))
         table.setItem(0, 2, item)
+
+        QTest.qWait(100)
+        
         QTest.mouseClick(add_tag.text_edit_default_value.list_creation.ok_button,
                          Qt.LeftButton)
         self.assertEqual(add_tag.text_edit_default_value.text(), "[1, 2, 3]")
@@ -1289,6 +1295,9 @@ class TestMIADataBrowser(unittest.TestCase):
         # Sending the selection (all scans), but closing the popup
         QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
+
+        QTest.qWait(100)
+        
         send_popup.close()
 
         # Checking that the list is stil empty
@@ -1297,6 +1306,9 @@ class TestMIADataBrowser(unittest.TestCase):
         # Sending the selection (all scans)
         QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
+
+        QTest.qWait(100)
+        
         send_popup.ok_clicked()
 
         # Checking that all scans have been sent to the pipeline manager
@@ -1324,6 +1336,9 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
                          Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
+
+        QTest.qWait(100)
+        
         send_popup.ok_clicked()
 
         # Checking that the first 2 scans have been sent to the pipeline manager
@@ -1340,81 +1355,9 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
                          Qt.LeftButton)
         send_popup = self.main_window.data_browser.show_selection
-        send_popup.ok_clicked()
 
-        # Checking that G3 scans have been sent to the pipeline manager
-        scans = self.main_window.pipeline_manager.scan_list
-        self.assertEqual(len(scans), 2)
-        self.assertTrue(
-            "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans)
-        self.assertTrue(
-            "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans)
-
-    def test_send_documents_to_pipeline(self):
-        """
-        Tests the popup sending the documents to the pipeline manager
-        """
-        config = Config(config_path=self.config_path)
-        mia_path = config.get_mia_path()
-        project_8_path = self.get_new_test_project()
-        self.main_window.switch_project(project_8_path, "project_8")
-
-        # Checking that the pipeline manager has an empty list at the beginning
-        self.assertEqual(self.main_window.pipeline_manager.scan_list, [])
-
-        # Sending the selection (all scans), but closing the popup
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button,
-                         Qt.LeftButton)
-        send_popup = self.main_window.data_browser.show_selection
-        send_popup.close()
-
-        # Checking that the list is stil empty
-        self.assertEqual(self.main_window.pipeline_manager.scan_list, [])
-
-        # Sending the selection (all scans)
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
-        send_popup = self.main_window.data_browser.show_selection
-        send_popup.ok_clicked()
-
-        # Checking that all scans have been sent to the pipeline manager
-        scans = self.main_window.pipeline_manager.scan_list
-        self.assertEqual(len(scans), 9)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-05-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-06-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-08-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-09-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans)
-        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans)
-
-        # Selecting the first 2 scans
-        item1 = self.main_window.data_browser.table_data.item(0, 0)
-        item1.setSelected(True)
-        scan1 = item1.text()
-        item2 = self.main_window.data_browser.table_data.item(1, 0)
-        scan2 = item2.text()
-        item2.setSelected(True)
-
-        # Sending the selection (first 2 scans)
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
-        send_popup = self.main_window.data_browser.show_selection
-        send_popup.ok_clicked()
-
-        # Checking that the first 2 scans have been sent to the pipeline manager
-        scans = self.main_window.pipeline_manager.scan_list
-        self.assertEqual(len(scans), 2)
-        self.assertTrue(scan1 in scans)
-        self.assertTrue(scan2 in scans)
-
-        # Testing with the rapid search
-        self.main_window.data_browser.table_data.clearSelection()
-        self.main_window.data_browser.search_bar.setText("G3")
-
-        # Sending the selection (G3 scans)
-        QTest.mouseClick(self.main_window.data_browser.send_documents_to_pipeline_button, Qt.LeftButton)
-        send_popup = self.main_window.data_browser.show_selection
+        QTest.qWait(100)
+        
         send_popup.ok_clicked()
 
         # Checking that G3 scans have been sent to the pipeline manager
@@ -2464,7 +2407,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         node_controller.line_edit_node_name.setText("my_smooth")
         keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
         QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
-        QTest.qWait(1000)
+        QTest.qWait(100)
 
         # test if the smooth_2 node has been replaced by the my_smooth node and test the links
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
@@ -2474,7 +2417,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Undo (Updating the node name from my_smooth to smooth_2), test if it's ok
         pipeline_manager.undo()
-        QTest.qWait(1000)
+        QTest.qWait(100)
         self.assertFalse("my_smooth" in pipeline.nodes.keys())
         self.assertTrue("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["smooth_2"].plugs["in_files"].links_from))
@@ -2482,7 +2425,7 @@ class TestMIAPipelineManager(unittest.TestCase):
 
         # Redo (Updating the node name from smooth_2 to my_smooth), test if it's ok
         pipeline_manager.redo()
-        QTest.qWait(1000)
+        QTest.qWait(100)
         self.assertTrue("my_smooth" in pipeline.nodes.keys())
         self.assertFalse("smooth_2" in pipeline.nodes.keys())
         self.assertEqual(1, len(pipeline.nodes["my_smooth"].plugs["in_files"].links_from))
@@ -2525,7 +2468,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         node_controller.line_edit_node_name.setText("smooth_test")
         keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
         QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
-        QTest.qWait(1000)
+        QTest.qWait(100)
         self.assertTrue("smooth_test" in pipeline.nodes.keys())
 
         # Adding 2 another Smooth process =>  Creates nodes called smooth_1 and smooth_2
@@ -2553,12 +2496,12 @@ class TestMIAPipelineManager(unittest.TestCase):
         node_controller.line_edit_node_name.setText("smooth_test")
         keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
         QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
-        QTest.qWait(1000)
+        QTest.qWait(100)
         self.assertTrue("smooth_1" in pipeline.nodes.keys())
         node_controller.line_edit_node_name.setText("smooth_test_2")
         keyEvent = QtGui.QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier)
         QCoreApplication.postEvent(node_controller.line_edit_node_name, keyEvent)
-        QTest.qWait(1000)
+        QTest.qWait(100)
         self.assertTrue("smooth_test_2" in pipeline.nodes.keys())
 
         # Verifying that the updated node has the same links
