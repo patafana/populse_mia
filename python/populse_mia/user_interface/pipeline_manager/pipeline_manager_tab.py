@@ -1241,14 +1241,6 @@ class PipelineManagerTab(QWidget):
 
         print('- Pipeline initialising ...\n')
         t0 = time.time()
-
-        name = os.path.basename(
-            self.pipelineEditorTabs.get_current_filename())
-        if name == '': name = 'NoName'
-        self.main_window.statusBar().showMessage(
-            'Pipeline "{0}" is getting initialized. '
-            'Please wait.'.format(name))
-
         QApplication.processEvents()
         # If the initialisation is launch for the main pipeline
         if not pipeline:
@@ -1258,6 +1250,13 @@ class PipelineManagerTab(QWidget):
         else:
             main_pipeline = False
 
+        #name = os.path.basename(
+        #    self.pipelineEditorTabs.get_current_filename())
+        name = pipeline.name
+        if name == 'Pipeline': name= "NoName"
+        self.main_window.statusBar().showMessage(
+            'Pipeline "{0}" is getting initialized. '
+            'Please wait.'.format(name))
         init_result = True
 
         # complete config for completion
@@ -1271,11 +1270,17 @@ class PipelineManagerTab(QWidget):
         print('\nCompletion done.\n')
 
         # check missing inputs
+        req_messages = []
         missing_inputs = pipeline.get_missing_mandatory_parameters()
+
         if len(missing_inputs) != 0:
             ptype = 'pipeline'
-            print('In %s %s: missing mandatory parameters: %s'
-                  % (ptype, pipeline.name, ', '.join(missing_inputs)))
+            mssg = ('In {0} {1}, missing mandatory '
+                   'parameters: {2}').format(ptype,
+                                             name,
+                                             ', '.join(missing_inputs))
+            print(mssg)
+            req_messages.append(mssg)
             init_result = False
 
         #missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
@@ -1288,19 +1293,143 @@ class PipelineManagerTab(QWidget):
             #init_result = False
 
         # check requirements
-        req_messages = []
         requirements = pipeline.check_requirements('global',
                                                    message_list=req_messages)
         if requirements is None:
-            print('Pipeline requirements are not met')
+            print('Pipeline requirements are not met.')
             print('\n'.join(req_messages))
             print('current configuration:')
             print(study_config.engine.settings.select_configurations('global'))
             init_result = False
+            req_messages.append('The pipeline requirements are not met. Please '
+                                'see the standard output for more information.')
+
+        else:
+
+            if isinstance(requirements, dict):
+                requirements=[requirements]
+
+            for req in requirements:
+                # QUESTION: Would it be better to write a general method for
+                #           testing all modules (currently each module test is
+                #           hard coded below)?
+                # TODO: Are these tests compatible with remote run?
+
+                # FSL:
+                try:
+                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                        'fsl') is None:
+                        raise KeyError
+
+                except KeyError:
+                    # The process don't need FSL
+                    pass
+
+                else:
+                    if 'capsul.engine.module.fsl' in req:
+
+                        if not req['capsul.engine.module.'
+                                   'fsl'].get('directory',
+                                                 False):
+                            init_result = False
+                            req_messages.append('The pipeline requires FSL '
+                                                'but it seems FSL is not '
+                                                'configured in mia '
+                                                'preferences.')
+
+                    else:
+                        init_result = False
+                        req_messages.append('The pipeline requires FSL but it '
+                                            'seems FSL is not configured in '
+                                            'mia preferences.')
+
+                # Matlab:
+                try:
+                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                        'matlab') is None:
+                        raise KeyError
+
+                except KeyError:
+                    # The process don't need matlab
+                    pass
+
+                else:
+
+                    if 'capsul.engine.module.matlab' in req:
+
+                        if not req['capsul.engine.module.'
+                                   'matlab'].get('executable',
+                                                 False):
+                            init_result = False
+                            req_messages.append('The pipeline requires Matlab '
+                                                'but it seems Matlab is not '
+                                                'configured in mia '
+                                                'preferences.')
+
+                    else:
+                        init_result = False
+                        req_messages.append('The pipeline requires Matlab but it '
+                                            'seems Matlab is not configured in '
+                                            'mia preferences.')
+
+                # SPM
+                try:
+                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                        'spm') is None:
+                        raise KeyError
+
+                except KeyError:
+                    # The process don't need spm
+                    pass
+
+                else:
+
+                    if 'capsul.engine.module.spm' in req:
+
+                        if not req['capsul.engine.module.spm'].get('directory',
+                                                                   False):
+                            init_result = False
+                            req_messages.append('The pipeline requires SPM '
+                                                'but it seems SPM is not '
+                                                'configured in mia '
+                                                'preferences.')
+
+                        elif req['capsul.engine.module.spm']['standalone']:
+                          
+                            if Config().get_matlab_standalone_path() is None:
+                                init_result = False
+                                req_messages.append('The pipeline requires SPM '
+                                                   'but it seems that in mia '
+                                                   'preferences, SPM has been '
+                                                   'configured as standalone '
+                                                   'while matlab Runtime is '
+                                                   'not configured.')
+
+                        else:
+
+                            try:
+                                req['capsul.engine.module.matlab'].get(
+                                                                   'executable')
+
+                            except KeyError:
+                                init_result = False
+                                req_messages.append('The pipeline requires SPM '
+                                                    'but it seems that in mia '
+                                                    'preferences, SPM has been '
+                                                    'configured as '
+                                                    'non-standalone while '
+                                                    'matlab with license is '
+                                                    'not configured.')
+
+                    else:
+                        init_result = False
+                        req_messages.append('The pipeline requires SPM but it '
+                                            'seems SPM is not configured in '
+                                            'mia preferences.')
 
         if init_result:
 
-            # add process characteristics in  the database
+            # add process characteristics in the database
             # if init is otherwise OK
             for node in self.project.process_order:
                 process = node
@@ -1387,21 +1516,24 @@ class PipelineManagerTab(QWidget):
                 self.msg.setIcon(QMessageBox.Critical)
                 self.msg.setWindowTitle("MIA configuration warning!")
                 message = 'The pipeline could not be initialized properly.'
-                self.msg.setText(message)
 
+                if req_messages:
+
+                    for mssg in req_messages:
+                        message = message + '\n- ' + mssg
+                
+                self.msg.setText(message)
                 yes_button = self.msg.addButton("Open MIA preferences",
                                                 QMessageBox.YesRole)
-
                 ok_button = self.msg.addButton(QMessageBox.Ok)
-
                 self.msg.exec()
 
                 if self.msg.clickedButton() == yes_button:
                     self.main_window.software_preferences_pop_up()
-                    self.msg.close()
+                    (self.main_window.pop_up_preferences.
+                                                  tab_widget.setCurrentIndex)(1)
 
-                else:
-                    self.msg.close()
+                self.msg.close()
 
                 self.main_window.statusBar().showMessage(
                 'Pipeline "{0}" was not initialised successfully.'.format(name))
@@ -1409,7 +1541,7 @@ class PipelineManagerTab(QWidget):
             else:
                 for i in range(0, len(self.pipelineEditorTabs)-1):
                     self.pipelineEditorTabs.get_editor_by_index(
-                        i).initialized = False
+                                                          i).initialized = False
                 self.pipelineEditorTabs.get_current_editor().initialized = True
 
                 self.main_window.statusBar().showMessage(

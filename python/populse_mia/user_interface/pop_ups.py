@@ -2709,7 +2709,7 @@ class PopUpPreferences(QDialog):
 
         # Use FSL
         if self.use_fsl_checkbox.isChecked():
-            config.set_use_spm(True)
+            config.set_use_fsl(True)
             
         # Use Matlab or Matlab standalone
         if not self.use_matlab_checkbox.isChecked(
