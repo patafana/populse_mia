@@ -2434,12 +2434,13 @@ class PopUpPreferences(QDialog):
     def edit_config_file(self):
         """Create a window to view, edit the mia configuration file."""
         config = Config()
+
         self.editConf = QDialog()
         self.editConf.setWindowTitle(os.path.join(config.get_config_path(),
                                                   'config.yml'))
         self.editConf.txt = QPlainTextEdit()
         stream = yaml.dump(config.config, default_flow_style=False,
-                      allow_unicode=True)
+                           allow_unicode=True)
         self.editConf.txt.insertPlainText(str(stream))
         textWidth = self.editConf.txt.width() + 100
         textHeight = self.editConf.txt.height() + 200
@@ -2447,10 +2448,14 @@ class PopUpPreferences(QDialog):
         self.editConf.txt.resize(textWidth, textHeight)
 
         buttonBox = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+                            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        buttonBox.button(QDialogButtonBox.Ok).setDefault(False)
+        buttonBox.button(QDialogButtonBox.Cancel).setDefault(False)
 
         self.findChar_line_edit = QLineEdit()
         findChar_button = QPushButton("Find")
+        findChar_button.setDefault(True)
+        
         h_box_find = QtWidgets.QHBoxLayout()
         h_box_find.addWidget(self.findChar_line_edit)
         h_box_find.addWidget(findChar_button)
@@ -2478,7 +2483,7 @@ class PopUpPreferences(QDialog):
                 config.config = yaml.load(stream)
 
             config.saveConfig()
-            self.close()
+            self.editConf.close()
 
     def findChar(self):
         """Highlights characters in red when using the Find button'
