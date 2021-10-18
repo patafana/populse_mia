@@ -310,7 +310,7 @@ subpackages/modules, to construct the mia's pipeline library.
                             continue
                         if hasattr(v, '__module__'):
                             vname = '%s.%s' % (v.__module__, v.__name__)
-                        elif hashattr(v, '__package__'):
+                        elif hasattr(v, '__package__'):
                             vname = '%s.%s' % (v.__package__, v.__name__)
                         else:
                             print('no module nor package for', v)
