@@ -383,7 +383,8 @@ class MainWindow(QMainWindow):
         background_color = self.config.getBackgroundColor()
         text_color = self.config.getTextColor()
 
-        if self.config.dev_mode:
+        #if self.config.dev_mode:
+        if not self.config.get_user_mode():
             self.windowName += " (Admin mode)"
         self.windowName += " - "
 
