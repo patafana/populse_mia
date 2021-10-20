@@ -129,7 +129,7 @@ class TestMIADataBrowser(unittest.TestCase):
         """
         Called before each test
         """
-        # All the tests are run in regular mode
+        # All the tests are run in admin mode
         config = Config(config_path=self.config_path)
         config.set_user_mode(False)
 
@@ -792,7 +792,7 @@ class TestMIADataBrowser(unittest.TestCase):
 
         self.assertEqual(self.main_window.project.getName(), "project_8")
         self.assertEqual(self.main_window.windowTitle(),
-                         "MIA - Multiparametric Image Analysis - project_8")
+                         "MIA - Multiparametric Image Analysis (Admin mode) - project_8")
         
         documents = self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)
 
@@ -1586,7 +1586,7 @@ class TestMIADataBrowser(unittest.TestCase):
         self.assertTrue(COLLECTION_CURRENT in collections)
         self.assertTrue(COLLECTION_BRICK in collections)
         self.assertEqual(self.main_window.windowTitle(),
-                         "MIA - Multiparametric Image Analysis - Unnamed project")
+                         "MIA - Multiparametric Image Analysis (Admin mode) - Unnamed project")
 
     def test_utils(self):
         """
@@ -1735,7 +1735,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         """
         Called before each test
         """
-        # All the tests are run in regular mode
+        # All the tests are run in admin mode
         config = Config(config_path=self.config_path)
         config.set_user_mode(False)
 
