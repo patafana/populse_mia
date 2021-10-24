@@ -353,7 +353,8 @@ subpackages/modules, to construct the mia's pipeline library.
 
                 # check if there are subpackages, in this case explore them
                 path = getattr(pkg, '__path__', None)
-                if path is None and hasattr(pkg, '__file__') and os.path.basename(pkg.__file__).startswith('__init__.'):
+                if (path is None and hasattr(pkg, '__file__') and
+                        os.path.basename(pkg.__file__).startswith('__init__.')):
                     path = [os.path.dirname(pkg.__file__)]
 
 
@@ -791,7 +792,7 @@ def main():
 
 
 def verify_processes():
-    """Install or update to the last version available on the station, of the \
+    """Install or update to the last version available on the station, of the
        nipype and the mia_processes processes libraries.
 
     By default, mia provides two process libraries in the pipeline library
@@ -831,7 +832,7 @@ def verify_processes():
                **param old_dic**: the dic representation of the previous
                  package configuration
 
-               **param new_dic**: the dic representation of the new package \
+               **param new_dic**: the dic representation of the new package
                   configuration
 
                :returns: True if the current level is a pipeline that existed
@@ -1016,7 +1017,7 @@ def verify_processes():
                             config.get_mia_path(), 'processes')))
 
                 # the processes/ directory being already in the sys.path, the
-                # package is certainly not properly installed in the processes/
+                # package is certainly not properly installed in the processes
                 # directory
                 else:
                     print("No module named '{0}'".format(pckg))
@@ -1177,8 +1178,8 @@ def verify_processes():
             final_pckgs["Versions"]["nipype"] = nipypeVer
 
             if old_nipypeVer is None:
-                print('\n\n** Installation in mia of the {0} processes library, '
-                  '{1} version ...'.format(pckg, nipypeVer))
+                print('\n\n** Installation in mia of the {0} processes '
+                      'library, {1} version ...'.format(pckg, nipypeVer))
 
             else:
                 print('\n\n** Upgrading of the {0} processes library, '
@@ -1190,8 +1191,8 @@ def verify_processes():
             final_pckgs["Versions"]["mia_processes"] = miaProcVer
 
             if old_miaProcVer is None:
-                 print('\n\n** Installation in mia of the {0} processes library, '
-                  '{1} version ...'.format(pckg, miaProcVer ))
+                 print('\n\n** Installation in mia of the {0} processes '
+                       'library, {1} version ...'.format(pckg, miaProcVer ))
 
             else:
                 print('\n\n** Upgrading of the {0} processes library, '
@@ -1203,8 +1204,8 @@ def verify_processes():
             final_pckgs["Versions"]["capsul"] = capsulVer
 
             if old_capsulVer is None:
-                 print('\n\n** Installation in mia of the {0} processes library, '
-                  '{1} version ...'.format(pckg, capsulVer ))
+                 print('\n\n** Installation in mia of the {0} processes '
+                       'library, {1} version ...'.format(pckg, capsulVer ))
 
             else:
                 print('\n\n** Upgrading of the {0} processes library, '

@@ -383,7 +383,6 @@ class MainWindow(QMainWindow):
         background_color = self.config.getBackgroundColor()
         text_color = self.config.getTextColor()
 
-        #if self.config.dev_mode:
         if not self.config.get_user_mode():
             self.windowName += " (Admin mode)"
         self.windowName += " - "
@@ -1023,7 +1022,7 @@ class MainWindow(QMainWindow):
             file_path = self.exPopup.relative_path
             if not self.test:
                 self.saved_projects_list = self.saved_projects.addSavedProject(
-                    file_path)
+                                                                      file_path)
             self.update_recent_projects_actions()
 
     def software_preferences_pop_up(self):

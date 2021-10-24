@@ -622,12 +622,18 @@ class PipelineManagerTab(QWidget):
                     all_cvalues = {param: all_cvalues[param]}
                     all_ivalues = {param: all_ivalues[param]}
                 elif not attributes and not already_in_db:
-                    # (if there are attrbutes from completion, use them
+                    # (if there are attributes from completion, use them
                     # without asking)
-                    print('no attributes for:', node_name, plug_name, full_name, p_value)
-                    pop_up = PopUpInheritanceDict(
-                      parent_files, full_name, plug_name,
-                      self.iterationTable.check_box_iterate.isChecked())
+                    print('no attributes for:', node_name,
+                                                plug_name,
+                                                full_name,
+                                                p_value)
+                    pop_up = PopUpInheritanceDict(parent_files,
+                                                  full_name,
+                                                  plug_name,
+                                                  (self.iterationTable.
+                                                              check_box_iterate.
+                                                              isChecked)())
                     pop_up.exec()
                     self.ignore_node = pop_up.everything
                     if pop_up.ignore:
@@ -1271,6 +1277,7 @@ class PipelineManagerTab(QWidget):
 
         # check missing inputs
         req_messages = []
+        init_messages = []
         missing_inputs = pipeline.get_missing_mandatory_parameters()
 
         if len(missing_inputs) != 0:
@@ -1279,8 +1286,7 @@ class PipelineManagerTab(QWidget):
                    'parameters: {2}').format(ptype,
                                              name,
                                              ', '.join(missing_inputs))
-            print(mssg)
-            req_messages.append(mssg)
+            init_messages.append(mssg)
             init_result = False
 
         #missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
@@ -1301,8 +1307,9 @@ class PipelineManagerTab(QWidget):
             print('current configuration:')
             print(study_config.engine.settings.select_configurations('global'))
             init_result = False
-            req_messages.append('The pipeline requirements are not met. Please '
-                                'see the standard output for more information.')
+            init_messages.append('The pipeline requirements are not met. '
+                                 'Please see the standard output for more '
+                                 'information.')
 
         else:
 
@@ -1332,21 +1339,23 @@ class PipelineManagerTab(QWidget):
                                    'fsl'].get('directory',
                                                  False):
                             init_result = False
-                            req_messages.append('The pipeline requires FSL '
-                                                'but it seems FSL is not '
-                                                'configured in mia '
-                                                'preferences.')
+                            init_messages.append('The pipeline requires FSL '
+                                                 'but it seems FSL is not '
+                                                 'configured in mia '
+                                                 'preferences.')
 
                     else:
                         init_result = False
-                        req_messages.append('The pipeline requires FSL but it '
-                                            'seems FSL is not configured in '
-                                            'mia preferences.')
+                        init_messages.append('The pipeline requires FSL but it '
+                                             'seems FSL is not configured in '
+                                             'mia preferences.')
 
                 # Matlab:
                 try:
-                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
-                                                        'matlab') is None:
+
+                    if (req['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                         'matlab') is None or
+                                             Config().get_use_spm_standalone()):
                         raise KeyError
 
                 except KeyError:
@@ -1361,16 +1370,16 @@ class PipelineManagerTab(QWidget):
                                    'matlab'].get('executable',
                                                  False):
                             init_result = False
-                            req_messages.append('The pipeline requires Matlab '
-                                                'but it seems Matlab is not '
-                                                'configured in mia '
-                                                'preferences.')
+                            init_messages.append('The pipeline requires Matlab '
+                                                 'but it seems Matlab is not '
+                                                 'configured in mia '
+                                                 'preferences.')
 
                     else:
                         init_result = False
-                        req_messages.append('The pipeline requires Matlab but it '
-                                            'seems Matlab is not configured in '
-                                            'mia preferences.')
+                        init_messages.append('The pipeline requires Matlab but '
+                                             'it seems Matlab is not '
+                                             'configured in mia preferences.')
 
                 # SPM
                 try:
@@ -1389,21 +1398,22 @@ class PipelineManagerTab(QWidget):
                         if not req['capsul.engine.module.spm'].get('directory',
                                                                    False):
                             init_result = False
-                            req_messages.append('The pipeline requires SPM '
-                                                'but it seems SPM is not '
-                                                'configured in mia '
-                                                'preferences.')
+                            init_messages.append('The pipeline requires SPM '
+                                                 'but it seems SPM is not '
+                                                 'configured in mia '
+                                                 'preferences.')
 
                         elif req['capsul.engine.module.spm']['standalone']:
                           
                             if Config().get_matlab_standalone_path() is None:
                                 init_result = False
-                                req_messages.append('The pipeline requires SPM '
-                                                   'but it seems that in mia '
-                                                   'preferences, SPM has been '
-                                                   'configured as standalone '
-                                                   'while matlab Runtime is '
-                                                   'not configured.')
+                                init_messages.append('The pipeline requires '
+                                                     'SPM but it seems that in '
+                                                     'mia preferences, SPM has '
+                                                     'been configured as '
+                                                     'standalone while matlab '
+                                                     'Runtime is not '
+                                                     'configured.')
 
                         else:
 
@@ -1413,19 +1423,19 @@ class PipelineManagerTab(QWidget):
 
                             except KeyError:
                                 init_result = False
-                                req_messages.append('The pipeline requires SPM '
-                                                    'but it seems that in mia '
-                                                    'preferences, SPM has been '
-                                                    'configured as '
-                                                    'non-standalone while '
-                                                    'matlab with license is '
-                                                    'not configured.')
+                                init_messages.append('The pipeline requires '
+                                                     'SPM but it seems that in '
+                                                     'mia preferences, SPM has '
+                                                     'been configured as '
+                                                     'non-standalone while '
+                                                     'matlab with license is '
+                                                     'not configured.')
 
                     else:
                         init_result = False
-                        req_messages.append('The pipeline requires SPM but it '
-                                            'seems SPM is not configured in '
-                                            'mia preferences.')
+                        init_messages.append('The pipeline requires SPM but it '
+                                             'seems SPM is not configured in '
+                                             'mia preferences.')
 
         if init_result:
 
@@ -1517,9 +1527,9 @@ class PipelineManagerTab(QWidget):
                 self.msg.setWindowTitle("MIA configuration warning!")
                 message = 'The pipeline could not be initialized properly.'
 
-                if req_messages:
+                if init_messages:
 
-                    for mssg in req_messages:
+                    for mssg in init_messages:
                         message = message + '\n- ' + mssg
                 
                 self.msg.setText(message)

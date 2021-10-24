@@ -1883,7 +1883,6 @@ class PopUpPreferences(QDialog):
         h_box_edit_config.addWidget(self.edit_config)
         h_box_edit_config.addStretch(1)
 
-        
         ## Version 1 controller
         self.control_checkbox = QCheckBox('', self)
         self.control_label = QLabel("Version 1 controller")
@@ -1911,7 +1910,8 @@ class PopUpPreferences(QDialog):
 
         ## Radiological vs neurological orientation in miniviewer data browser
         self.radioView_checkbox = QCheckBox('', self)
-        self.radioView_label = QLabel("Radiological orientation in miniviewer (data browser)")
+        self.radioView_label = QLabel("Radiological orientation in "
+                                      "miniviewer (data browser)")
 
         if config.isRadioView() == True:
             self.radioView_checkbox.setChecked(1)
@@ -2077,7 +2077,8 @@ class PopUpPreferences(QDialog):
         v_box_matlab_path.addLayout(h_box_matlab_path)
 
         h_box_use_matlab_standalone = QtWidgets.QHBoxLayout()
-        h_box_use_matlab_standalone.addWidget(self.use_matlab_standalone_checkbox)
+        h_box_use_matlab_standalone.addWidget(
+                                            self.use_matlab_standalone_checkbox)
         h_box_use_matlab_standalone.addWidget(self.use_matlab_standalone_label)
         h_box_use_matlab_standalone.addStretch(1)
 
@@ -2521,14 +2522,15 @@ class PopUpPreferences(QDialog):
         """capsul engine edition"""
         
         from capsul.api import capsul_engine
-        #from soma.qt_gui.controller_widget import ScrollControllerWidget
         from capsul.qt_gui.widgets.settings_editor import SettingsEditor
 
         config = Config()
         capsul_config = config.get_capsul_config()
         modules = capsul_config.get('engine_modules', [])
-        sc_dict = capsul_config.get('study_config', {})
 
+        # TODO1: Currently, this is only done for the global environment:
+        # TODO2: Currently, quick and dirty, only done for FSL. May be necessary
+        #        to do the same for other softs as SPM, MATLAB, etc?:
         if not config.get_use_fsl():
 
             try:
@@ -2544,6 +2546,14 @@ class PopUpPreferences(QDialog):
 
             except KeyError:
                 pass
+
+            try:
+                del capsul_config['study_config']['fsl_config']
+
+            except KeyError:
+                pass
+
+        sc_dict = capsul_config.get('study_config', {})
 
         # build a temporary new engine (because it may not be validated)
         engine = capsul_engine()
@@ -2715,22 +2725,39 @@ class PopUpPreferences(QDialog):
         # Use FSL
         if self.use_fsl_checkbox.isChecked():
             config.set_use_fsl(True)
+
+        else:
+            config.set_use_fsl(False)
             
-        # Use Matlab or Matlab standalone
-        if not self.use_matlab_checkbox.isChecked(
-        ) and not self.use_matlab_standalone_checkbox.isChecked():
+        # Use Matlab
+        if self.use_matlab_checkbox.isChecked():
+            config.set_use_matlab(True)
+
+        else:
             config.set_use_matlab(False)
+
+        # Use Matlab Runtime:
+        if self.use_matlab_standalone_checkbox.isChecked():
+            config.set_use_matlab_standalone(True)
+
+        else:
             config.set_use_matlab_standalone(False)
 
         # Use SPM
-        if not self.use_spm_checkbox.isChecked():
+        if self.use_spm_checkbox.isChecked():
+            config.set_use_spm(True)
+
+        else:
             config.set_use_spm(False)
 
         # Use SPM standalone
-        if not self.use_spm_standalone_checkbox.isChecked():
+        if self.use_spm_standalone_checkbox.isChecked():
+            config.set_use_spm_standalone(True)
+
+        else:
             config.set_use_spm_standalone(False)
 
-        # User mode
+        # User / Admin mode
         main_window.windowName = "MIA - Multiparametric Image Analysis"
         if self.user_mode_checkbox.isChecked():
             config.set_user_mode(False)
@@ -2792,16 +2819,21 @@ class PopUpPreferences(QDialog):
         
         if (matlab_input != "" and
             spm_input != "") or self.use_spm_checkbox.isChecked():
+
             if not os.path.isfile(matlab_input):
                 self.wrong_path(matlab_input, "Matlab")
                 return
-            if matlab_input == config.get_matlab_path() and spm_input == \
-                    config.get_spm_path():
+
+            if (matlab_input == config.get_matlab_path() and
+                                       spm_input == config.get_spm_path()):
+
                 if self.use_spm_checkbox.isChecked():
                     config.set_use_spm(True)
                     config.set_use_matlab(True)
                     config.set_use_matlab_standalone(False)
+
             elif os.path.isdir(spm_input):
+
                 try:
                     matlab_cmd = ("restoredefaultpath; "
                                   "addpath('" + spm_input + "'); "
@@ -2815,22 +2847,29 @@ class PopUpPreferences(QDialog):
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
                     output, err = p.communicate()
+
                     if err == b'':
                         config.set_matlab_path(matlab_input)
+
                         if self.use_spm_checkbox.isChecked():
                             config.set_use_matlab(True)
                             config.set_use_matlab_standalone(False)
                             config.set_use_spm(True)
+
                         config.set_spm_path(spm_input)
+
                     elif "spm" in str(err):
                         self.wrong_path(spm_input, "SPM")
                         return
+
                     else:
                         self.wrong_path(matlab_input, "Matlab")
                         return
+
                 except:
                     self.wrong_path(matlab_input, "Matlab")
                     return
+
             else:
                 self.wrong_path(spm_input, "SPM")
                 return
@@ -2866,7 +2905,7 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(matlab_input, "Matlab")
                 return
             
-        # SPM (standalone) & Matlab (MCR)  config test
+        # SPM (standalone) & Matlab (MCR) config test
         spm_input = self.spm_standalone_choice.text()
         matlab_input = self.matlab_standalone_choice.text()
         archi = platform.architecture()
@@ -2890,7 +2929,6 @@ class PopUpPreferences(QDialog):
                         config.set_use_matlab_standalone(False)
 
                     else:
-                        config.set_use_matlab(True)
                         config.set_use_matlab_standalone(True)
 
             elif os.path.isdir(spm_input):
@@ -2993,8 +3031,9 @@ class PopUpPreferences(QDialog):
                 self.wrong_path(spm_input, "SPM standalone")
                 return
 
-        # Matlab (MCR)  alone config test
-        if matlab_input != "" or self.use_matlab_standalone_checkbox.isChecked():
+        # Matlab (MCR) alone config test
+        if (matlab_input != "" or
+                     self.use_matlab_standalone_checkbox.isChecked()):
 
             if 'Windows' in archi[1]:
                 print('WARNING : Matlab Standalone Path enter, this',
@@ -3004,10 +3043,10 @@ class PopUpPreferences(QDialog):
                 config.set_matlab_standalone_path(matlab_input)
 
             elif os.path.isdir(matlab_input):
+
                 if self.use_matlab_standalone_checkbox.isChecked():
-                    config.set_use_matlab(True)
                     config.set_use_matlab_standalone(True)
-                config.set_matlab_standalone_path(matlab_input)
+                    config.set_matlab_standalone_path(matlab_input)
 
             else:
                 self.wrong_path(matlab_input, "Matlab standalone")
@@ -3028,14 +3067,211 @@ class PopUpPreferences(QDialog):
         w = self.mainwindow_size_x_spinbox.value()
         h = self.mainwindow_size_y_spinbox.value()
         config.set_mainwindow_size([w, h])
+
         if fullscreen:
             main_window.showMaximized()
+
         else:
             main_window.showNormal()
             #main_window.resize(w, h)  # don't apply now
 
         self.signal_preferences_change.emit()
         QApplication.restoreOverrideCursor()
+        c_c = config.config.setdefault('capsul_config', {})
+        c_e = config.get_capsul_engine()
+
+        if c_c and c_e:
+
+            # FSL CapsulConfig
+            if not config.get_use_fsl():
+
+                # TODO: We only deal here with the global environment
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+                    configfsl = settings.config('fsl', 'global')
+
+                    if configfsl:
+                        settings.remove_config('fsl', 'global',
+                                               getattr(configfsl, cif))
+
+                #TODO: We could use a generic method to deal with c_c?
+                try:
+                    del c_c['engine']['global'][
+                                        'capsul.engine.module.fsl']['directory']
+
+                except KeyError:
+                    pass
+
+                try:
+                    del c_c['engine']['global'][
+                                          'capsul.engine.module.fsl']['config']
+
+                except KeyError:
+                    pass
+
+                try:
+                    del c_c['study_config']['fsl_config']
+
+                except KeyError:
+                    pass
+
+            # SPM standalone CapsulConfig
+            if config.get_use_spm_standalone():
+
+                try:
+                    c_c['engine']['global'][
+                        'capsul.engine.module.spm'][
+                            'directory'] = config.get_spm_standalone_path()
+
+                except KeyError:
+                    pass
+
+                try:
+                    c_c['engine']['global'][
+                        'capsul.engine.module.spm'][
+                            'standalone'] = True
+
+                except KeyError:
+                    pass
+
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+
+                    for c in settings.configs('spm', 'global'):
+                        settings.remove_config('spm', 'global',
+                                               getattr(c, cif))
+
+                    settings.new_config('spm', 'global',
+                                {'config_id': 'spm',
+                                 'standalone': True,
+                                 'directory': config.get_spm_standalone_path()})
+
+                    for c in settings.configs('matlab', 'global'):
+                        settings.remove_config('matlab', 'global',
+                                               getattr(c, cif))
+
+                try:
+                    del c_c['engine']['global'][
+                        'capsul.engine.module.matlab'][
+                            'executable']
+
+                except KeyError:
+                    pass
+
+            # SPM
+            elif config.get_use_spm():
+
+                try:
+                    c_c['engine']['global'][
+                        'capsul.engine.module.spm'][
+                            'directory'] = config.get_spm_path()
+
+                except KeyError:
+                    pass
+
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+
+                    for c in settings.configs('spm', 'global'):
+                        settings.remove_config('spm', 'global',
+                                               getattr(c, cif))
+
+                    settings.new_config('spm', 'global',
+                                       {'config_id': 'spm',
+                                        'directory': config.get_spm_path(),
+                                        'standalone': False})
+
+                    for c in settings.configs('matlab', 'global'):
+                        settings.remove_config('matlab', 'global',
+                                               getattr(c, cif))
+
+                    settings.new_config('matlab', 'global',
+                                       {'config_id': 'matlab',
+                                        'executable': config.get_matlab_path()})
+                try:
+                    c_c['engine']['global'][
+                        'capsul.engine.module.matlab'][
+                            'executable'] = config.get_matlab_path()
+
+                except KeyError:
+                    pass
+
+            # no SPM at all
+            else:
+
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+
+                    for c in settings.configs('spm', 'global'):
+                        settings.remove_config('spm', 'global',
+                                               getattr(c, cif))
+
+                try:
+                    del c_c['engine']['global'][
+                        'capsul.engine.module.spm'][
+                            'directory']
+
+                except KeyError:
+                    pass
+
+                try:
+                    del c_c['study_config']['spm_directory']
+
+                except KeyError:
+                    pass
+
+            # no MATLAB at all
+            if (not config.get_use_matlab() and
+                                  not config.get_use_matlab_standalone()):
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+            
+                    for c in settings.configs('matlab', 'global'):
+                        settings.remove_config('matlab', 'global',
+                                               getattr(c, cif))
+
+                try:
+                    del c_c['engine']['global'][
+                        'capsul.engine.module.matlab'][
+                            'executable']
+
+                except KeyError:
+                    pass
+
+            # only MATLAB
+            if config.get_use_matlab() and not config.get_use_spm():
+
+                try:
+                    c_c['engine']['global'][
+                        'capsul.engine.module.matlab'][
+                            'executable'] = config.get_matlab_path()
+
+                except KeyError:
+                    pass
+
+                cif = c_e.settings.config_id_field
+
+                with c_e.settings as settings:
+
+                    for c in settings.configs('matlab', 'global'):
+                        settings.remove_config('matlab', 'global',
+                                               getattr(c, cif))
+
+                    settings.new_config('matlab', 'global',
+                                       {'config_id': 'matlab',
+                                        'executable': config.get_matlab_path()})
+
+                    for c in settings.configs('spm', 'global'):
+                        settings.remove_config('spm', 'global',
+                                               getattr(c, cif))
+
+        config.get_capsul_config()
+        config.saveConfig()
         self.accept()
         self.close()
 
@@ -3090,7 +3326,6 @@ class PopUpPreferences(QDialog):
         """Called when the use_spm checkbox is changed."""
 
         if not self.use_spm_checkbox.isChecked():
-            # self.use_matlab_checkbox.setChecked(False)
             self.spm_choice.setDisabled(True)
             self.spm_label.setDisabled(True)
             self.spm_browse.setDisabled(True)

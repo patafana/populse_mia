@@ -133,8 +133,10 @@ class Config:
           version)
         - getTextColor: return the text color
         - getThumbnailTag: returns the tag that is displayed in the mini viewer
-        - getViewerConfig: returns the DataViewer configuration (neuro or radio), by default neuro
-        - getViewerFramerate: returns the DataViewer framerate for automatic time running images
+        - getViewerConfig: returns the DataViewer configuration (neuro or
+                           radio), by default neuro
+        - getViewerFramerate: returns the DataViewer framerate for automatic
+                              time running images
         - get_use_fsl: returns the value of "use fsl" checkbox in the
           preferences
         - get_use_matlab: returns the value of "use matlab" checkbox in the
@@ -189,7 +191,8 @@ class Config:
         - setTextColor: set the text color
         - setThumbnailTag: set the tag that is displayed in the mini viewer
         - setViewerConfig: set the Viewer configuration neuro or radio
-        - setViewerFramerate: set the Viewer frame rate for automatic running time images
+        - setViewerFramerate: set the Viewer frame rate for automatic running
+                              time images
         - set_use_fsl: set the value of "use fsl" checkbox in the preferences
         - set_use_matlab: set the value of "use matlab" checkbox in the
           preferences
@@ -253,55 +256,74 @@ class Config:
             'process_completion': 'mia_completion'})
 
         # update study config from mia config values
-        spm_standalone_path = self.get_spm_standalone_path()
-        spm_path = self.get_spm_path()
-        matlab_path = self.get_matlab_path()
-        matlab_standalone_path = self.get_matlab_standalone_path()
         use_spm = self.get_use_spm()
+        spm_path = self.get_spm_path()
+
         use_spm_standalone = self.get_use_spm_standalone()
+        spm_standalone_path = self.get_spm_standalone_path()
+
         use_matlab = self.get_use_matlab()
+        matlab_path = self.get_matlab_path()
+
+        use_matlab_standalone = self.get_use_matlab_standalone()
+        matlab_standalone_path = self.get_matlab_standalone_path()
+
         use_fsl = self.get_use_fsl()
         fsl_config = self.get_fsl_config()
 
+        # FSL
         if use_fsl and os.path.exists(fsl_config):
             sconf.update(dict(use_fsl=True,
                               fsl_config=fsl_config))
 
         else:
             sconf.update(dict(use_fsl=False))
+            sconf.pop('fsl_config', None)
 
+        # SPM standalone / MATLAB Runtime
         if (use_spm_standalone and
                 spm_standalone_path and
+                use_matlab_standalone and
                 matlab_standalone_path and
                 os.path.exists(spm_standalone_path) and
                 os.path.exists(matlab_standalone_path)):
-
+            # TODO: This is only true for linux
             spm_exec = glob.glob(os.path.join(spm_standalone_path,
                                               'run_spm*.sh'))
+
             if spm_exec:
                 spm_exec = spm_exec[0]
-                sconf['spm_exec'] = spm_exec
 
-            if use_matlab and matlab_path and os.path.exists(matlab_path):
-
-                sconf.update(dict(
-                    use_spm=True,
-                    spm_directory=spm_standalone_path,
-                    matlab_exec=matlab_path,
-                    spm_standalone=True))
             else:
-                sconf.update(dict(
-                    use_spm=True, spm_directory=spm_standalone_path,
-                    spm_standalone=True))
+               spm_exec = None
 
-        # Using without SPM standalone
-        elif use_spm and use_matlab:
-            sconf.update(dict(
-                use_spm=True, matlab_exec=matlab_path,
-                spm_directory=spm_path, spm_standalone=False,
-                use_matlab=True))
+            sconf.update(dict(use_spm=True, spm_directory=spm_standalone_path,
+                              spm_standalone=True, spm_exec=spm_exec,
+                              use_matlab=False))
+            sconf.pop('matlab_exec', None)
+
+        # SPM / MATLAB
+        elif (use_spm and spm_path and
+                use_matlab and matlab_path and
+                os.path.exists(spm_path) and os.path.exists(matlab_path)):
+            sconf.update(dict(use_spm=True, spm_standalone=False,
+                              spm_directory=spm_path, use_matlab=True,
+                              matlab_exec=matlab_path))
+            sconf.pop('spm_exec', None)
+
+        # MATLAB alone
+        elif use_matlab and matlab_path and os.path.exists(matlab_path):
+            sconf.update(dict(use_spm=False, spm_standalone=False,
+                              use_matlab=True, matlab_exec=matlab_path))
+            sconf.pop('spm_exec', None)
+            sconf.pop('spm_directory', None)
+
         else:
-            sconf.update(dict(use_spm=False))
+            sconf.update(dict(use_spm=False, spm_standalone=False,
+                             use_matlab=False))
+            sconf.pop('spm_exec', None)
+            sconf.pop('spm_directory', None)
+            sconf.pop('matlab_exec', None)
 
         if sync_from_engine and self.capsul_engine:
             econf = capsul_config.setdefault('engine', {})
@@ -434,11 +456,13 @@ class Config:
         if self.config.get("use_spm_standalone"):
             archi = platform.architecture()
             if 'Windows' in archi[1]:
-                spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
-                                                    'spm*_win' + archi[0][:2] + '.exe'))
+                spm_script = glob.glob(
+                               os.path.join(self.config["spm_standalone"],
+                                            'spm*_win' + archi[0][:2] + '.exe'))
             else:
-                spm_script = glob.glob(os.path.join(self.config["spm_standalone"],
-                                                    'run_spm*.sh'))
+                spm_script = glob.glob(
+                               os.path.join(self.config["spm_standalone"],
+                                            'run_spm*.sh'))
             if spm_script:
                 spm_script = spm_script[0]
                 return '{0} {1} script'.format(
@@ -538,8 +562,8 @@ class Config:
 
                     # mia_path is obsolete. Use mia_user_path instead
                     if "mia_path" in mia_home_config:
-                        mia_home_config["mia_user_path"] = \
-                                                     mia_home_config["mia_path"]
+                        mia_home_config["mia_user_path"] = mia_home_config[
+                                                                     "mia_path"]
                         del mia_home_config["mia_path"]
 
                         with open(dot_mia_config,
@@ -1035,7 +1059,7 @@ class Config:
         self.saveConfig()
 
     def set_use_fsl(self, use_fsl):
-        """Set the value of "use fsl" checkbox in the preferences.
+        """Set the value of "use_fsl" checkbox in the preferences.
 
         :param: use_fsl: boolean
 
