@@ -363,9 +363,13 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             initResult_dict = {}
 
         if not initResult_dict:
-            return  # the process is not really configured
+            return # the process is not really configured
 
         outputs = initResult_dict.get('outputs', {})
+
+        if not outputs:
+            return # the process is not really configured
+
         for parameter, value in outputs.items():
             if parameter == 'notInDb' \
                     or process.is_parameter_protected(parameter):

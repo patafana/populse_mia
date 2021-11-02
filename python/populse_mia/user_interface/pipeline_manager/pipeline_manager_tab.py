@@ -1437,6 +1437,22 @@ class PipelineManagerTab(QWidget):
                                              'seems SPM is not configured in '
                                              'mia preferences.')
 
+        # Check that completion for output parameters is fine
+        for node in self.project.process_order:
+
+            if hasattr(node, 'outputs') and not node.outputs:
+                    init_result = False
+                    
+                    if node.context_name.split('.')[0] == 'Pipeline':
+                        node_name = '.'.join(node.context_name.split('.')[1:])
+
+                    else:
+                        node_name = node.context_name
+
+                    init_messages.append('It seems that no output parameter '
+                                         ' has been automatically set for the '
+                                         '"{0}" brick.'.format(node_name))
+
         if init_result:
 
             # add process characteristics in the database
@@ -1525,7 +1541,7 @@ class PipelineManagerTab(QWidget):
                 self.msg = QMessageBox()
                 self.msg.setIcon(QMessageBox.Critical)
                 self.msg.setWindowTitle("MIA configuration warning!")
-                message = 'The pipeline could not be initialized properly.'
+                message = 'The pipeline could not be initialised properly.'
 
                 if init_messages:
 
