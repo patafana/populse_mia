@@ -83,7 +83,8 @@ if not os.path.dirname(os.path.dirname(
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QCoreApplication, QEvent, QPoint, QTimer
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QDialog, QLineEdit, QMessageBox, QTableWidgetItem
+from PyQt5.QtWidgets import (QApplication, QDialog, QLineEdit,
+                             QMessageBox, QTableWidgetItem)
 
 # populse_mia import
 from populse_mia.data_manager.project import (COLLECTION_BRICK,
@@ -96,8 +97,9 @@ from populse_mia.data_manager.project_properties import SavedProjects
 from populse_mia.software_properties import Config, verCmp
 from populse_mia.user_interface.data_browser.modify_table import ModifyTable
 from populse_mia.user_interface.main_window import MainWindow
-from populse_mia.user_interface.pipeline_manager.process_library import (InstallProcesses,
-                                                                         PackageLibraryDialog)
+from populse_mia.user_interface.pipeline_manager.process_library import (
+                                                           InstallProcesses,
+                                                           PackageLibraryDialog)
 from populse_mia.user_interface.pop_ups import (PopUpNewProject,
                                                 PopUpOpenProject)
 from populse_mia.utils.utils import check_value_type, table_to_database
@@ -205,14 +207,16 @@ class TestMIADataBrowser(unittest.TestCase):
         add_path.type_line_edit.setText("Python")
         QTest.mouseClick(add_path.ok_button, Qt.LeftButton)
 
-        self.assertEqual(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT),
-                         [os.path.join('data', 'downloaded_data', 'test.py')])
-        self.assertEqual(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL),
-                         [os.path.join('data', 'downloaded_data', 'test.py')])
+        self.assertEqual(self.main_window.project.session.get_documents_names(
+                           COLLECTION_CURRENT),
+                           [os.path.join('data', 'downloaded_data', 'test.py')])
+        self.assertEqual(self.main_window.project.session.get_documents_names(
+                           COLLECTION_INITIAL),
+                           [os.path.join('data', 'downloaded_data', 'test.py')])
         self.assertEqual(self.main_window.data_browser.table_data.rowCount(), 1)
-        self.assertEqual(self.main_window.data_browser.table_data.item(0, 0).text(), os.path.join('data',
-                                                                                                  'downloaded_data',
-                                                                                                  'test.py'))
+        self.assertEqual(self.main_window.data_browser.table_data.item(
+                             0, 0).text(),
+                             os.path.join('data', 'downloaded_data', 'test.py'))
 
     def test_add_tag(self):
         """
@@ -261,20 +265,32 @@ class TestMIADataBrowser(unittest.TestCase):
         QTest.qWait(100)
         
         QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
-        self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_CURRENT))
-        self.assertTrue("Test" in self.main_window.project.session.get_fields_names(COLLECTION_INITIAL))
+        self.assertTrue("Test" in
+                        self.main_window.project.session.get_fields_names(
+                                                            COLLECTION_CURRENT))
+        self.assertTrue("Test" in
+                        self.main_window.project.session.get_fields_names(
+                                                            COLLECTION_INITIAL))
 
-        for document in self.main_window.project.session.get_documents_names(COLLECTION_CURRENT):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT, document, "Test"),
-                             "def_value")
+        for document in self.main_window.project.session.get_documents_names(
+                                                            COLLECTION_CURRENT):
+            self.assertEqual(self.main_window.project.session.get_value(
+                                          COLLECTION_CURRENT, document, "Test"),
+                                          "def_value")
 
-        for document in self.main_window.project.session.get_documents_names(COLLECTION_INITIAL):
-            self.assertEqual(self.main_window.project.session.get_value(COLLECTION_INITIAL, document, "Test"),
-                             "def_value")
+        for document in self.main_window.project.session.get_documents_names(
+                                                            COLLECTION_INITIAL):
+            self.assertEqual(self.main_window.project.session.get_value(
+                                          COLLECTION_INITIAL, document, "Test"),
+                                          "def_value")
 
-        test_column = self.main_window.data_browser.table_data.get_tag_column("Test")
-        for row in range(0, self.main_window.data_browser.table_data.rowCount()):
-            item = self.main_window.data_browser.table_data.item(row, test_column)
+        test_column = self.main_window.data_browser.table_data.get_tag_column(
+                                                                         "Test")
+
+        for row in range(0,
+                         self.main_window.data_browser.table_data.rowCount()):
+            item = self.main_window.data_browser.table_data.item(row,
+                                                                 test_column)
             self.assertEqual(item.text(), "def_value")
 
         QApplication.processEvents()
@@ -285,10 +301,12 @@ class TestMIADataBrowser(unittest.TestCase):
         add_tag.text_edit_tag_name.setText("Test_list")
         add_tag.combo_box_type.setCurrentText("Integer List")
         QTest.mouseClick(add_tag.text_edit_default_value, Qt.LeftButton)
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label,
-                         Qt.LeftButton)
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.add_element_label,
-                         Qt.LeftButton)
+        QTest.mouseClick(
+            add_tag.text_edit_default_value.list_creation.add_element_label,
+            Qt.LeftButton)
+        QTest.mouseClick(
+            add_tag.text_edit_default_value.list_creation.add_element_label,
+            Qt.LeftButton)
         table = add_tag.text_edit_default_value.list_creation.table
         item = QTableWidgetItem()
         item.setText(str(1))
@@ -302,14 +320,21 @@ class TestMIADataBrowser(unittest.TestCase):
 
         QTest.qWait(100)
         
-        QTest.mouseClick(add_tag.text_edit_default_value.list_creation.ok_button,
-                         Qt.LeftButton)
-        self.assertEqual(add_tag.text_edit_default_value.text(), "[1, 2, 3]")
+        QTest.mouseClick(
+            add_tag.text_edit_default_value.list_creation.ok_button,
+            Qt.LeftButton)
+        self.assertEqual(add_tag.text_edit_default_value.text(),
+                         "[1, 2, 3]")
         QTest.mouseClick(add_tag.push_button_ok, Qt.LeftButton)
 
-        test_list_column = self.main_window.data_browser.table_data.get_tag_column("Test_list")
-        for row in range(0, self.main_window.data_browser.table_data.rowCount()):
-            item = self.main_window.data_browser.table_data.item(row, test_list_column)
+        test_list_column = (self.main_window.data_browser.table_data.
+                                                    get_tag_column("Test_list"))
+
+        for row in range(0,
+                         self.main_window.data_browser.table_data.rowCount()):
+            item = self.main_window.data_browser.table_data.item(
+                                                               row,
+                                                               test_list_column)
             self.assertEqual(item.text(), "[1, 2, 3]")
 
         QApplication.processEvents()
@@ -333,29 +358,56 @@ class TestMIADataBrowser(unittest.TestCase):
                 scans_displayed.append(scan_name)
 
         self.assertEqual(len(scans_displayed), 9)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-05-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-06-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-08-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-09-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT"
+                        "__pvm_-00-09-40.800.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-05-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-06-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-08-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-09-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT"
+                        "__pvm_-00-09-40.800.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
 
-        QTest.mouseClick(self.main_window.data_browser.advanced_search_button, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.advanced_search_button,
+                         Qt.LeftButton)
 
         # Testing - and + buttons
-        self.assertEqual(len(self.main_window.data_browser.advanced_search.rows), 1)
+        self.assertEqual(len(
+            self.main_window.data_browser.advanced_search.rows),
+                         1)
         first_row = self.main_window.data_browser.advanced_search.rows[0]
         QTest.mouseClick(first_row[6], Qt.LeftButton)
-        self.assertEqual(len(self.main_window.data_browser.advanced_search.rows), 2)
+        self.assertEqual(len(
+            self.main_window.data_browser.advanced_search.rows),
+                         2)
         second_row = self.main_window.data_browser.advanced_search.rows[1]
         QTest.mouseClick(second_row[5], Qt.LeftButton)
-        self.assertEqual(len(self.main_window.data_browser.advanced_search.rows), 1)
+        self.assertEqual(len(
+            self.main_window.data_browser.advanced_search.rows),
+                         1)
         first_row = self.main_window.data_browser.advanced_search.rows[0]
         QTest.mouseClick(first_row[5], Qt.LeftButton)
-        self.assertEqual(len(self.main_window.data_browser.advanced_search.rows), 1)
+        self.assertEqual(len(
+            self.main_window.data_browser.advanced_search.rows),
+                         1)
 
         field = self.main_window.data_browser.advanced_search.rows[0][2]
         condition = self.main_window.data_browser.advanced_search.rows[0][3]
@@ -365,12 +417,14 @@ class TestMIADataBrowser(unittest.TestCase):
         condition_contains_index = condition.findText("CONTAINS")
         condition.setCurrentIndex(condition_contains_index)
         value.setText("G1")
-        QTest.mouseClick(self.main_window.data_browser.advanced_search.search, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.advanced_search.search,
+                         Qt.LeftButton)
 
         # Testing that only G1 scans are displayed with the filter applied
         scans_displayed = []
 
-        for row in range(0, self.main_window.data_browser.table_data.rowCount()):
+        for row in range(0,
+                         self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
 
@@ -378,14 +432,20 @@ class TestMIADataBrowser(unittest.TestCase):
                 scans_displayed.append(scan_name)
 
         self.assertEqual(len(scans_displayed), 2)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
 
         # Testing that every scan is back when clicking again on advanced search
-        QTest.mouseClick(self.main_window.data_browser.advanced_search_button, Qt.LeftButton)
+        QTest.mouseClick(self.main_window.data_browser.advanced_search_button,
+                         Qt.LeftButton)
         scans_displayed = []
 
-        for row in range(0, self.main_window.data_browser.table_data.rowCount()):
+        for row in range(0,
+                         self.main_window.data_browser.table_data.rowCount()):
             item = self.main_window.data_browser.table_data.item(row, 0)
             scan_name = item.text()
 
@@ -393,15 +453,33 @@ class TestMIADataBrowser(unittest.TestCase):
                 scans_displayed.append(scan_name)
 
         self.assertEqual(len(scans_displayed), 9)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-05-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-06-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-08-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-09-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT__pvm_-00-09-40.800.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE__pvm_-00-01-42.400.nii" in scans_displayed)
-        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-04-G3_Guerbet_MDEFT-MDEFT"
+                        "__pvm_-00-09-40.800.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-05-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-06-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-08-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-09-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-10-G3_Guerbet_MDEFT-MDEFT"
+                        "__pvm_-00-09-40.800.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-11-G4_Guerbet_T1SE_800-RARE"
+                        "__pvm_-00-01-42.400.nii" in scans_displayed)
+        self.assertTrue("data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27"
+                        "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                        "__pvm_-00-02-20.000.nii" in scans_displayed)
 
     def test_brick_history(self):
         """
@@ -412,38 +490,54 @@ class TestMIADataBrowser(unittest.TestCase):
         project_8_path = self.get_new_test_project()
         self.main_window.switch_project(project_8_path, "project_8")
 
-        bricks_column = self.main_window.data_browser.table_data.get_tag_column("Bricks")
+        bricks_column = (self.main_window.data_browser.table_data.
+                                                       get_tag_column("Bricks"))
 
-        bricks_widget = self.main_window.data_browser.table_data.cellWidget(8, bricks_column)
+        bricks_widget = self.main_window.data_browser.table_data.cellWidget(
+                                                                  8,
+                                                                  bricks_column)
         smooth_button = bricks_widget.layout().itemAt(0).widget()
         self.assertEqual(smooth_button.text(), "smooth1")
         QTest.mouseClick(smooth_button, Qt.LeftButton)
-        brick_history = self.main_window.data_browser.table_data.show_brick_popup
+        brick_history = (self.main_window.data_browser.table_data.
+                                                               show_brick_popup)
         brick_table = brick_history.table
         self.assertEqual(brick_table.horizontalHeaderItem(0).text(), "Name")
         self.assertEqual(brick_table.horizontalHeaderItem(1).text(), "Init")
-        self.assertEqual(brick_table.horizontalHeaderItem(2).text(), "Init Time")
+        self.assertEqual(brick_table.horizontalHeaderItem(2).text(),
+                         "Init Time")
         self.assertEqual(brick_table.horizontalHeaderItem(3).text(), "Exec")
-        self.assertEqual(brick_table.horizontalHeaderItem(4).text(), "Exec Time")
-        self.assertEqual(brick_table.horizontalHeaderItem(5).text(), "data_type")
+        self.assertEqual(brick_table.horizontalHeaderItem(4).text(),
+                         "Exec Time")
+        self.assertEqual(brick_table.horizontalHeaderItem(5).text(),
+                         "data_type")
         self.assertEqual(brick_table.horizontalHeaderItem(6).text(), "fwhm")
-        self.assertEqual(brick_table.horizontalHeaderItem(7).text(), "implicit_masking")
+        self.assertEqual(brick_table.horizontalHeaderItem(7).text(),
+                         "implicit_masking")
         self.assertEqual(brick_table.horizontalHeaderItem(8).text(), "in_files")
-        self.assertEqual(brick_table.horizontalHeaderItem(9).text(), "out_prefix")
-        self.assertEqual(brick_table.horizontalHeaderItem(10).text(), "smoothed_files")
+        self.assertEqual(brick_table.horizontalHeaderItem(9).text(),
+                         "out_prefix")
+        self.assertEqual(brick_table.horizontalHeaderItem(10).text(),
+                         "smoothed_files")
         self.assertEqual(brick_table.item(0, 0).text(), "smooth1")
         self.assertEqual(brick_table.item(0, 1).text(), "Done")
-        self.assertEqual(brick_table.item(0, 2).text(), "2018-08-08 18:22:25.554610")
+        self.assertEqual(brick_table.item(0, 2).text(),
+                         "2018-08-08 18:22:25.554610")
         self.assertEqual(brick_table.item(0, 3).text(), "Done")
-        self.assertEqual(brick_table.item(0, 4).text(), "2018-08-08 18:22:32.371745")
+        self.assertEqual(brick_table.item(0, 4).text(),
+                         "2018-08-08 18:22:32.371745")
         self.assertEqual(brick_table.item(0, 5).text(), "0")
         self.assertEqual(brick_table.item(0, 6).text(), "6, 6, 6")
         self.assertEqual(brick_table.item(0, 7).text(), "False")
         self.assertEqual(brick_table.cellWidget(0, 8).children()[1].text(),
-                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
+                         "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                         "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                         "__pvm_-00-02-20.000.nii")
         self.assertEqual(brick_table.item(0, 9).text(), "s")
         self.assertEqual(brick_table.cellWidget(0, 10).children()[1].text(),
-                         "data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii")
+                         "data/raw_data/sGuerbet-C6-2014-Rat-K52-Tube27"
+                         "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                         "__pvm_-00-02-20.000.nii")
 
     def test_clear_cell(self):
         """
@@ -455,13 +549,17 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.switch_project(project_8_path, "project_8")
 
         # Selecting a cell
-        bw_column = self.main_window.data_browser.table_data.get_tag_column("BandWidth")
+        bw_column = self.main_window.data_browser.table_data.get_tag_column(
+                                                                    "BandWidth")
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         bw_item.setSelected(True)
         self.assertEqual(int(bw_item.text()), 50000)
-        self.assertEqual(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                    "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                    "BandWidth"),
+        self.assertEqual(self.main_window.project.session.get_value(
+                                  COLLECTION_CURRENT,
+                                  "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                                  "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                                  "__pvm_-00-02-20.000.nii",
+                                  "BandWidth"),
                          50000)
 
         # Clearing the cell
@@ -469,14 +567,18 @@ class TestMIADataBrowser(unittest.TestCase):
         bw_item.setSelected(True)
         self.main_window.data_browser.table_data.itemChanged.disconnect()
         self.main_window.data_browser.table_data.clear_cell()
-        self.main_window.data_browser.table_data.itemChanged.connect(self.main_window.data_browser.table_data.change_cell_color)
+        self.main_window.data_browser.table_data.itemChanged.connect(
+                     self.main_window.data_browser.table_data.change_cell_color)
 
         # Checking that it's empty
         bw_item = self.main_window.data_browser.table_data.item(0, bw_column)
         self.assertEqual(bw_item.text(), "*Not Defined*")
-        self.assertIsNone(self.main_window.project.session.get_value(COLLECTION_CURRENT,
-                                                                     "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE__pvm_-00-02-20.000.nii",
-                                                                     "BandWidth"))
+        self.assertIsNone(self.main_window.project.session.get_value(
+                                   COLLECTION_CURRENT,
+                                   "data/raw_data/Guerbet-C6-2014-Rat-K52-Tube27"
+                                   "-2014-02-14_10-23-17-02-G1_Guerbet_Anat-RARE"
+                                   "__pvm_-00-02-20.000.nii",
+                                   "BandWidth"))
 
     def test_clone_tag(self):
         """

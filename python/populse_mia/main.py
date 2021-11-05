@@ -271,7 +271,7 @@ in a recursive way.
 
     def add_package(self, module_name, class_name=None):
         """Provide recursive representation of a package and its
-subpackages/modules, to construct the mia's pipeline library.
+           subpackages/modules, to construct the mia's pipeline library.
 
         :Parameters:
             - :module_name: name of the module to add in the pipeline
@@ -501,25 +501,15 @@ def main():
     """Make basic configuration check then actual launch of mia.
 
     Checks if MIA is called from the site/dist packages (user mode) or from a
-    cloned git repository (developer mode). Tries to update the dev_mode
-    parameter accordingly and the mia_path if necessary, in the
-    ~/.populse_mia/configuration.yml file (this file must be available from
-    the ~/.populse_mia directory). Launches the verify_processes()
+    cloned git repository (developer mode). Launches the verify_processes()
     function, then the launch_mia() function (mia's real launch !!). When
     mia is exited, if the ~/.populse_mia/configuration.yml exists, sets the
     dev_mode parameter to False.
 
     - If launched from a cloned git repository ('developer mode'):
-        - if the ~/.populse_mia/configuration.yml exists, updates
-          the dev_mode parameter to True
-        - if the ~/.populse_mia/configuration.yml is not existing
-          nothing is done (in developer mode, the mia_path is the
-          cloned git repository.
+        - the mia_path is the cloned git repository.
     - If launched from the site/dist packages ('user mode'):
-        - if the ~/.populse_mia/configuration.yml exists, updates
-          the dev_mode parameter to False and, if not found, update
-          the mia_path parameter.
-        - if the file ~/.populse_mia/configuration.yml file does
+        - if the file ~/.populse_mia/configuration.yml file is not found or does
           not exist or if the returned mia_path parameter is incorrect, a
           valid mia_path path is requested from the user, in order
           to try to fix a corruption of this file.
@@ -531,8 +521,8 @@ def main():
 
                 This method, used only if the mia configuration parameters are
                 not accessible, goes with the _verify_miaConfig function,
-                which
-                will use the value of the mia_path parameter, defined here.
+                which will use the value of the mia_path parameter,
+                defined here.
 
                 :Parameters dialog: QtWidgets.QDialog object ('msg' in the main
                    function)
@@ -551,14 +541,13 @@ def main():
                 _browse_mia_path() function, the latter having allowed the
                 definition of the mia_user_path parameter, the objective here
                 is to check if the value of this parameter is valid. The
-                dev_mode=False and mia_path parameters are saved in the
+                mia_path parameters are saved in the
                 ~/.populse_mia/configuration.yml file (the mia_user_path
                 parameter is mandatory in the user mode). Then the data in the
                 mia_path/properties/config.yml file are checked. If an
-                exception
-                is raised during the  _verify_miaConfig function, the "MIA path
-                selection" window is not closed and the user is prompted again
-                to set the mia_user_path parameter.
+                exception is raised during the _verify_miaConfig function, the
+                "MIA path selection" window is not closed and the user is
+                prompted again to set the mia_user_path parameter.
 
                 :Parameters dialog: QtWidgets.QDialog object ('msg' in the main
                    function)
@@ -593,7 +582,7 @@ def main():
         elif dialog is not None:  # "user" mode only if problem
 
             mia_home_config = dict()
-            mia_home_config["dev_mode"] = False
+            ############mia_home_config["dev_mode"] = False
             mia_home_config["mia_user_path"] = dialog.file_line_edit.text()
             print('\nNew values in ~/.populse_mia/configuration.yml: ')
 
@@ -656,27 +645,27 @@ def main():
 
     if DEV_MODE:                         # "developer" mode
 
-        if os.path.isfile(dot_mia_config):
-            print('\n{0} has been detected.'.format(dot_mia_config))
-
-            with open(dot_mia_config, 'r') as stream:
-
-                if version.parse(yaml.__version__) > version.parse("5.1"):
-                    mia_home_config = yaml.load(stream,
-                                                Loader=yaml.FullLoader)
-                else:
-                    mia_home_config = yaml.load(stream)
-
-            mia_home_config["dev_mode"] = True
-
-            with open(dot_mia_config, 'w', encoding='utf8') as configfile:
-                yaml.dump(mia_home_config,
-                          configfile,
-                          default_flow_style=False,
-                          allow_unicode=True)
-
-        else:
-            print('\n{0} has not been detected.'.format(dot_mia_config))
+        #if os.path.isfile(dot_mia_config):
+        #    print('\n{0} has been detected.'.format(dot_mia_config))
+        #
+        #    with open(dot_mia_config, 'r') as stream:
+        #
+        #        if version.parse(yaml.__version__) > version.parse("5.1"):
+        #            mia_home_config = yaml.load(stream,
+        #                                        Loader=yaml.FullLoader)
+        #        else:
+        #            mia_home_config = yaml.load(stream)
+        #
+        #    mia_home_config["dev_mode"] = True
+        #
+        #    with open(dot_mia_config, 'w', encoding='utf8') as configfile:
+        #        yaml.dump(mia_home_config,
+        #                  configfile,
+        #                  default_flow_style=False,
+        #                  allow_unicode=True)
+        #
+        #else:
+        #    print('\n{0} has not been detected.'.format(dot_mia_config))
 
         _verify_miaConfig()
 
@@ -687,7 +676,8 @@ def main():
                 os.mkdir(os.path.dirname(dot_mia_config))
                 print('\nThe {0} directory is created '
                       '...'.format(os.path.dirname(dot_mia_config)))
-
+                
+            # Just to check if dot_mia_config file is well readable/writeable
             with open(dot_mia_config, 'r') as stream:
 
                 if version.parse(yaml.__version__) > version.parse("5.1"):
@@ -696,7 +686,7 @@ def main():
                 else:
                     mia_home_config = yaml.load(stream)
 
-            mia_home_config["dev_mode"] = False
+            #mia_home_config["dev_mode"] = False
 
             with open(dot_mia_config, 'w', encoding='utf8') as configfile:
                 yaml.dump(mia_home_config, configfile,
@@ -711,7 +701,7 @@ def main():
                   ' the ~/.populse_mia/configuration.yml file'
                   ' or with the parameters returned from this file: ', e)
             mia_home_config = dict()
-            mia_home_config["dev_mode"] = False
+            #mia_home_config["dev_mode"] = False
 
             # open popup, user choose the path to .populse_mia/populse_mia
             app = QApplication(sys.argv)
@@ -774,21 +764,21 @@ def main():
 
     # set the dev_mode to False when exiting mia,
     # if ~/.populse_mia/configuration.yml file exists
-    if os.path.isfile(dot_mia_config):
-
-        with open(dot_mia_config, 'r') as stream:
-
-            if version.parse(yaml.__version__) > version.parse("5.1"):
-                mia_home_config = yaml.load(stream,
-                                            Loader=yaml.FullLoader)
-            else:
-                mia_home_config = yaml.load(stream)
-
-        mia_home_config["dev_mode"] = False
-
-        with open(dot_mia_config, 'w', encoding='utf8') as configfile:
-            yaml.dump(mia_home_config, configfile, default_flow_style=False,
-                      allow_unicode=True)
+    #if os.path.isfile(dot_mia_config):
+    #
+    #    with open(dot_mia_config, 'r') as stream:
+    #
+    #        if version.parse(yaml.__version__) > version.parse("5.1"):
+    #            mia_home_config = yaml.load(stream,
+    #                                        Loader=yaml.FullLoader)
+    #        else:
+    #            mia_home_config = yaml.load(stream)
+    #
+    #    mia_home_config["dev_mode"] = False
+    #
+    #    with open(dot_mia_config, 'w', encoding='utf8') as configfile:
+    #        yaml.dump(mia_home_config, configfile, default_flow_style=False,
+    #                  allow_unicode=True)
 
 
 def verify_processes():

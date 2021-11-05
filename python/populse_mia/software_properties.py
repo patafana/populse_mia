@@ -137,6 +137,8 @@ class Config:
                            radio), by default neuro
         - getViewerFramerate: returns the DataViewer framerate for automatic
                               time running images
+        - get_use_clinical: returns the value of "clinical mode" checkbox in the
+          preferences
         - get_use_fsl: returns the value of "use fsl" checkbox in the
           preferences
         - get_use_matlab: returns the value of "use matlab" checkbox in the
@@ -166,6 +168,8 @@ class Config:
         - setControlV1: Set controller display mode (True if V1)
         - set_capsul_config: set CAPSUL configuration dict into MIA config
         - setChainCursors: set the "chain cursors" checkbox of the mini viewer
+        - set_clinical_mode: set the value of "clinical mode" in
+          the preferences
         - set_mainwindow_maximized: set the maximized (fullscreen) flag
         - set_mainwindow_size: set main window size
         - set_max_thumbnails: set max thumbnails number at the data browser
@@ -222,7 +226,7 @@ class Config:
                This option allows to use an alternative config directory (for
                tests for instance).
         """
-        self.dev_mode = False
+        #self.dev_mode = False
         if config_path is not None:
             self.config_path = config_path
         self.config = self.loadConfig()
@@ -416,6 +420,14 @@ class Config:
 
         return engine
 
+    def get_use_clinical(self):
+        """ Get the clinical mode in the preferences.
+
+        :return: boolean
+
+        """
+        return self.config.get("clinical_mode", False)
+
     def get_user_mode(self):
         """Get if user mode is disabled or enabled in the preferences.
 
@@ -528,8 +540,10 @@ class Config:
 
         """
         mia_path = getattr(self, 'mia_path', None)
+
         if mia_path:
             return mia_path
+
         dot_mia_config = os.path.join(os.path.expanduser("~"),
                                       ".populse_mia", "configuration.yml")
 
@@ -544,10 +558,13 @@ class Config:
                     else:
                         mia_home_config = yaml.load(stream)
 
-                    if ("dev_mode" in mia_home_config.keys() and
-                            mia_home_config["dev_mode"] == True):
+                    #if ("dev_mode" in mia_home_config.keys() and
+                    #        mia_home_config["dev_mode"] == True):
+
+                    if ("user_mode" in mia_home_config.keys() and
+                        mia_home_config["user_mode"] is False):
                         # Only for admin mode
-                        self.dev_mode = True
+                        self.user_mode = False
                         config_path = os.path.dirname(os.path.realpath(
                             __file__))
 
@@ -558,7 +575,7 @@ class Config:
                         return config_path
 
                     # Only for user mode
-                    self.dev_mode = False
+                    self.user_mode = True
 
                     # mia_path is obsolete. Use mia_user_path instead
                     if "mia_path" in mia_home_config:
@@ -908,6 +925,16 @@ class Config:
         else:
             self.set_use_spm(False)
             self.set_use_spm_standalone(False)
+
+    def set_clinical_mode(self, clinical_mode):
+        """Enable of disable clinical mode.
+
+        :param: clinical_mode: boolean
+
+        """
+        self.config["clinical_mode"] = clinical_mode
+        # Then save the modification
+        self.saveConfig()
 
     def set_user_mode(self, user_mode):
         """Enable of disable user mode.

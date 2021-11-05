@@ -10,7 +10,7 @@ Coding a data viewer
 --------------------
 
 A data viewer is identified after its module name, and is currently searched for
-as a sumbodule of :mod:`populse_mia.user_interface.data_viewer`. The data viewer
+as a submodule of :mod:`populse_mia.user_interface.data_viewer`. The data viewer
 module may be implemented as a "regular" module (.py file) or a package
 (directory) and should contain at least a class named ``MiaViewer`` which:
 

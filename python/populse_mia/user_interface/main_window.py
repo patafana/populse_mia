@@ -1026,12 +1026,12 @@ class MainWindow(QMainWindow):
             self.update_recent_projects_actions()
 
     def software_preferences_pop_up(self):
-        """Open the MIA2 preferences pop-up."""
+        """Open the MIA preferences pop-up."""
 
         self.pop_up_preferences = PopUpPreferences(self)
         self.pop_up_preferences.setGeometry(300, 200, 800, 600)
         self.pop_up_preferences.show()
-        self.pop_up_preferences.use_user_mode_signal.connect(
+        self.pop_up_preferences.use_clinical_mode_signal.connect(
             self.add_clinical_tags)
 
         # Modifying the options in the Pipeline Manager

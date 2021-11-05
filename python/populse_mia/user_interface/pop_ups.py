@@ -1795,7 +1795,8 @@ class PopUpPreferences(QDialog):
         - use_spm_changed: called when the use_spm checkbox is changed
         - use_spm_standalone_changed: called when the use_spm_standalone
           checkbox is changed
-        - user_mode_switch: called when the user mode checkbox
+        #########- user_mode_switch: called when the user mode checkbox
+        - admin_mode_switch: called when the admin mode checkbox
            is clicked
 
     """
@@ -1803,7 +1804,8 @@ class PopUpPreferences(QDialog):
     # Signal that will be emitted at the end to tell that the project
     # has been created
     signal_preferences_change = pyqtSignal()
-    use_user_mode_signal = pyqtSignal()
+    use_clinical_mode_signal = pyqtSignal()
+    #use_admin_mode_signal = pyqtSignal()
 
     def __init__(self, main_window):
         """Initialization.
@@ -1848,10 +1850,22 @@ class PopUpPreferences(QDialog):
         h_box_auto_save.addWidget(self.save_label)
         h_box_auto_save.addStretch(1)
 
+        ## Clinical mode
+        self.clinical_mode_checkbox = QCheckBox('', self)
+
+        if config.get_use_clinical() == True:
+            self.clinical_mode_checkbox.setChecked(1)
+
+        self.clinical_mode_label = QLabel("Clinical mode")
+        h_box_clinical = QtWidgets.QHBoxLayout()
+        h_box_clinical.addWidget(self.clinical_mode_checkbox)
+        h_box_clinical.addWidget(self.clinical_mode_label)
+        h_box_clinical.addStretch(1)
+
         ## Admin mode + Change password + Edit config
-        self.user_mode_checkbox = QCheckBox('', self)
-        self.user_mode_checkbox.clicked.connect(self.user_mode_switch)
-        self.user_mode_label = QLabel("Admin mode")
+        self.admin_mode_checkbox = QCheckBox('', self)
+        self.admin_mode_checkbox.clicked.connect(self.admin_mode_switch)
+        self.admin_mode_label = QLabel("Admin mode")
         self.change_psswd = QPushButton("Change password", default=False,
                                          autoDefault=False)
         self.edit_config = QPushButton("Edit config", default=False,
@@ -1860,20 +1874,20 @@ class PopUpPreferences(QDialog):
         self.edit_config.clicked.connect(self.edit_config_file)
 
         if not config.get_user_mode():
-            self.user_mode_checkbox.setChecked(1)
+            self.admin_mode_checkbox.setChecked(1)
             self.change_psswd.setVisible(True)
             self.edit_config.setVisible(True)
 
         else:
-            self.user_mode_checkbox.setChecked(1)
-            self.user_mode_checkbox.setChecked(0)
+            #self.admin_mode_checkbox.setChecked(1)
+            self.admin_mode_checkbox.setChecked(0)
             self.change_psswd.setVisible(False)
             self.edit_config.setVisible(False)
 
-        h_box_user_mode = QtWidgets.QHBoxLayout()
-        h_box_user_mode.addWidget(self.user_mode_checkbox)
-        h_box_user_mode.addWidget(self.user_mode_label)
-        h_box_user_mode.addStretch(1)
+        h_box_admin_mode = QtWidgets.QHBoxLayout()
+        h_box_admin_mode.addWidget(self.admin_mode_checkbox)
+        h_box_admin_mode.addWidget(self.admin_mode_label)
+        h_box_admin_mode.addStretch(1)
 
         h_box_change_psswd = QtWidgets.QHBoxLayout()
         h_box_change_psswd.addWidget(self.change_psswd)
@@ -1924,7 +1938,8 @@ class PopUpPreferences(QDialog):
         ## Draws graphic objects
         v_box_global = QtWidgets.QVBoxLayout()
         v_box_global.addLayout(h_box_auto_save)
-        v_box_global.addLayout(h_box_user_mode)
+        v_box_global.addLayout(h_box_clinical)
+        v_box_global.addLayout(h_box_admin_mode)
         v_box_global.addLayout(h_box_change_psswd)
         v_box_global.addLayout(h_box_edit_config)
         v_box_global.addLayout(h_box_control)
@@ -2759,12 +2774,16 @@ class PopUpPreferences(QDialog):
 
         # User / Admin mode
         main_window.windowName = "MIA - Multiparametric Image Analysis"
-        if self.user_mode_checkbox.isChecked():
+        if self.admin_mode_checkbox.isChecked():
             config.set_user_mode(False)
             main_window.windowName += " (Admin mode)"
         else:
             config.set_user_mode(True)
-            self.use_user_mode_signal.emit()
+            #self.use_user_mode_signal.emit()
+
+        if self.clinical_mode_checkbox.isChecked():
+            config.set_clinical_mode(True)
+            self.use_clinical_mode_signal.emit()
 
         main_window.windowName += " - "
         main_window.setWindowTitle(main_window.windowName +
@@ -3361,10 +3380,10 @@ class PopUpPreferences(QDialog):
             self.use_spm_checkbox.setChecked(False)
             self.use_matlab_checkbox.setChecked(False)
 
-    def user_mode_switch(self):
-        """Called when the user mode checkbox is clicked."""
+    def admin_mode_switch(self):
+        """Called when the admin mode checkbox is clicked."""
         config = Config()
-        if self.user_mode_checkbox.isChecked():
+        if self.admin_mode_checkbox.isChecked():
             psswd, ok = QInputDialog.getText(self, 'Password Input Dialog',
                                             'Enter the admin password:',
                                             QLineEdit.Password)
