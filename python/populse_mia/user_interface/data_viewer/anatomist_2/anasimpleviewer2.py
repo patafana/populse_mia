@@ -713,7 +713,7 @@ class AnaSimpleViewer2(Qt.QObject):
             #test if object has already been imported
             for w in range (objectlist.count()):
                 if os.path.basename(fname) == objectlist.item(w).text():
-                    if config_changed == True:
+                    if config_changed is True:
                         return
                     msgBox = QMessageBox()
                     msgBox.setIcon(QMessageBox.Warning)

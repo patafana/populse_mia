@@ -1842,7 +1842,7 @@ class PopUpPreferences(QDialog):
         self.save_checkbox = QCheckBox('', self)
         self.save_label = QLabel("Auto save")
 
-        if config.isAutoSave() == True:
+        if config.isAutoSave() is True:
             self.save_checkbox.setChecked(1)
 
         h_box_auto_save = QtWidgets.QHBoxLayout()
@@ -1853,7 +1853,7 @@ class PopUpPreferences(QDialog):
         ## Clinical mode
         self.clinical_mode_checkbox = QCheckBox('', self)
 
-        if config.get_use_clinical() == True:
+        if config.get_use_clinical() is True:
             self.clinical_mode_checkbox.setChecked(1)
 
         self.clinical_mode_label = QLabel("Clinical mode")
@@ -1901,7 +1901,7 @@ class PopUpPreferences(QDialog):
         self.control_checkbox = QCheckBox('', self)
         self.control_label = QLabel("Version 1 controller")
 
-        if config.isControlV1() == True:
+        if config.isControlV1() is True:
             self.control_checkbox.setChecked(1)
 
         h_box_control = QtWidgets.QHBoxLayout()
@@ -1927,7 +1927,7 @@ class PopUpPreferences(QDialog):
         self.radioView_label = QLabel("Radiological orientation in "
                                       "miniviewer (data browser)")
 
-        if config.isRadioView() == True:
+        if config.isRadioView() is True:
             self.radioView_checkbox.setChecked(1)
 
         h_box_radioView = QtWidgets.QHBoxLayout()

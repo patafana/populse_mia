@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         # else:
         #     self.action_package_library.setEnabled(True)
 
-        if Config().get_user_mode() == True:
+        if Config().get_user_mode() is True:
             self.action_delete_project.setDisabled(True)
         else:
             self.action_delete_project.setEnabled(True)

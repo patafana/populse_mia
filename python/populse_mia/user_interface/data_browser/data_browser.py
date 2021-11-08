@@ -2294,7 +2294,7 @@ class TableDataBrowser(QTableWidget):
 
         # Auto-save
         config = Config()
-        if config.isAutoSave() == True:
+        if config.isAutoSave() is True:
             self.project.saveModifications()
 
     def update_selection(self):

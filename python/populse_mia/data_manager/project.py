@@ -251,7 +251,7 @@ class Project():
                                    False, TAG_ORIGIN_BUILTIN, None, None)
 
             # Adding default tags for the clinical mode
-            if config.get_use_clinical() == True:
+            if config.get_use_clinical() is True:
                 for clinical_tag in CLINICAL_TAGS:
                     if clinical_tag == "Age":
                         field_type = FIELD_TYPE_INTEGER

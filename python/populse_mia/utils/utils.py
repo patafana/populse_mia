@@ -250,9 +250,9 @@ def table_to_database(value, value_type):
     elif value_type == FIELD_TYPE_INTEGER:
         return int(value)
     elif value_type == FIELD_TYPE_BOOLEAN:
-        if value == "True" or value == True:
+        if value == "True" or value is True:
             return True
-        elif value == "False" or value == False:
+        elif value == "False" or value is False:
             return False
     elif value_type == FIELD_TYPE_DATETIME:
         if isinstance(value, QDateTime):

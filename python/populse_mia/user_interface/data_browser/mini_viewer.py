@@ -132,7 +132,7 @@ class MiniViewer(QWidget):
 
         self.label_orientation = QLabel()
 
-        if self.config.isRadioView() == True:
+        if self.config.isRadioView() is True:
             self.label_orientation.setText("Radiological orientation")
 
         else:
@@ -159,7 +159,7 @@ class MiniViewer(QWidget):
 
         # Checkboxes
         self.check_box_slices = QCheckBox('Show all slices (no cursors)')
-        if self.config.getShowAllSlices() == True:
+        if self.config.getShowAllSlices() is True:
             self.check_box_slices.setCheckState(Qt.Checked)
         else:
             self.check_box_slices.setCheckState(Qt.Unchecked)
@@ -169,7 +169,7 @@ class MiniViewer(QWidget):
         self.check_box_cursors = QCheckBox('Chain cursors')
         self.check_box_cursors.setToolTip("Allows to connect all cursors "
                                           "when selecting multiple documents")
-        if self.config.getChainCursors() == True:
+        if self.config.getChainCursors() is True:
             self.check_box_cursors.setCheckState(Qt.Checked)
         else:
             self.check_box_cursors.setCheckState(Qt.Unchecked)
@@ -470,7 +470,7 @@ class MiniViewer(QWidget):
         im2D = im2D.astype(display_type)
 
         # Rotate. Copy array to avoid negative strides (Qt doesn't handle that)
-        if self.config.isRadioView() == True:
+        if self.config.isRadioView() is True:
             im2D = np.rot90(im2D.T, 2).copy() # radiological
 
         else:
@@ -850,7 +850,7 @@ class MiniViewer(QWidget):
             self.check_box_slices.setCheckable(True)
         self.show_slices(file_paths)
 
-        if self.config.isRadioView() == True:
+        if self.config.isRadioView() is True:
             self.label_orientation.setText("Radiological orientation")
 
         else:

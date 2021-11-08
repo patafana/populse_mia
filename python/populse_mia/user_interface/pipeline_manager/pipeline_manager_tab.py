@@ -1337,7 +1337,7 @@ class PipelineManagerTab(QWidget):
 
                         if not req['capsul.engine.module.'
                                    'fsl'].get('directory',
-                                                 False):
+                                              False):
                             init_result = False
                             init_messages.append('The pipeline requires FSL '
                                                  'but it seems FSL is not '
