@@ -3383,22 +3383,29 @@ class PopUpPreferences(QDialog):
     def admin_mode_switch(self):
         """Called when the admin mode checkbox is clicked."""
         config = Config()
+
         if self.admin_mode_checkbox.isChecked():
             psswd, ok = QInputDialog.getText(self, 'Password Input Dialog',
-                                            'Enter the admin password:',
-                                            QLineEdit.Password)
+                                             'Enter the admin password:',
+                                             QLineEdit.Password)
+
             if ok:
                 salt_psswd = self.salt + psswd
                 hash_psswd = hashlib.sha256(salt_psswd.encode()).hexdigest()
+
                 if hash_psswd != config.get_admin_hash():
-                    self.user_mode_checkbox.setChecked(False)
+                    self.admin_mode_checkbox.setChecked(False)
                     self.status_label.setText("<i style='color:red'>Wrong "
                                               "password.</i>")
+
                 else:
                     self.change_psswd.setVisible(True)
                     self.edit_config.setVisible(True)
+                    self.status_label.clear()
+
             else:
-                self.user_mode_checkbox.setChecked(False)
+                self.admin_mode_checkbox.setChecked(False)
+
         else:
             self.change_psswd.setVisible(False)
             self.edit_config.setVisible(False)
