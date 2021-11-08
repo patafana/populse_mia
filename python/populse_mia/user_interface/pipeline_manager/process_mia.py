@@ -392,7 +392,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             except Exception as e:
                 if verbose:
                     print('Exception:', e)
-                    print('param:', pname)
+                    print('param:', parameter)
                     print('value:', repr(value))
                     traceback.print_exc()
 
