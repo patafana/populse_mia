@@ -20,6 +20,9 @@ Module used by MIA bricks to run processes.
 ##########################################################################
 
 # Capsul imports
+import copy
+
+import six
 from capsul.api import capsul_engine, Process, Pipeline
 from capsul.attributes.completion_engine import (ProcessCompletionEngine,
                                                  ProcessCompletionEngineFactory)
@@ -282,8 +285,18 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             if isinstance(node, Pipeline):
                 node = node.pipeline_node
 
+            # Create a copy of current node to populate process_order
+            # Without copying the node, in iteration mode, each iterated node replace previous one in process_order,
+            # because it is only a reference to it
+            if isinstance(node, ProcessNode):
+                node = node.process
+            process_order_node = copy.deepcopy(node)
+            for trait_name, trait in six.iteritems(node.user_traits()):
+                setattr(process_order_node, trait_name, copy.deepcopy(getattr(node, trait_name)))
+                # would "process_order_node.traits(plug_name) = node.traits(plug_name)" would suffice ?
             project.process_order.append(node)
-
+            # Traits of plug_names (in outputs.items()) are wrong: node.traits(plug_name)
+            #
         if not isinstance(in_process, ProcessMIA):
             
             if not isinstance(in_process, Pipeline):
