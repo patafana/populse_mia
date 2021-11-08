@@ -1150,7 +1150,6 @@ class PopUpDeleteProject(QDialog):
         for project in project_list:
             if os.path.isdir(os.path.join(self.project_path, project)):
                 check_box = QCheckBox(project)
-                # check_box.setCheckState(Qt.Checked)
                 self.check_boxes.append(check_box)
                 self.v_box.addWidget(check_box)
 
@@ -1795,7 +1794,6 @@ class PopUpPreferences(QDialog):
         - use_spm_changed: called when the use_spm checkbox is changed
         - use_spm_standalone_changed: called when the use_spm_standalone
           checkbox is changed
-        #########- user_mode_switch: called when the user mode checkbox
         - admin_mode_switch: called when the admin mode checkbox
            is clicked
 
@@ -1805,7 +1803,6 @@ class PopUpPreferences(QDialog):
     # has been created
     signal_preferences_change = pyqtSignal()
     use_clinical_mode_signal = pyqtSignal()
-    #use_admin_mode_signal = pyqtSignal()
 
     def __init__(self, main_window):
         """Initialization.
@@ -1879,7 +1876,6 @@ class PopUpPreferences(QDialog):
             self.edit_config.setVisible(True)
 
         else:
-            #self.admin_mode_checkbox.setChecked(1)
             self.admin_mode_checkbox.setChecked(0)
             self.change_psswd.setVisible(False)
             self.edit_config.setVisible(False)
@@ -2590,20 +2586,6 @@ class PopUpPreferences(QDialog):
             engine.settings.import_configs(env, c)
 
         dialog = SettingsEditor(engine)
-        #dialog = Qt.QDialog()
-        #layout = Qt.QVBoxLayout()
-        #dialog.setLayout(layout)
-        #cwidget = ScrollControllerWidget(engine.study_config, live=True)
-        #layout.addWidget(cwidget)
-        #hlayout = Qt.QHBoxLayout()
-        #layout.addLayout(hlayout)
-        #ok = Qt.QPushButton("OK", default=True)
-        #cancel = Qt.QPushButton("Cancel")
-        #hlayout.addStretch(1)
-        #hlayout.addWidget(ok)
-        #hlayout.addWidget(cancel)
-        #ok.clicked.connect(dialog.accept)
-        #cancel.clicked.connect(dialog.reject)
         result = dialog.exec()
 
         if result:
@@ -2615,9 +2597,6 @@ class PopUpPreferences(QDialog):
             capsul_config['engine'] = settings
             capsul_config['engine_modules'] = list(engine._loaded_modules)
 
-            #sc_dict = engine.study_config.export_to_dict(
-                #dict_class=dict, exclude_none=True, exclude_undefined=True)
-            #capsul_config['study_config'] = sc_dict
             if 'study_config' in capsul_config:
                 del capsul_config['study_config']
             config.set_capsul_config(capsul_config)
@@ -2642,7 +2621,6 @@ class PopUpPreferences(QDialog):
             self.spm_standalone_choice.setText(
                 config.get_spm_standalone_path())
 
-        #del ok, cancel, cwidget, hlayout, layout
         del dialog
         del engine
 
@@ -3092,7 +3070,6 @@ class PopUpPreferences(QDialog):
 
         else:
             main_window.showNormal()
-            #main_window.resize(w, h)  # don't apply now
 
         self.signal_preferences_change.emit()
         QApplication.restoreOverrideCursor()
@@ -3878,8 +3855,6 @@ class PopUpSaveProjectAs(QDialog):
 
         self.setLayout(self.final_layout)
 
-        # self.finished.connect(self.return_value)
-
     def fill_input(self, name):
         """Fills the input field with the name of a project."""
         self.new_project.setText(name)
@@ -3894,12 +3869,6 @@ class PopUpSaveProjectAs(QDialog):
 
         if len(file_name_tuple) > 0:
             file_name = file_name_tuple
-
-            """
-            projects_folder = os.path.join(os.path.join(
-                os.path.relpath(os.curdir), '..', '..'), 'projects')
-            projects_folder = os.path.abspath(projects_folder)
-            """
             projects_folder = self.project_path
 
             if file_name:

@@ -225,11 +225,13 @@ class Config:
                regular eutristics will be used to determine the config path.
                This option allows to use an alternative config directory (for
                tests for instance).
+
         """
-        #self.dev_mode = False
         if config_path is not None:
             self.config_path = config_path
+
         self.config = self.loadConfig()
+
         if "mia_user_path" not in self.config.keys():
             self.config["mia_user_path"] = self.get_mia_path()
             self.saveConfig()
@@ -246,7 +248,8 @@ class Config:
             return False
 
     def get_capsul_config(self, sync_from_engine=True):
-        """Get CAPSUL config dictionary
+        """Get CAPSUL config dictionary.
+
         """
         capsul_config = self.config.setdefault("capsul_config", {})
         capsul_config.setdefault(
@@ -346,6 +349,7 @@ class Config:
         """
         Get a global CapsulEngine object used for all operations in MIA
         application. The engine is created once when needed.
+
         """
         from capsul.api import capsul_engine
 
@@ -363,6 +367,7 @@ class Config:
         Update a global CapsulEngine object used for all operations in MIA
         application. The engine is created once when needed, and updated
         each time the config is saved.
+
         """
         if self.capsul_engine is None:
             # don't do anything until the config is really created: this
@@ -442,6 +447,7 @@ class Config:
         :return: integer
 
         """
+
         return self.config.get("capsul_config", {}).get(
             "engine", {}).get("global", {}).get(
               'capsul.engine.module.axon', {}).get('user_level', 0)
@@ -558,13 +564,9 @@ class Config:
                     else:
                         mia_home_config = yaml.load(stream)
 
-                    #if ("dev_mode" in mia_home_config.keys() and
-                    #        mia_home_config["dev_mode"] == True):
-
                     if ("user_mode" in mia_home_config.keys() and
                         mia_home_config["user_mode"] is False):
                         # Only for admin mode
-                        #self.user_mode = False
                         config_path = os.path.dirname(os.path.realpath(
                             __file__))
 
@@ -575,8 +577,6 @@ class Config:
                         return config_path
 
                     # Only for user mode
-                    #self.user_mode = True
-
                     # mia_path is obsolete. Use mia_user_path instead
                     if "mia_path" in mia_home_config:
                         mia_home_config["mia_user_path"] = mia_home_config[
@@ -902,7 +902,6 @@ class Config:
             self.set_use_matlab(True)
         elif use_matlab is False:
             self.set_use_matlab(False)
-            # self.set_matlab_path("")
 
         if capsul_config.get('use_spm', False):
             spm_dir = capsul_config.get('spm_directory')
