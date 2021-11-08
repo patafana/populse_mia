@@ -564,7 +564,7 @@ class Config:
                     if ("user_mode" in mia_home_config.keys() and
                         mia_home_config["user_mode"] is False):
                         # Only for admin mode
-                        self.user_mode = False
+                        #self.user_mode = False
                         config_path = os.path.dirname(os.path.realpath(
                             __file__))
 
@@ -575,7 +575,7 @@ class Config:
                         return config_path
 
                     # Only for user mode
-                    self.user_mode = True
+                    #self.user_mode = True
 
                     # mia_path is obsolete. Use mia_user_path instead
                     if "mia_path" in mia_home_config:
