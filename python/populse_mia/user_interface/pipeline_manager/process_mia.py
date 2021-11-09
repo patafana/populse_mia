@@ -205,7 +205,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         if project:
 
             if hasattr(process, 'use_project') and process.use_project:
-                process.project = self.project
+                process.project = project
 
             # set output_directory
             if (process.trait('output_directory') and
