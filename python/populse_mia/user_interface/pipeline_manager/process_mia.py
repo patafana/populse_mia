@@ -88,6 +88,8 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         super(MIAProcessCompletionEngine, self).__init__(process, name)
 
         self.fallback_engine = fallback_engine
+        self.completion_progress = 0.0
+        self.completion_progress_total = 0.0
 
     def complete_attributes_with_database(self, process_inputs={}):
         '''
