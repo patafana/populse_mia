@@ -37,8 +37,6 @@ from capsul.pipeline.process_iteration import ProcessIteration
 from nipype.interfaces.base import File, traits_extension, InputMultiObject
 
 # Populse_MIA imports
-from traits.trait_list_object import TraitListObject
-
 from populse_mia.data_manager.project import COLLECTION_CURRENT
 from populse_mia.software_properties import Config
 
