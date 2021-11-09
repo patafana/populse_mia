@@ -288,13 +288,20 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             # Create a copy of current node to populate process_order
             # Without copying the node, in iteration mode, each iterated node replace previous one in process_order,
             # because it is only a reference to it
-            if isinstance(node, ProcessNode):
-                node = node.process
+            outputs = {}
+            outputs_process_order = {}
             process_order_node = copy.deepcopy(node)
             for trait_name, trait in six.iteritems(node.user_traits()):
                 setattr(process_order_node, trait_name, copy.deepcopy(getattr(node, trait_name)))
-                # would "process_order_node.traits(plug_name) = node.traits(plug_name)" would suffice ?
-            project.process_order.append(node)
+                if trait.output:
+                    outputs[trait_name] = getattr(node, trait_name)
+                    outputs_process_order[trait_name] = getattr(process_order_node, trait_name)
+
+            for plug_name, plug_value in outputs.items():
+                trait = node.trait(plug_name) # COMPARE BOTH AND SEE HOW TO MAKE THEM EQUAL (weakref problem ?)
+                trait_process_order = process_order_node.trait(plug_name)
+
+            project.process_order.append(process_order_node)
             # Traits of plug_names (in outputs.items()) are wrong: node.traits(plug_name)
             #
         if not isinstance(in_process, ProcessMIA):
