@@ -341,19 +341,9 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             # Create a copy of current node to populate process_order
             # Without copying the node, in iteration mode, each iterated node replace previous one in process_order,
             # because it is only a reference to it
-            outputs = {}
-            outputs_process_order = {}
             process_order_node = copy.deepcopy(node)
             for trait_name, trait in six.iteritems(node.user_traits()):
                 process_order_node.add_trait(trait_name, node.trait(trait_name))
-
-                if trait.output:
-                    outputs[trait_name] = getattr(node, trait_name)
-                    outputs_process_order[trait_name] = getattr(process_order_node, trait_name)
-
-            for plug_name, plug_value in outputs.items():
-                trait = node.trait(plug_name)  # COMPARE BOTH AND SEE HOW TO MAKE THEM EQUAL (weakref problem ?)
-                trait_process_order = process_order_node.trait(plug_name)
 
             # project.process_order.append(node) # OLD VERSION
             project.process_order.append(process_order_node)
