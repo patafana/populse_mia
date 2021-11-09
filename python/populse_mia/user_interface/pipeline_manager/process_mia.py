@@ -21,6 +21,7 @@ Module used by MIA bricks to run processes.
 
 # Capsul imports
 import copy
+import weakref
 
 import six
 from capsul.api import capsul_engine, Process, Pipeline
@@ -36,6 +37,8 @@ from capsul.pipeline.process_iteration import ProcessIteration
 from nipype.interfaces.base import File, traits_extension, InputMultiObject
 
 # Populse_MIA imports
+from traits.trait_list_object import TraitListObject
+
 from populse_mia.data_manager.project import COLLECTION_CURRENT
 from populse_mia.software_properties import Config
 
@@ -292,7 +295,8 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             outputs_process_order = {}
             process_order_node = copy.deepcopy(node)
             for trait_name, trait in six.iteritems(node.user_traits()):
-                setattr(process_order_node, trait_name, copy.deepcopy(getattr(node, trait_name)))
+                process_order_node.add_trait(trait_name, node.trait(trait_name))
+
                 if trait.output:
                     outputs[trait_name] = getattr(node, trait_name)
                     outputs_process_order[trait_name] = getattr(process_order_node, trait_name)
