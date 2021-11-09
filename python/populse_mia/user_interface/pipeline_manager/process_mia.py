@@ -20,11 +20,15 @@ Module used by MIA bricks to run processes.
 ##########################################################################
 
 # Capsul imports
+import copy
+import weakref
+
+import six
 from capsul.api import capsul_engine, Process, Pipeline
 from capsul.attributes.completion_engine import (ProcessCompletionEngine,
                                                  ProcessCompletionEngineFactory)
 from capsul.attributes.completion_engine_factory import (
-                                          BuiltinProcessCompletionEngineFactory)
+    BuiltinProcessCompletionEngineFactory)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.process.process import NipypeProcess
 from capsul.pipeline.process_iteration import ProcessIteration
@@ -82,6 +86,8 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         super(MIAProcessCompletionEngine, self).__init__(process, name)
 
         self.fallback_engine = fallback_engine
+        self.completion_progress = 0.0
+        self.completion_progress_total = 0.0
 
     def complete_attributes_with_database(self, process_inputs={}):
         '''
@@ -139,11 +145,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                     as_list=True)
                 if document:
                     for fvalue, dvalue in zip(fvalues, document):
-                      fvalue.append(dvalue if dvalue is not None else '')
+                        fvalue.append(dvalue if dvalue is not None else '')
                 else:
                     # ignore this input not in the database
                     for fvalue in fvalues:
-                      fvalue.append(None)
+                        fvalue.append(None)
 
             # temporarily block attributes change notification in order to
             # avoid triggering another completion while we are already in this
@@ -197,11 +203,11 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         if project:
 
             if hasattr(process, 'use_project') and process.use_project:
-                process.project = self.project
+                process.project = project
 
             # set output_directory
             if (process.trait('output_directory') and
-                         process.output_directory in (None, Undefined, '')):
+                    process.output_directory in (None, Undefined, '')):
                 out_dir = os.path.abspath(os.path.join(project.folder,
                                                        'data',
                                                        'derived_data'))
@@ -215,10 +221,10 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                 process.output_directory = out_dir
 
             if ((hasattr(process, '_nipype_interface_name') and
-                                     process._nipype_interface_name == 'spm') or
+                 process._nipype_interface_name == 'spm') or
                     (hasattr(process, 'process') and
                      hasattr(process.process, '_nipype_interface_name') and
-                              process.process._nipype_interface_name == 'spm')):
+                     process.process._nipype_interface_name == 'spm')):
                 tname = None
                 tmap = getattr(process, '_nipype_trait_mapping', {})
                 tname = tmap.get('_spm_script_file', '_spm_script_file')
@@ -250,14 +256,14 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
                                 project.folder, 'scripts', iscript)))
 
                 process.mfile = True
-        
+
     def complete_parameters(self, process_inputs={}):
 
         self.completion_progress = self.fallback_engine.completion_progress
         self.completion_progress_total \
             = self.fallback_engine.completion_progress_total
 
-        #print('complete_parameters', self.process.name, ', attributes:', self.fallback_engine.get_attribute_values().export_to_dict())
+        # print('complete_parameters', self.process.name, ', attributes:', self.fallback_engine.get_attribute_values().export_to_dict())
 
         # handle database attributes and indexation
         self.complete_attributes_with_database(process_inputs)
@@ -270,22 +276,8 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
         if isinstance(in_process, (NipypeProcess, ProcessMIA)):
             self.complete_nipype_common(in_process)
 
-        project = self.get_project(in_process)
-        if project is not None:
-            # record completion order to perform 2nd pass tags recording and
-            # indexation
-            if not hasattr(project, 'process_order'):
-                project.process_order = []
-                
-            node = self.process
-            
-            if isinstance(node, Pipeline):
-                node = node.pipeline_node
-
-            project.process_order.append(node)
-
         if not isinstance(in_process, ProcessMIA):
-            
+
             if not isinstance(in_process, Pipeline):
 
                 if in_process.context_name.split('.')[0] == 'Pipeline':
@@ -296,34 +288,34 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
                 if isinstance(in_process, NipypeProcess):
                     print('\n. {0} ({1}) nipype node ...'.format(
-                   node_name,
-                   '.'.join((in_process._nipype_interface.__module__,
-                             in_process._nipype_interface.__class__.__name__))))
+                        node_name,
+                        '.'.join((in_process._nipype_interface.__module__,
+                                  in_process._nipype_interface.__class__.__name__))))
 
                 else:
                     print('\n. {0} ({1}) regular node ...'.format(
-                    node_name,
-                    '.'.join((in_process.__module__,
-                              in_process.__class__.__name__))))
+                        node_name,
+                        '.'.join((in_process.__module__,
+                                  in_process.__class__.__name__))))
 
             self.fallback_engine.complete_parameters(process_inputs)
             self.completion_progress = self.fallback_engine.completion_progress
             self.completion_progress_total = (self.fallback_engine.
-                                                      completion_progress_total)
+                                              completion_progress_total)
 
         else:
             # here the process is a ProcessMIA instance. Use the specific
             # method
 
-            #self.completion_progress = 0.
-            #self.completion_progress_total = 1.
+            # self.completion_progress = 0.
+            # self.completion_progress_total = 1.
 
             if self.process.context_name.split('.')[0] == 'Pipeline':
                 node_name = '.'.join(self.process.context_name.split('.')[1:])
 
             else:
                 node_name = self.process.context_name
-            
+
             print('\n. {0} ({1}) MIA node ...'.format(
                 node_name,
                 '.'.join((self.process.__module__,
@@ -331,6 +323,28 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
 
             self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
+
+        project = self.get_project(in_process)
+        if project is not None:
+            # record completion order to perform 2nd pass tags recording and
+            # indexation
+            if not hasattr(project, 'process_order'):
+                project.process_order = []
+
+            node = self.process
+
+            if isinstance(node, Pipeline):
+                node = node.pipeline_node
+
+            # Create a copy of current node to populate process_order
+            # Without copying the node, in iteration mode, each iterated node replace previous one in process_order,
+            # because it is only a reference to it
+            process_order_node = copy.deepcopy(node)
+            for trait_name, trait in six.iteritems(node.user_traits()):
+                process_order_node.add_trait(trait_name, node.trait(trait_name))
+
+            # project.process_order.append(node) # OLD VERSION
+            project.process_order.append(process_order_node)
 
     def complete_parameters_mia(self, process_inputs={}):
         '''
@@ -348,7 +362,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             process = node.process
 
             is_plugged = {key:
-                          (bool(plug.links_to) or bool(plug.links_from))
+                              (bool(plug.links_to) or bool(plug.links_from))
                           for key, plug in node.plugs.items()}
         else:
             is_plugged = None  # we cannot get this info
@@ -363,12 +377,12 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             initResult_dict = {}
 
         if not initResult_dict:
-            return # the process is not really configured
+            return  # the process is not really configured
 
         outputs = initResult_dict.get('outputs', {})
 
         if not outputs:
-            return # the process is not really configured
+            return  # the process is not really configured
 
         for parameter, value in outputs.items():
             if parameter == 'notInDb' \
@@ -379,7 +393,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             except Exception as e:
                 if verbose:
                     print('Exception:', e)
-                    print('param:', pname)
+                    print('param:', parameter)
                     print('value:', repr(value))
                     traceback.print_exc()
 
@@ -441,17 +455,16 @@ class MIAProcessCompletionEngineFactory(ProcessCompletionEngineFactory):
         if hasattr(process, 'get_study_config'):
             study_config = process.get_study_config()
 
-
             engine = study_config.engine
             if 'capsul.engine.module.attributes' in engine._loaded_modules:
                 try:
                     former_factory = 'builtin'  # TODO how to store this ?
                     engine_factory \
                         = engine._modules_data['attributes'] \
-                            ['attributes_factory'].get(
-                                'process_completion', former_factory)
+                        ['attributes_factory'].get(
+                        'process_completion', former_factory)
                 except ValueError:
-                    pass # not found
+                    pass  # not found
         if engine_factory is None:
             engine_factory = BuiltinProcessCompletionEngineFactory()
 
@@ -517,23 +530,23 @@ class ProcessMIA(Process):
                                traits.Bool(optional=True,
                                            userlevel=1))
 
-            if 'paths' not in  self.user_traits():
+            if 'paths' not in self.user_traits():
                 self.add_trait("paths",
                                InputMultiObject(traits.Directory(),
                                                 optional=True,
                                                 userlevel=1))
 
-            if 'matlab_cmd' not in  self.user_traits():
+            if 'matlab_cmd' not in self.user_traits():
                 self.add_trait("matlab_cmd",
                                traits_extension.Str(optional=True,
                                                     userlevel=1))
 
-            if 'mfile' not in  self.user_traits():
+            if 'mfile' not in self.user_traits():
                 self.add_trait("mfile",
                                traits.Bool(optional=True,
                                            userlevel=1))
 
-            if 'spm_script_file' not in  self.user_traits():
+            if 'spm_script_file' not in self.user_traits():
                 spm_script_file_desc = ('The location of the output SPM matlab '
                                         'script automatically generated at the '
                                         'run step time (a string representing '
@@ -570,15 +583,15 @@ class ProcessMIA(Process):
             self.inheritance_dict = {}
 
     def make_initResult(self):
-        """Make the initResult_dict from initialisation."""        
+        """Make the initResult_dict from initialisation."""
         if ((self.requirement is None) or
-            (not self.inheritance_dict) or
-            (not self.outputs)):
+                (not self.inheritance_dict) or
+                (not self.outputs)):
             print('\nDuring the {0} process initialisation, some possible '
-                   'problems were detected:'.format(self))
-             
+                  'problems were detected:'.format(self))
+
             if self.requirement is None:
-                 print('- requirement attribute was not found ...')
+                print('- requirement attribute was not found ...')
 
             if not self.inheritance_dict:
                 print('- inheritance_dict attribute was not found ...')
@@ -589,8 +602,8 @@ class ProcessMIA(Process):
             print()
 
         if (self.outputs and
-                 self.requirement is not None and
-                 'spm' in self.requirement):
+                self.requirement is not None and
+                'spm' in self.requirement):
             self.outputs["notInDb"] = ["spm_script_file"]
 
         return {'requirement': self.requirement, 'outputs': self.outputs,
@@ -617,7 +630,7 @@ class ProcessMIA(Process):
         """
         if self.output_directory and hasattr(self, 'process'):
             self.process.output_directory = self.output_directory
-        
+
         if self.requirement is not None and 'spm' in self.requirement:
 
             if self.spm_script_file:
@@ -633,4 +646,4 @@ class ProcessMIA(Process):
                 self.process.matlab_cmd = self.matlab_cmd
 
             if self.mfile:
-                 self.process.mfile = self.mfile
+                self.process.mfile = self.mfile
