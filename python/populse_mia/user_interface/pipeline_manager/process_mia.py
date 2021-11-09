@@ -341,6 +341,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             # because it is only a reference to it
             process_order_node = copy.deepcopy(node)
             for trait_name, trait in six.iteritems(node.user_traits()):
+                setattr(process_order_node, trait_name, copy.deepcopy(getattr(node, trait_name)))
                 process_order_node.add_trait(trait_name, node.trait(trait_name))
 
             # project.process_order.append(node) # OLD VERSION
