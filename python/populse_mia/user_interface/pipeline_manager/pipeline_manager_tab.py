@@ -1707,7 +1707,7 @@ class PipelineManagerTab(QWidget):
             if pipeline is None:
                 pipeline = self.pipelineEditorTabs.get_current_pipeline()
 
-        print('postprocess pipeline:', pipeline)
+        #print('postprocess pipeline:', pipeline)
 
         to_upate = self.project.finished_bricks(
             self.get_capsul_engine(), pipeline=pipeline, include_done=False)
