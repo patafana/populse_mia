@@ -75,6 +75,7 @@ class Project():
 
     .. Methods:
         - add_clinical_tags: add the clinical tags to the project
+        - del_clinical_tags: remove clinical tags to the project
         - getDate: return the date of creation of the project
         - getFilter: return a Filter object
         - getFilterName: input box to get the name of the filter to save
@@ -279,19 +280,25 @@ class Project():
         :returns: list of clinical tags that were added
         """
         return_tags = []
+
         for clinical_tag in CLINICAL_TAGS:
+
             if clinical_tag not in self.session.get_fields_names(
-                    COLLECTION_CURRENT):
+                                                            COLLECTION_CURRENT):
+
                 if clinical_tag == "Age":
                     field_type = FIELD_TYPE_INTEGER
+
                 else:
                     field_type = FIELD_TYPE_STRING
+
                 self.session.add_field(
                     COLLECTION_CURRENT, clinical_tag, field_type,
                     clinical_tag, True, TAG_ORIGIN_BUILTIN, None, None)
                 self.session.add_field(
                     COLLECTION_INITIAL, clinical_tag, field_type,
                     clinical_tag, True, TAG_ORIGIN_BUILTIN, None, None)
+
                 for scan in self.session.get_documents(COLLECTION_CURRENT):
                     self.session.add_value(
                         COLLECTION_CURRENT, getattr(scan, TAG_FILENAME),
@@ -299,9 +306,31 @@ class Project():
                     self.session.add_value(
                         COLLECTION_INITIAL, getattr(scan, TAG_FILENAME),
                         clinical_tag, None)
+
                 return_tags.append(clinical_tag)
                 self.session.commit()
-                
+
+        return return_tags
+
+    def del_clinical_tags(self):
+        """Remove clinical tags to the project.
+
+        :returns: list of clinical tags that were removed
+        """
+        return_tags = []
+
+        for clinical_tag in CLINICAL_TAGS:
+
+            if clinical_tag in self.session.get_fields_names(
+                    COLLECTION_CURRENT):
+                self.session.remove_field(COLLECTION_CURRENT,
+                                          clinical_tag)
+                self.session.remove_field(COLLECTION_INITIAL,
+                                                  clinical_tag)
+
+                return_tags.append(clinical_tag)
+                self.session.commit()
+
         return return_tags
 
     def getDate(self):

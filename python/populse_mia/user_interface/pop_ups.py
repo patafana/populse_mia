@@ -1803,6 +1803,7 @@ class PopUpPreferences(QDialog):
     # has been created
     signal_preferences_change = pyqtSignal()
     use_clinical_mode_signal = pyqtSignal()
+    not_use_clinical_mode_signal = pyqtSignal()
 
     def __init__(self, main_window):
         """Initialization.
@@ -2762,6 +2763,10 @@ class PopUpPreferences(QDialog):
         if self.clinical_mode_checkbox.isChecked():
             config.set_clinical_mode(True)
             self.use_clinical_mode_signal.emit()
+
+        else:
+            config.set_clinical_mode(False)
+            self.not_use_clinical_mode_signal.emit()
 
         main_window.windowName += " - "
         main_window.setWindowTitle(main_window.windowName +

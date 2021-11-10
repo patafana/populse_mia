@@ -57,6 +57,9 @@ from populse_mia.user_interface.pop_ups import (PopUpDeleteProject,
 from populse_mia.user_interface.data_viewer.data_viewer_tab import (
     DataViewerTab)
 
+CLINICAL_TAGS = ["Site", "Spectro", "MR", "PatientRef", "Pathology", "Age",
+                 "Sex", "Message"]
+
 class MainWindow(QMainWindow):
 
     """Initialize software appearance and define interactions with the user.
@@ -64,7 +67,7 @@ class MainWindow(QMainWindow):
     .. Methods:
         - __init__ : initialise the object MainWindow
         - add_clinical_tags: add the clinical tags to the database and the
-          data browser
+                             data browser
         - check_unsaved_modifications: check if there are differences
           between the current project and the database
         - closeEvent: override the closing event to check if there are
@@ -74,6 +77,9 @@ class MainWindow(QMainWindow):
         - create_view_window: create the main window view
         - create_project_pop_up: create a new project
         - create_tabs: create the tabs
+        - credits: open the credits in a web browser
+        - del_clinical_tags: Remove the clinical tags to the database and the
+                             data browser
         - documentation: open the documentation in a web browser
         - import_data: call the import software (MRI File Manager)
         - install_processes_pop_up: open the install processes pop-up
@@ -204,10 +210,11 @@ class MainWindow(QMainWindow):
         """Add the clinical tags to the database and the data browser"""
 
         added_tags = self.project.add_clinical_tags()
+
         for tag in added_tags:
             column = self.data_browser.table_data.get_index_insertion(tag)
             self.data_browser.table_data.add_column(column, tag)
-            self.project.unsavedModifications = True
+            #self.project.unsavedModifications = True
 
     def check_unsaved_modifications(self):
         """Check if there are differences between the current project and the
@@ -480,6 +487,16 @@ class MainWindow(QMainWindow):
         webbrowser.open(
             'https://github.com/populse/populse_mia/graphs/contributors')
 
+    def del_clinical_tags(self):
+        """Remove the clinical tags to the database and the data browser"""
+        
+        removed_tags = self.project.del_clinical_tags()
+
+        for tag in removed_tags:
+            self.data_browser.table_data.removeColumn(
+                               self.data_browser.table_data.get_tag_column(tag))
+            #self.project.unsavedModifications = True
+
     def delete_project(self):
         """Open a pop-up to open a project and updates the recent projects."""
 
@@ -651,8 +668,16 @@ class MainWindow(QMainWindow):
                     self.exPopup.get_filename(file_name)
                     file_name = self.exPopup.relative_path
                     self.data_browser.data_sent = False
-                    self.switch_project(file_name, self.exPopup.name)
                     # We switch the project
+                    self.switch_project(file_name, self.exPopup.name)
+                    field_names = self.project.session.get_fields_names(
+                                                             COLLECTION_CURRENT)
+
+                    if all(ele in field_names for ele in CLINICAL_TAGS):
+                        Config().set_clinical_mode(True)
+
+                    else:
+                        Config().set_clinical_mode(False)
 
     def open_recent_project(self):
         """Open a recent project."""
@@ -679,9 +704,17 @@ class MainWindow(QMainWindow):
                 relative_path = os.path.relpath(file_name)
                 self.switch_project(relative_path, name)
                 # We switch the project
+                field_names = self.project.session.get_fields_names(
+                                                             COLLECTION_CURRENT)
                 documents = self.project.session.get_documents_names(
-                    COLLECTION_CURRENT)
+                                                             COLLECTION_CURRENT)
                 self.data_viewer.set_documents(self.project, documents)
+
+                if all(ele in field_names for ele in CLINICAL_TAGS):
+                    Config().set_clinical_mode(True)
+
+                else:
+                    Config().set_clinical_mode(False)
 
     def package_library_pop_up(self):
         """Open the package library pop-up"""
@@ -1033,6 +1066,8 @@ class MainWindow(QMainWindow):
         self.pop_up_preferences.show()
         self.pop_up_preferences.use_clinical_mode_signal.connect(
             self.add_clinical_tags)
+        self.pop_up_preferences.not_use_clinical_mode_signal.connect(
+            self.del_clinical_tags)
 
         # Modifying the options in the Pipeline Manager
         # (verify if user mode)
