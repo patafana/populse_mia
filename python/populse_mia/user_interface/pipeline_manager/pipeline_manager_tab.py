@@ -1063,18 +1063,7 @@ class PipelineManagerTab(QWidget):
         :param process: process instance of the corresponding node
         :return:
         """
-        config = Config()
 
-        if not config.isControlV1():
-            Node_Controller = CapsulNodeController
-
-        else:
-            Node_Controller = NodeController
-
-        self.nodeController = Node_Controller(
-            self.project, self.scan_list, self, self.main_window)
-        self.nodeController.visibles_tags = \
-            self.project.session.get_shown_tags()
         self.nodeController.display_parameters(
             node_name, process,
             self.pipelineEditorTabs.get_current_pipeline())
