@@ -1068,7 +1068,6 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_redo: boolean, True if the action has been made using a
                           redo
         """
-
         old_value = self.scene.pipeline.nodes[node_name].get_plug_value(
             plug_name)
         self.scene.pipeline.nodes[node_name].set_plug_value(

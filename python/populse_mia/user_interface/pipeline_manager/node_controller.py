@@ -491,9 +491,9 @@ class CapsulNodeController(QWidget):
                                   Qt.QSizePolicy.Fixed)
                 btn.clicked.connect(self.filter_attributes)
                 self.process_widget.attrib_widget.layout().insertWidget(0, btn)
+
         self.layout().addWidget(self.process_widget)
         self.process.on_trait_change(self.parameters_changed)
-
         # this cannot be done in __del__ since the C++ part will be already
         # destroyed by then.
         # However this signal seems never to be emitted, and I don't understand
@@ -527,11 +527,11 @@ class CapsulNodeController(QWidget):
         """
         pass
 
-    def parameters_changed(self, param, value, old_value):
+    def parameters_changed(self, _, plug_name, old_value, new_value):
         """Emit the value_changed signal."""
-        value_type = type(value)
+        plug_name_type = type(plug_name)
         self.value_changed.emit(["plug_value", self.node_name, old_value,
-                                 param, value_type, value])
+                                 plug_name, plug_name_type, new_value])
 
     def update_node_name(self, pipeline, new_node_name=None,
                          old_node_name=None, from_undo=False,

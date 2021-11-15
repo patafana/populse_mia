@@ -994,14 +994,7 @@ class PipelineManagerTab(QWidget):
 
         :param signal_list: list of the needed parameters to update history
         """
-        # TODO: According to
-        # populse_mia.user_interface.pipeline_manager.node_controller.CapsulNodeController.parameters_changed()
-        # the list should be, for a parameter change:
-        # ["plug_value", self.node_name, old_value, param, value_type, value]
-        # This is not the case!
-
         case = signal_list.pop(0)
-
         # For history
         history_maker = []
 
@@ -1019,8 +1012,18 @@ class PipelineManagerTab(QWidget):
             editor.setTransform(trans)
 
         elif case == "plug_value":
+
+            if signal_list[2] in ['protected_parameters', 'selection_changed',
+                                  'trait_added', 'user_traits_changed']:
+                return
+
             history_maker.append("update_plug_value")
+
             for element in signal_list:
+
+                if element == 'inputs' or element == 'outputs':
+                    element = ''
+
                 history_maker.append(element)
 
         self.pipelineEditorTabs.undos[
@@ -1037,13 +1040,14 @@ class PipelineManagerTab(QWidget):
             node_name = signal_list[1]
 
         # This is a 3ct hack to remove a node in the pipeline manager
-        if node_name in self.pipelineEditorTabs.get_current_pipeline().nodes:
-            node = self.pipelineEditorTabs.get_current_pipeline().nodes[
-                node_name]
-            process = node
-            if isinstance(node, ProcessNode):
-                process = node.process
-            self.nodeController.update_parameters(process)
+        #TODO: Maybe the hack can be now removed
+        #if node_name in self.pipelineEditorTabs.get_current_pipeline().nodes:
+        #    node = self.pipelineEditorTabs.get_current_pipeline().nodes[
+        #        node_name]
+        #    process = node
+        #    if isinstance(node, ProcessNode):
+        #        process = node.process
+        #    self.nodeController.update_parameters(process)
 
         self.run_pipeline_action.setDisabled(True)
 
@@ -1062,6 +1066,21 @@ class PipelineManagerTab(QWidget):
         :param node_name: name of the node to display parameters
         :param process: process instance of the corresponding node
         :return:
+        """
+
+        """
+        config = Config()
+
+        if not config.isControlV1():
+            Node_Controller = CapsulNodeController
+
+        else:
+            Node_Controller = NodeController
+
+        self.nodeController = Node_Controller(
+            self.project, self.scan_list, self, self.main_window)
+        self.nodeController.visibles_tags = \
+            self.project.session.get_shown_tags()
         """
 
         self.nodeController.display_parameters(
