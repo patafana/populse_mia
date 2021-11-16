@@ -913,28 +913,28 @@ class PipelineManagerTab(QWidget):
             else:
                 iteration_name = pipeline.name
 
-                if isinstance(trait.trait_type, traits.List):
-                    node_name = 'un_list_%s' % plug
-                    ftol = pipeline.add_custom_node(
-                        node_name,
-                        'capsul.pipeline.custom_nodes.reduce_node.ReduceNode',
-                        parameters={'input_types': ['File']})
-                    ftol.lengths = [1]
+            if isinstance(trait.trait_type, traits.List):
+                node_name = 'un_list_%s' % plug
+                ftol = pipeline.add_custom_node(
+                    node_name,
+                    'capsul.pipeline.custom_nodes.reduce_node.ReduceNode',
+                    parameters={'input_types': ['File']})
+                ftol.lengths = [1]
 
-                    # reconnect all former connection from this plug to their
-                    # destination, from the output of the ftol node
-                    for link in list(pipeline.pipeline_node.plugs[plug].links_to):
-                        pipeline.add_link(
-                            '%s.outputs->%s.%s' % (node_name, link[0], link[1]))
+                # reconnect all former connection from this plug to their
+                # destination, from the output of the ftol node
+                for link in list(pipeline.pipeline_node.plugs[plug].links_to):
+                    pipeline.add_link(
+                        '%s.outputs->%s.%s' % (node_name, link[0], link[1]))
 
-                    # then remove the former pipeline plug, and re-create it by
-                    # exporting the input of the ftol node
-                    # keep traits order
-                    old_traits = list(pipeline.user_traits().keys())
-                    pipeline.remove_trait(plug)
-                    pipeline.export_parameter(node_name, 'input_0',
-                                              pipeline_parameter=plug)
-                    pipeline.reorder_traits(old_traits)
+                # then remove the former pipeline plug, and re-create it by
+                # exporting the input of the ftol node
+                # keep traits order
+                old_traits = list(pipeline.user_traits().keys())
+                pipeline.remove_trait(plug)
+                pipeline.export_parameter(node_name, 'input_0',
+                                          pipeline_parameter=plug)
+                pipeline.reorder_traits(old_traits)
 
         # now replace the pipeline with an iterative node
         iteration_name = 'iterated_%s' % iteration_name
