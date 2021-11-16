@@ -858,6 +858,7 @@ class PipelineManagerTab(QWidget):
         pipeline = self.get_pipeline_or_process()
         engine = self.get_capsul_engine()
         pipeline_name = 'Iteration_pipeline'
+        iteration_name = 'iteration'
 
         # get interactively iterated plugs and plugs that should be connected
         # to an input_filter node
@@ -881,7 +882,6 @@ class PipelineManagerTab(QWidget):
         # before actually building the iterative pipeline. In other words,
         # we insert Reduce nodes before list inputs which will be
         # connected to the database inputs
-
         for plug in database_plugs:
             trait = pipeline.trait(plug)
             pipeline.trait(plug).forbid_completion = True
@@ -908,6 +908,9 @@ class PipelineManagerTab(QWidget):
                     new_pipeline.autoexport_nodes_parameters(
                         include_optional=True)
                     pipeline = new_pipeline
+                    iteration_name = old_node_name
+                else:
+                    iteration_name = pipeline.name
 
                 ftol = pipeline.add_custom_node(
                     node_name,
@@ -931,9 +934,9 @@ class PipelineManagerTab(QWidget):
                 pipeline.reorder_traits(old_traits)
 
         # now replace the pipeline with an iterative node
-        node_name = 'iteration'
+        iteration_name = 'iterated_%s' % iteration_name
         it_pipeline = engine.get_iteration_pipeline(
-            pipeline_name, node_name, pipeline,
+            pipeline_name, iteration_name, pipeline,
             iterative_plugs=iterated_plugs, do_not_export=database_plugs,
             make_optional=None)
 
@@ -949,7 +952,7 @@ class PipelineManagerTab(QWidget):
                 break
             node_name = '%s_filter' % plug
             it_pipeline.add_process(node_name, in_filter)
-            it_pipeline.add_link('%s.output->iteration.%s' % (node_name, plug))
+            it_pipeline.add_link('%s.output->%s.%s' % (node_name, iteration_name, plug))
 
             # If database_scans is already a pipeline global input, the plug
             # cannot be exported. A link as to be added between database_scans
