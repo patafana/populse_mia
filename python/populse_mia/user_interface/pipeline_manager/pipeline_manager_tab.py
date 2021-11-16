@@ -858,7 +858,7 @@ class PipelineManagerTab(QWidget):
         pipeline = self.get_pipeline_or_process()
         engine = self.get_capsul_engine()
         pipeline_name = 'Iteration_pipeline'
-        iteration_name = 'iteration'
+        iteration_name = pipeline.name
 
         # get interactively iterated plugs and plugs that should be connected
         # to an input_filter node
@@ -2482,8 +2482,12 @@ class PipelineManagerTab(QWidget):
         c_e = self.pipelineEditorTabs.get_current_editor()
         pipeline = self.pipelineEditorTabs.get_current_pipeline()
         has_iteration = False
+        iteration_name = 'iteration'
         if pipeline and hasattr(pipeline, 'nodes'):
-            has_iteration = ('iteration' in pipeline.nodes)
+            for key in pipeline.nodes.sortedKeys:
+                if 'iterated_' in key:
+                    has_iteration = True
+                    iteration_name = key
 
         if self.iterationTable.check_box_iterate.isChecked():
             if not has_iteration:
@@ -2503,7 +2507,7 @@ class PipelineManagerTab(QWidget):
         else:
             if has_iteration:
                 # get the pipeline out from the iteration node
-                new_pipeline =  pipeline.nodes['iteration'].process.process
+                new_pipeline =  pipeline.nodes[iteration_name].process.process
                 c_e.set_pipeline(new_pipeline)
                 self.displayNodeParameters('inputs', new_pipeline)
 

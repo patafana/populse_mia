@@ -1750,13 +1750,17 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         if not pipeline or not hasattr(pipeline, 'nodes'):
             self.main_window.pipeline_manager.iterationTable \
                 .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
-        elif 'iteration' in pipeline.nodes:
-            self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.setCheckState(Qt.Qt.Checked)
         else:
-            self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
-
+            has_iteration = False
+            for key in pipeline.nodes.sortedKeys:
+                if 'iterated_' in key:
+                    has_iteration = True
+            if has_iteration:
+                self.main_window.pipeline_manager.iterationTable \
+                    .check_box_iterate.setCheckState(Qt.Qt.Checked)
+            else:
+                self.main_window.pipeline_manager.iterationTable \
+                    .check_box_iterate.setCheckState(Qt.Qt.Unchecked)
 
     def update_current_node(self):
         """Update the node parameters"""
