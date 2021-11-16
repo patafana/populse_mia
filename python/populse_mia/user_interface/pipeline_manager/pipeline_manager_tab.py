@@ -858,7 +858,11 @@ class PipelineManagerTab(QWidget):
         pipeline = self.get_pipeline_or_process()
         engine = self.get_capsul_engine()
         pipeline_name = 'Iteration_pipeline'
-        iteration_name = pipeline.name
+        iteration_name = 'Pipeline'
+        if hasattr(pipeline, 'context_name'):
+            iteration_name = pipeline.context_name
+            if pipeline.context_name.split('.')[0] == 'Pipeline':
+                iteration_name = '.'.join(pipeline.context_name.split('.')[1:])
 
         # get interactively iterated plugs and plugs that should be connected
         # to an input_filter node
@@ -891,47 +895,46 @@ class PipelineManagerTab(QWidget):
                 for link in pipeline.pipeline_node.plugs[plug].links_to:
                     link[2].get_trait(link[1]).forbid_completion = True
 
-            if isinstance(trait.trait_type, traits.List):
-                node_name = 'un_list_%s' % plug
-
-                if not isinstance(pipeline, Pipeline):
-                    # "pipeline" is actally a single process (or should, if it
-                    # is not a # pipeline). Get it into a pipeine (with a
-                    # single node) to  make the workflow.
-                    new_pipeline = Pipeline()
-                    new_pipeline.set_study_config(pipeline.study_config)
-                    if pipeline.context_name.split('.')[0] == 'Pipeline':
-                        old_node_name = '.'.join(pipeline.context_name.split('.')[1:])
-                    else:
-                        old_node_name = pipeline.context_name
-                    new_pipeline.add_process(old_node_name, pipeline)
-                    new_pipeline.autoexport_nodes_parameters(
-                        include_optional=True)
-                    pipeline = new_pipeline
-                    iteration_name = old_node_name
+            if not isinstance(pipeline, Pipeline):
+                # "pipeline" is actally a single process (or should, if it
+                # is not a # pipeline). Get it into a pipeine (with a
+                # single node) to  make the workflow.
+                new_pipeline = Pipeline()
+                new_pipeline.set_study_config(pipeline.study_config)
+                if pipeline.context_name.split('.')[0] == 'Pipeline':
+                    old_node_name = '.'.join(pipeline.context_name.split('.')[1:])
                 else:
-                    iteration_name = pipeline.name
+                    old_node_name = pipeline.context_name
+                new_pipeline.add_process(old_node_name, pipeline)
+                new_pipeline.autoexport_nodes_parameters(
+                    include_optional=True)
+                pipeline = new_pipeline
+                iteration_name = old_node_name
+            else:
+                iteration_name = pipeline.name
 
-                ftol = pipeline.add_custom_node(
-                    node_name,
-                    'capsul.pipeline.custom_nodes.reduce_node.ReduceNode',
-                    parameters={'input_types': ['File']})
-                ftol.lengths = [1]
+                if isinstance(trait.trait_type, traits.List):
+                    node_name = 'un_list_%s' % plug
+                    ftol = pipeline.add_custom_node(
+                        node_name,
+                        'capsul.pipeline.custom_nodes.reduce_node.ReduceNode',
+                        parameters={'input_types': ['File']})
+                    ftol.lengths = [1]
 
-                # reconnect all former connection from this plug to their
-                # destination, from the output of the ftol node
-                for link in list(pipeline.pipeline_node.plugs[plug].links_to):
-                    pipeline.add_link(
-                        '%s.outputs->%s.%s' % (node_name, link[0], link[1]))
+                    # reconnect all former connection from this plug to their
+                    # destination, from the output of the ftol node
+                    for link in list(pipeline.pipeline_node.plugs[plug].links_to):
+                        pipeline.add_link(
+                            '%s.outputs->%s.%s' % (node_name, link[0], link[1]))
 
-                # then remove the former pipeline plug, and re-create it by
-                # exporting the input of the ftol node
-                # keep traits order
-                old_traits = list(pipeline.user_traits().keys())
-                pipeline.remove_trait(plug)
-                pipeline.export_parameter(node_name, 'input_0',
-                                          pipeline_parameter=plug)
-                pipeline.reorder_traits(old_traits)
+                    # then remove the former pipeline plug, and re-create it by
+                    # exporting the input of the ftol node
+                    # keep traits order
+                    old_traits = list(pipeline.user_traits().keys())
+                    pipeline.remove_trait(plug)
+                    pipeline.export_parameter(node_name, 'input_0',
+                                              pipeline_parameter=plug)
+                    pipeline.reorder_traits(old_traits)
 
         # now replace the pipeline with an iterative node
         iteration_name = 'iterated_%s' % iteration_name
