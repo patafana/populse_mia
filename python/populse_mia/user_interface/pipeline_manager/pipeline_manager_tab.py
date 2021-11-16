@@ -900,7 +900,11 @@ class PipelineManagerTab(QWidget):
                     # single node) to  make the workflow.
                     new_pipeline = Pipeline()
                     new_pipeline.set_study_config(pipeline.study_config)
-                    new_pipeline.add_process('main', pipeline)
+                    if pipeline.context_name.split('.')[0] == 'Pipeline':
+                        old_node_name = '.'.join(pipeline.context_name.split('.')[1:])
+                    else:
+                        old_node_name = pipeline.context_name
+                    new_pipeline.add_process(old_node_name, pipeline)
                     new_pipeline.autoexport_nodes_parameters(
                         include_optional=True)
                     pipeline = new_pipeline
