@@ -324,45 +324,60 @@ class PipelineEditor(PipelineDevelopperView):
         :param from_export_plugs: True if this method is called from a
            "from_export_plugs" undo or redo action
         """
+        tot_plug_name =[]
+
         if not _temp_plug_name:
             _temp_plug_name = self._temp_plug_name
 
-        if _temp_plug_name[0] in ('inputs', 'outputs'):
-            plug_name = _temp_plug_name[1]
-            plug = self.scene.pipeline.pipeline_node.plugs[plug_name]
-            optional = plug.optional
-            # contains the plugs that are connected to the input or output plug
-            new_temp_plugs = []
+        if isinstance(_temp_plug_name, tuple):
+            _temp_plug_name = [_temp_plug_name]
 
-            for link in plug.links_to:
-                temp_plug = (link[0], link[1])
-                new_temp_plugs.append(temp_plug)
+        for pip_plug_name in _temp_plug_name:
 
-            for link in plug.links_from:
-                temp_plug = (link[0], link[1])
-                new_temp_plugs.append(temp_plug)
+            if pip_plug_name[0] in ('inputs', 'outputs'):
+                plug_name = pip_plug_name[1]
+                plug = self.scene.pipeline.pipeline_node.plugs[plug_name]
+                optional = plug.optional
+                # contains the plugs that are connected
+                # to the input or output plug
+                new_temp_plugs = []
 
-            # To avoid the "_items" bug: setting the has_items attribute
-            # of the trait's handler to False
-            node = self.scene.pipeline.nodes['']
-            source_trait = node.get_trait(plug_name)
-            if source_trait.handler.has_items:
-                source_trait.handler.has_items = False
+                for link in plug.links_to:
+                    temp_plug = (link[0], link[1])
+                    new_temp_plugs.append(temp_plug)
 
-            self.scene.pipeline.remove_trait(_temp_plug_name[1])
-            self.scene.update_pipeline()
+                for link in plug.links_from:
+                    temp_plug = (link[0], link[1])
+                    new_temp_plugs.append(temp_plug)
 
-            # if not from_undo and not from_redo:
-            if not from_export_plugs:
-                # For history
-                history_maker = ["remove_plug", _temp_plug_name,
-                                 new_temp_plugs, optional]
-                self.update_history(history_maker, from_undo, from_redo)
-                self.main_window.pipeline_manager.run_pipeline_action\
-                    .setDisabled(
-                    True)
-                self.main_window.statusBar().showMessage(
-                    "Plug {0} has been removed.".format(_temp_plug_name[1]))
+                # To avoid the "_items" bug: setting the has_items attribute
+                # of the trait's handler to False
+                node = self.scene.pipeline.nodes['']
+                source_trait = node.get_trait(plug_name)
+                
+                if source_trait.handler.has_items:
+                    source_trait.handler.has_items = False
+
+                self.scene.pipeline.remove_trait(pip_plug_name[1])
+                self.scene.update_pipeline()
+                tot_plug_name.append([pip_plug_name, new_temp_plugs, optional])
+
+        # if not from_undo and not from_redo:
+        if not from_export_plugs and tot_plug_name:
+            # For history
+            history_maker = ["remove_plug", tot_plug_name]
+            self.update_history(history_maker, from_undo, from_redo)
+            (self.main_window.pipeline_manager.
+                                          run_pipeline_action.setDisabled)(True)
+
+            if len(tot_plug_name) == 1:
+                self.main_window.statusBar().showMessage("'{0}' plug has been "
+                                                         "removed.".format(
+                                                        tot_plug_name[0][0][1]))
+            else:
+                self.main_window.statusBar().showMessage("{0} plugs has been "
+                                                         "removed.".format(
+                                       tuple((i[0][1] for i in tot_plug_name))))
 
     def add_link(self, source, dest, active, weak,
                  from_undo=False, from_redo=False):
@@ -973,9 +988,10 @@ class PipelineEditor(PipelineDevelopperView):
 
         else:
             self.undos.append(history_maker)
-            # If the action does not come from an undo or a redo,
+            # If the action does not comes from an undo or a redo,
             # redos must be updated with care
             if not from_redo:
+                to_redo = None
 
                 if history_maker[0] == 'add_process':
                     to_redo = 'delete_process'
@@ -983,7 +999,8 @@ class PipelineEditor(PipelineDevelopperView):
                 elif history_maker[0] == 'delete_process':
                     to_redo = 'add_process'
 
-                else: to_redo = None
+                elif history_maker[0] == 'update_node_name':
+                    self.undos.pop()
 
                 for i, item in enumerate(self.redos):
 
@@ -1072,6 +1089,9 @@ class PipelineEditor(PipelineDevelopperView):
             plug_name)
         self.scene.pipeline.nodes[node_name].set_plug_value(
             plug_name, value_type(new_value))
+
+        if from_undo or from_redo:
+            self.undos.pop()
 
         # For history
         history_maker = ["update_plug_value", node_name, old_value,

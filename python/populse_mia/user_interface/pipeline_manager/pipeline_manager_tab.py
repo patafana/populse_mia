@@ -1023,42 +1023,28 @@ class PipelineManagerTab(QWidget):
 
         elif case == "plug_value":
 
-            if signal_list[2] in ['protected_parameters', 'selection_changed',
-                                  'trait_added', 'user_traits_changed']:
+            if (signal_list[2] in ['protected_parameters',
+                                   'protected_parameters_items',
+                                   'selection_changed',
+                                   'trait_added','user_traits_changed'] or
+                                                   signal_list[1] == '' or
+                        (signal_list[1] == [] and signal_list[4] is Undefined)):
                 return
 
             history_maker.append("update_plug_value")
 
             for element in signal_list:
 
-                if element == 'inputs' or element == 'outputs':
+                if element in ['inputs', 'outputs']:
                     element = ''
 
                 history_maker.append(element)
 
+        #For history
         self.pipelineEditorTabs.undos[
             self.pipelineEditorTabs.get_current_editor()].append(history_maker)
-        self.pipelineEditorTabs.redos[
-            self.pipelineEditorTabs.get_current_editor()].clear()
-
-        if case == "plug_value":
-            node_name = signal_list[0]
-            if node_name in ['inputs', 'outputs']:
-                node_name = ''
-
-        if case == "node_name":
-            node_name = signal_list[1]
-
-        # This is a 3ct hack to remove a node in the pipeline manager
-        #TODO: Maybe the hack can be now removed
-        #if node_name in self.pipelineEditorTabs.get_current_pipeline().nodes:
-        #    node = self.pipelineEditorTabs.get_current_pipeline().nodes[
-        #        node_name]
-        #    process = node
-        #    if isinstance(node, ProcessNode):
-        #        process = node.process
-        #    self.nodeController.update_parameters(process)
-
+        #self.pipelineEditorTabs.redos[
+        #    self.pipelineEditorTabs.get_current_editor()].clear()
         self.run_pipeline_action.setDisabled(True)
 
         # Cause a segmentation fault
@@ -1801,29 +1787,42 @@ class PipelineManagerTab(QWidget):
                     _temp_plug_name=temp_plug_name, from_redo=True)
 
             elif action == "remove_plug":
-                temp_plug_name = to_redo[1]
-                new_temp_plugs = to_redo[2]
-                optional = to_redo[3]
-                c_e._export_plug(temp_plug_name=new_temp_plugs[0],
-                                 weak_link=False,
-                                 optional=optional,
-                                 from_redo=True,
-                                 pipeline_parameter=temp_plug_name[1])
+                tot_plug_names = to_redo[1]
 
-                # Connecting all the plugs that were connected
-                # to the original plugs
-                for plug_tuple in new_temp_plugs:
+                if len(tot_plug_names) > 1:
+                    tot_pip_plug_name = []
+                
+                for tot_plug_name in tot_plug_names:
+                    pip_plug_name = tot_plug_name[0]
+                    node_plug_name = tot_plug_name[1]
+                    optional = tot_plug_name[2]
 
-                    # Checking if the original plug is a pipeline
-                    # input or output to adapt
-                    # the links to add.
-                    if temp_plug_name[0] == 'inputs':
-                        source = ('', temp_plug_name[1])
-                        dest = plug_tuple
+                    if len(tot_plug_names) == 1:
+                        multi_export = False
 
                     else:
-                        source = plug_tuple
-                        dest = ('', temp_plug_name[1])
+                        multi_export = True
+                        tot_pip_plug_name.append(tot_plug_name[0][1])
+                        
+                    c_e._export_plug(temp_plug_name=node_plug_name[0],
+                                     weak_link=False,
+                                     optional=optional,
+                                     from_redo=True,
+                                     pipeline_parameter=pip_plug_name[1],
+                                     multi_export=multi_export)
+
+                    # Connecting all the plugs that were connected
+                    # to the original plugs.
+                    
+                    # Checking if the original plug is a pipeline
+                    # input or output to adapt the links to add.
+                    if  tot_plug_name[0][0] == 'inputs':
+                        source = ('', tot_plug_name[0][1])
+                        dest = tot_plug_name[1][0]
+
+                    else:
+                        source = tot_plug_name[1][0]
+                        dest = ('', tot_plug_name[0][1])
 
                     c_e.scene.add_link(source, dest, active=True, weak=False)
 
@@ -1834,6 +1833,12 @@ class PipelineManagerTab(QWidget):
 
                     c_e.scene.pipeline.add_link(link)
                     c_e.scene.update_pipeline()
+
+                if multi_export:
+                    history_maker = ["export_plugs",
+                                     tot_pip_plug_name,
+                                     node_plug_name[0][0]]
+                    c_e.undos.append(history_maker)
 
             elif action == "update_node_name":
                 node = to_redo[1]
@@ -2146,14 +2151,26 @@ class PipelineManagerTab(QWidget):
                 if isinstance(parameters, str):
                     parameters= [parameters]
 
-                for parameter in parameters:
-                    temp_plug_name = ('inputs', parameter)
-                    c_e._remove_plug(_temp_plug_name=temp_plug_name,
-                                     from_undo=True,
-                                     from_export_plugs=False)
+                temp_plug_name = []
 
-                self.main_window.statusBar().showMessage(
-                    "Plugs {0} have been removed.".format(str(parameters)))
+                for parameter in parameters:
+
+                    if c_e.scene.pipeline.nodes[node_name].plugs[
+                                                              parameter].output:
+                        pip_plug_name = ('outputs', parameter)
+
+                    else:
+                        pip_plug_name = ('inputs', parameter)
+
+                    
+                    temp_plug_name.append(pip_plug_name)
+
+                c_e._remove_plug(_temp_plug_name=temp_plug_name,
+                                 from_undo=True,
+                                 from_export_plugs=False)
+
+                #self.main_window.statusBar().showMessage(
+                #    "Plugs {0} have been removed.".format(str(parameters)))
 
             elif action == "remove_plug":
                 temp_plug_name = to_undo[1]
