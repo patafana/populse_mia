@@ -2517,6 +2517,15 @@ class PipelineManagerTab(QWidget):
         else:
             self.run_pipeline_action.setDisabled(True)
 
+        if self.iterationTable.check_box_iterate.isChecked():
+            self.save_pipeline_as_action.setDisabled(True)
+            self.save_pipeline_action.setDisabled(True)
+
+        else:
+            self.save_pipeline_as_action.setDisabled(False)
+            self.save_pipeline_action.setDisabled(False)
+            
+
         #self.run_pipeline_action.setDisabled(True)
         self.init_pipeline_action.setDisabled(False)
 
