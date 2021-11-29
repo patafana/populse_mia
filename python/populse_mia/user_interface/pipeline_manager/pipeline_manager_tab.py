@@ -934,6 +934,7 @@ class PipelineManagerTab(QWidget):
                 pipeline.remove_trait(plug)
                 pipeline.export_parameter(node_name, 'input_0',
                                           pipeline_parameter=plug)
+                pipeline.trait(plug).forbid_completion = True
                 pipeline.reorder_traits(old_traits)
 
         # now replace the pipeline with an iterative node
