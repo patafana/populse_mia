@@ -47,6 +47,7 @@ from capsul.api import (get_process_instance, NipypeProcess, Pipeline,
                         PipelineNode, Process, ProcessNode, Switch)
 from capsul.attributes.completion_engine import ProcessCompletionEngine
 from capsul.engine import WorkflowExecutionError
+from capsul.pipeline.pipeline_workflow import workflow_from_pipeline
 from capsul.pipeline import pipeline_tools
 from capsul.qt_gui.widgets.pipeline_developper_view import (
     PipelineDevelopperView)
@@ -79,6 +80,7 @@ import threading
 import time
 import traceback
 import uuid
+import six
 from collections import OrderedDict
 from matplotlib.backends.qt_compat import QtWidgets
 from traits.api import TraitListObject, Undefined
@@ -178,6 +180,8 @@ class PipelineManagerTab(QWidget):
         # list from the data_browser
         self.iteration_table_scans_list = []
         self.brick_list = []
+        self.node_list = []
+        self.workflow = None
 
         # Used for the inheritance dictionary
         self.key = {}
@@ -295,7 +299,7 @@ class PipelineManagerTab(QWidget):
         self.nodeController.value_changed.connect(
             self.controller_value_changed)
 
-    def _register_node_io_in_database(self, node, pipeline_name=''):
+    def _register_node_io_in_database(self, job, node, pipeline_name=''):
         """bla bla bla"""
 
         if isinstance(node, (PipelineNode, Pipeline)):
@@ -325,6 +329,25 @@ class PipelineManagerTab(QWidget):
                 for param, trait in node.user_traits().items()
                 if not trait.output}
 
+        # Fill inputs and outputs values with job
+        for key in inputs.keys():
+            if key in job.param_dict:
+                value = job.param_dict[key]
+                if isinstance(value, list):
+                    for i in range(len(inputs[key])):
+                        inputs[key][i] = value[i]
+                else:
+                    inputs[key] = value
+
+        for key in outputs.keys():
+            if key in job.param_dict:
+                value = job.param_dict[key]
+                if isinstance(value, list):
+                    for i in range(len(outputs[key])):
+                        outputs[key][i] = value[i]
+                else:
+                    outputs[key] = value
+
         # also get completion attributes
         attributes = {}
         completion = ProcessCompletionEngine.get_completion_engine(node)
@@ -332,7 +355,6 @@ class PipelineManagerTab(QWidget):
             attributes = completion.get_attribute_values().export_to_dict()
 
         # Adding I/O to database history
-
         for key in inputs:
 
             if inputs[key] in [Undefined, [Undefined]]:
@@ -369,11 +391,11 @@ class PipelineManagerTab(QWidget):
 
                     trait = process.trait(plug_name)
                     self.add_plug_value_to_database(plug_value,
-                                                    node.uuid,
+                                                    job.uuid,
                                                     node_name,
                                                     plug_name,
                                                     full_name,
-                                                    node,
+                                                    job,
                                                     trait,
                                                     inputs,
                                                     attributes)
@@ -381,7 +403,7 @@ class PipelineManagerTab(QWidget):
         # Adding I/O to database history
         # Setting brick init state if init finished correctly
         self.project.session.set_values(
-            COLLECTION_BRICK, node.uuid,
+            COLLECTION_BRICK, job.uuid,
             {BRICK_INPUTS: inputs,
              BRICK_OUTPUTS: outputs,
              BRICK_INIT: "Done"})
@@ -400,7 +422,7 @@ class PipelineManagerTab(QWidget):
     #    self.find_process(name_item)
 
     def add_plug_value_to_database(self, p_value, brick_id, node_name,
-                                   plug_name, full_name, node, trait, inputs,
+                                   plug_name, full_name, job, trait, inputs,
                                    attributes):
         """Add the plug value to the database.
 
@@ -411,7 +433,7 @@ class PipelineManagerTab(QWidget):
         :param full_name: full name of the node, including parent
                           brick(s) (str). If there is no parent brick,
                           full_name = node_name.
-        :param node: node containing the plug (Node)
+        :param job: job containing the plug (Job)
         :param trait: handler of the plug trait, or sub-trait if the plug is
                       a list (Trait). It will be used to check the value type
                       (file or not).
@@ -433,7 +455,7 @@ class PipelineManagerTab(QWidget):
                     else:
                         new_attributes[k] = v
                 self.add_plug_value_to_database(elt, brick_id, node_name,
-                                                plug_name, full_name, node,
+                                                plug_name, full_name, job,
                                                 inner_trait, inputs,
                                                 new_attributes)
             return
@@ -497,13 +519,8 @@ class PipelineManagerTab(QWidget):
         # If not, or if the parameter value is not found there, we also have
         # an "auto_inheritance_dict" which automatically maps outputs to
         # inputs. If there is no ambiguity, we can process automatically.
-        process = node
-
-        if isinstance(process, ProcessNode):
-            process = process.process
-
-        inheritance_dict = getattr(process, 'inheritance_dict', {})
-        auto_inheritance_dict = getattr(process, 'auto_inheritance_dict', {})
+        inheritance_dict = getattr(job, 'inheritance_dict', {})
+        auto_inheritance_dict = getattr(job, 'auto_inheritance_dict', {})
         parent_files = inheritance_dict.get(old_value)
         own_tags = None
         # the dicts may have several shapes. Keys are output filenames
@@ -972,6 +989,13 @@ class PipelineManagerTab(QWidget):
         compl = ProcessCompletionEngine.get_completion_engine(it_pipeline)
         return it_pipeline
 
+    def check_requirements(self, environment='global', message_list=None):
+        config = {}
+        for node in self.node_list:
+            config.update(node.check_requirements(environment, message_list))
+
+        return config
+
     def cleanup_older_init(self):
 
         for brick in self.brick_list:
@@ -979,6 +1003,8 @@ class PipelineManagerTab(QWidget):
             self.main_window.data_browser.table_data.delete_from_brick(
                 brick)
         self.project.cleanup_orphan_nonexisting_files()
+        self.brick_list = []
+        self.node_list = []
         QtThreadCall().push(
             self.main_window.data_browser.table_data.update_table)
 
@@ -1199,6 +1225,14 @@ class PipelineManagerTab(QWidget):
                     return node.process
         return pipeline
 
+    def get_missing_mandatory_parameters(self):
+        missing_inputs = []
+        for node in self.node_list:
+            for item in node.get_missing_mandatory_parameters():
+                missing_inputs.append(item)
+
+        return missing_inputs
+
     def initialize(self):
         """Clean previous initialization then initialize the current
         pipeline."""
@@ -1273,17 +1307,34 @@ class PipelineManagerTab(QWidget):
         # complete config for completion
         study_config = pipeline.get_study_config()
         study_config.project = self.project
-        self.project.process_order = []
+        self.project.node_inheritance_history = {}
+
+        req_messages = []
+        init_messages = []
 
         # Capsul parameters completion
         print('Completion ...')
         self.complete_pipeline_parameters(pipeline)
         print('\nCompletion done.\n')
 
+        # retrieve workflow
+        # when pipeline is iterated, this seems to perform completion again
+        try:
+            self.workflow = workflow_from_pipeline(pipeline)
+
+        except (TypeError, ValueError) as error:
+            init_result = False
+            ptype = 'pipeline'
+            mssg = ('In {0} {1}, initialization error: '
+                    '{2}').format(ptype, name, str(error))
+            init_messages.append(mssg)
+            pass
+
+        # retrieve node list
+        self.update_node_list()
+
         # check missing inputs
-        req_messages = []
-        init_messages = []
-        missing_inputs = pipeline.get_missing_mandatory_parameters()
+        missing_inputs = self.get_missing_mandatory_parameters()
 
         if len(missing_inputs) != 0:
             ptype = 'pipeline'
@@ -1294,18 +1345,10 @@ class PipelineManagerTab(QWidget):
             init_messages.append(mssg)
             init_result = False
 
-        #missing_inputs = pipeline_tools.nodes_with_missing_inputs(pipeline)
-        #if missing_inputs:
-            #print('Some input files do not exist:')
-            #for name, params in missing_inputs.items():
-                #print('node:', name)
-                #for pname, fname in params:
-                    #print('%s:' % pname, fname)
-            #init_result = False
-
         # check requirements
-        requirements = pipeline.check_requirements('global',
-                                                   message_list=req_messages)
+        requirements = self.check_requirements('global',
+                                               message_list=req_messages)
+
         if requirements is None:
             print('Pipeline requirements are not met.')
             print('\n'.join(req_messages))
@@ -1317,203 +1360,207 @@ class PipelineManagerTab(QWidget):
                                  'information.')
 
         else:
+            # QUESTION: Would it be better to write a general method for
+            #           testing all modules (currently each module test is
+            #           hard coded below)?
+            # TODO: Are these tests compatible with remote run?
 
-            if isinstance(requirements, dict):
-                requirements=[requirements]
+            # FSL:
+            try:
+                if requirements['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                    'fsl') is None:
+                    raise KeyError
 
-            for req in requirements:
-                # QUESTION: Would it be better to write a general method for
-                #           testing all modules (currently each module test is
-                #           hard coded below)?
-                # TODO: Are these tests compatible with remote run?
+            except KeyError:
+                # The process don't need FSL
+                pass
 
-                # FSL:
-                try:
-                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
-                                                        'fsl') is None:
-                        raise KeyError
+            else:
+                if 'capsul.engine.module.fsl' in requirements:
 
-                except KeyError:
-                    # The process don't need FSL
-                    pass
+                    if not requirements['capsul.engine.module.'
+                               'fsl'].get('directory',
+                                          False):
+                        init_result = False
+                        init_messages.append('The pipeline requires FSL '
+                                             'but it seems FSL is not '
+                                             'configured in mia '
+                                             'preferences.')
 
                 else:
-                    if 'capsul.engine.module.fsl' in req:
+                    init_result = False
+                    init_messages.append('The pipeline requires FSL but it '
+                                         'seems FSL is not configured in '
+                                         'mia preferences.')
 
-                        if not req['capsul.engine.module.'
-                                   'fsl'].get('directory',
-                                              False):
+            # Matlab:
+            try:
+
+                if (requirements['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                     'matlab') is None or
+                                         Config().get_use_spm_standalone()):
+                    raise KeyError
+
+            except KeyError:
+                # The process don't need matlab
+                pass
+
+            else:
+
+                if 'capsul.engine.module.matlab' in requirements:
+
+                    if not requirements['capsul.engine.module.'
+                               'matlab'].get('executable',
+                                             False):
+                        init_result = False
+                        init_messages.append('The pipeline requires Matlab '
+                                             'but it seems Matlab is not '
+                                             'configured in mia '
+                                             'preferences.')
+
+                else:
+                    init_result = False
+                    init_messages.append('The pipeline requires Matlab but '
+                                         'it seems Matlab is not '
+                                         'configured in mia preferences.')
+
+            # SPM
+            try:
+                if requirements['capsul_engine']['uses'].get('capsul.engine.module.'
+                                                    'spm') is None:
+                    raise KeyError
+
+            except KeyError:
+                # The process don't need spm
+                pass
+
+            else:
+
+                if 'capsul.engine.module.spm' in requirements:
+
+                    if not requirements['capsul.engine.module.spm'].get('directory',
+                                                               False):
+                        init_result = False
+                        init_messages.append('The pipeline requires SPM '
+                                             'but it seems SPM is not '
+                                             'configured in mia '
+                                             'preferences.')
+
+                    elif requirements['capsul.engine.module.spm']['standalone']:
+
+                        if Config().get_matlab_standalone_path() is None:
                             init_result = False
-                            init_messages.append('The pipeline requires FSL '
-                                                 'but it seems FSL is not '
-                                                 'configured in mia '
-                                                 'preferences.')
+                            init_messages.append('The pipeline requires '
+                                                 'SPM but it seems that in '
+                                                 'mia preferences, SPM has '
+                                                 'been configured as '
+                                                 'standalone while matlab '
+                                                 'Runtime is not '
+                                                 'configured.')
 
                     else:
-                        init_result = False
-                        init_messages.append('The pipeline requires FSL but it '
-                                             'seems FSL is not configured in '
-                                             'mia preferences.')
 
-                # Matlab:
-                try:
+                        try:
+                            requirements['capsul.engine.module.matlab'].get(
+                                                               'executable')
 
-                    if (req['capsul_engine']['uses'].get('capsul.engine.module.'
-                                                         'matlab') is None or
-                                             Config().get_use_spm_standalone()):
-                        raise KeyError
-
-                except KeyError:
-                    # The process don't need matlab
-                    pass
+                        except KeyError:
+                            init_result = False
+                            init_messages.append('The pipeline requires '
+                                                 'SPM but it seems that in '
+                                                 'mia preferences, SPM has '
+                                                 'been configured as '
+                                                 'non-standalone while '
+                                                 'matlab with license is '
+                                                 'not configured.')
 
                 else:
+                    init_result = False
+                    init_messages.append('The pipeline requires SPM but it '
+                                         'seems SPM is not configured in '
+                                         'mia preferences.')
 
-                    if 'capsul.engine.module.matlab' in req:
+        # Check that completion for output parameters is fine (for each job)
+        if self.workflow is not None:
+            for job in self.workflow.jobs:
+                if hasattr(job, 'process'):
+                    node = job.process()
+                    output_names = []
+                    for trait_name, trait in six.iteritems(node.traits(output=True, optional=False)):
+                        output_names.append(trait_name)
 
-                        if not req['capsul.engine.module.'
-                                   'matlab'].get('executable',
-                                                 False):
-                            init_result = False
-                            init_messages.append('The pipeline requires Matlab '
-                                                 'but it seems Matlab is not '
-                                                 'configured in mia '
-                                                 'preferences.')
-
-                    else:
+                    if not all(output_name in job.param_dict for output_name in output_names):
                         init_result = False
-                        init_messages.append('The pipeline requires Matlab but '
-                                             'it seems Matlab is not '
-                                             'configured in mia preferences.')
 
-                # SPM
-                try:
-                    if req['capsul_engine']['uses'].get('capsul.engine.module.'
-                                                        'spm') is None:
-                        raise KeyError
-
-                except KeyError:
-                    # The process don't need spm
-                    pass
-
-                else:
-
-                    if 'capsul.engine.module.spm' in req:
-
-                        if not req['capsul.engine.module.spm'].get('directory',
-                                                                   False):
-                            init_result = False
-                            init_messages.append('The pipeline requires SPM '
-                                                 'but it seems SPM is not '
-                                                 'configured in mia '
-                                                 'preferences.')
-
-                        elif req['capsul.engine.module.spm']['standalone']:
-                          
-                            if Config().get_matlab_standalone_path() is None:
-                                init_result = False
-                                init_messages.append('The pipeline requires '
-                                                     'SPM but it seems that in '
-                                                     'mia preferences, SPM has '
-                                                     'been configured as '
-                                                     'standalone while matlab '
-                                                     'Runtime is not '
-                                                     'configured.')
+                        if node.context_name.split('.')[0] == 'Pipeline':
+                            node_name = '.'.join(node.context_name.split('.')[1:])
 
                         else:
+                            node_name = node.context_name
 
-                            try:
-                                req['capsul.engine.module.matlab'].get(
-                                                                   'executable')
-
-                            except KeyError:
-                                init_result = False
-                                init_messages.append('The pipeline requires '
-                                                     'SPM but it seems that in '
-                                                     'mia preferences, SPM has '
-                                                     'been configured as '
-                                                     'non-standalone while '
-                                                     'matlab with license is '
-                                                     'not configured.')
-
-                    else:
-                        init_result = False
-                        init_messages.append('The pipeline requires SPM but it '
-                                             'seems SPM is not configured in '
-                                             'mia preferences.')
-
-        # Check that completion for output parameters is fine
-        for node in self.project.process_order:
-
-            if hasattr(node, 'outputs') and not node.outputs:
-                    init_result = False
-                    
-                    if node.context_name.split('.')[0] == 'Pipeline':
-                        node_name = '.'.join(node.context_name.split('.')[1:])
-
-                    else:
-                        node_name = node.context_name
-
-                    init_messages.append('It seems that no output parameter '
-                                         ' has been automatically set for the '
-                                         '"{0}" brick.'.format(node_name))
+                        init_messages.append('It seems that mandatory output parameter(s) '
+                                             ' has not been automatically set for the '
+                                             '"{0}" brick.'.format(node_name))
 
         if init_result:
-
             # add process characteristics in the database
             # if init is otherwise OK
-            for node in self.project.process_order:
-                process = node
-                if isinstance(node, ProcessNode):
-                    process = node.process
-                node_name = getattr(process, 'context_name', node.name)
-                self.update_auto_inheritance(node)
-
-                # Adding the brick to the bricks history
-                if not isinstance(node, (PipelineNode, Pipeline)):
-                    # check if brick_id has already been assgned
-                    brick_id = getattr(node, 'uuid', None)
-
-                    if brick_id is None and isinstance(node, ProcessNode):
-                        brick_id = getattr(node.process, 'uuid', None)
-
-                    if brick_id is None:
-                        brick_id = str(uuid.uuid4())
-
-                    # set brick_id in process
-                    node.uuid = brick_id
-
+            for job in self.workflow.jobs:
+                if hasattr(job, 'process'):
+                    node = job.process()
+                    process = node
                     if isinstance(node, ProcessNode):
-                        node.process.uuid = brick_id
+                        process = node.process
+                    # trick to eliminate "ReduceJob" in jobs
+                    # would it be better to test if process is a ReduceNode ?
+                    if hasattr(process, 'context_name'):
+                        node_name = getattr(process, 'context_name', node.name)
+                        if node_name.split('.')[0] == 'Pipeline':
+                            node_name = '.'.join(node_name.split('.')[1:])
 
-                    self.brick_list.append(brick_id)
-                    try:
-                        self.project.session.add_document(COLLECTION_BRICK,
-                                                          brick_id)
-                    except ValueError:
-                        # id is not unique. It happens in iterations
-                        # FIXME: we need a better way to handle UUIDs in
-                        # iterated processes
-                        brick_id = str(uuid.uuid4())
-                        node.uuid = brick_id
-                        if isinstance(node, ProcessNode):
-                            node.process.uuid = brick_id
-                        self.brick_list[-1] = brick_id
-                        # then try again
-                        self.project.session.add_document(COLLECTION_BRICK,
-                                                          brick_id)
+                        self.update_auto_inheritance(job, node)
+                        self.update_inheritance(job, node)
 
+                        # Adding the brick to the bricks history
+                        if not isinstance(node, (PipelineNode, Pipeline)):
+                            # check if brick_id has already been assigned
+                            brick_id = getattr(job, 'uuid', None)
 
-                    if node_name.split('.')[0] == 'Pipeline':
-                        node_name = '.'.join(node_name.split('.')[1:])
+                            if brick_id is None:
+                                brick_id = getattr(node, 'uuid', None)
 
-                    self.project.session.set_values(
-                        COLLECTION_BRICK, brick_id,
-                        {BRICK_NAME: node_name,
-                        BRICK_INIT_TIME: datetime.datetime.now(),
-                        BRICK_INIT: "Not Done",
-                        BRICK_EXEC: "Not Done"})
-                    self._register_node_io_in_database(node, pipeline_name)
+                            if brick_id is None:
+                                brick_id = str(uuid.uuid4())
+
+                            # set brick_id in process
+                            job.uuid = brick_id
+
+                            self.brick_list.append(brick_id)
+                            try:
+                                self.project.session.add_document(COLLECTION_BRICK,
+                                                                  brick_id)
+                            except ValueError:
+                                # # id is not unique. It happens in iterations
+                                # # FIXME: we need a better way to handle UUIDs in
+                                # # iterated processes
+                                # brick_id = str(uuid.uuid4())
+                                # job.uuid = brick_id
+                                # self.brick_list[-1] = brick_id
+                                # # then try again
+                                # self.project.session.add_document(COLLECTION_BRICK,
+                                #                                   brick_id)
+                                init_result = False
+                                init_messages.append('Error while setting job uuid on '
+                                                     '"{0}" brick.'.format(node_name))
+
+                            self.project.session.set_values(
+                                COLLECTION_BRICK, brick_id,
+                                {BRICK_NAME: node_name,
+                                BRICK_INIT_TIME: datetime.datetime.now(),
+                                BRICK_INIT: "Not Done",
+                                BRICK_EXEC: "Not Done"})
+
+                            self._register_node_io_in_database(job, node, pipeline_name)
 
         self.register_completion_attributes(pipeline)
         print('init time:', time.time() - t0)
@@ -2257,7 +2304,7 @@ class PipelineManagerTab(QWidget):
             c_e.scene.pipeline.update_nodes_and_plugs_activation()
             self.nodeController.update_parameters()
 
-    def update_auto_inheritance(self, node):
+    def update_auto_inheritance(self, job, node):
         '''
         Try (as best as possible) to assign output parameters to input ones,
         to get database tags for them.
@@ -2321,7 +2368,9 @@ class PipelineManagerTab(QWidget):
             os.path.abspath(os.path.normpath(project.folder)), '')
         pl = len(proj_dir)
 
+        # retrieve inputs and outputs keys in process,
         if isinstance(process, Process):
+
             inputs = process.get_inputs()
             outputs = process.get_outputs()
             # ProcessMIA / Process_Mia specific
@@ -2330,7 +2379,6 @@ class PipelineManagerTab(QWidget):
                 # normally same as outputs, but it may contain an additional
                 # "notInDb" key.
                 outputs.update(process.outputs)
-
         else:
             outputs = {
                 param: node.get_plug_value(param)
@@ -2340,6 +2388,25 @@ class PipelineManagerTab(QWidget):
                 param: node.get_plug_value(param)
                 for param, trait in process.user_traits().items()
                 if not trait.output}
+
+        # Fill inputs and outputs values with job
+        for key in inputs.keys():
+            if key in job.param_dict:
+                value = job.param_dict[key]
+                if isinstance(value, list):
+                    for i in range(len(inputs[key])):
+                        inputs[key][i] = value[i]
+                else:
+                    inputs[key] = value
+
+        for key in outputs.keys():
+            if key in job.param_dict:
+                value = job.param_dict[key]
+                if isinstance(value, list):
+                    for i in range(len(outputs[key])):
+                        outputs[key][i] = value[i]
+                else:
+                    outputs[key] = value
 
         # if the process has a single input with a value in the database,
         # then we can deduce its output database tags/attributes from it
@@ -2411,8 +2478,43 @@ class PipelineManagerTab(QWidget):
                 auto_inheritance_dict[value] = main_value
 
         if auto_inheritance_dict:
-            process.auto_inheritance_dict = auto_inheritance_dict
+            job.auto_inheritance_dict = auto_inheritance_dict
             # print('auto_inheritance_dict for', node.name, ':', auto_inheritance_dict)
+
+    def update_inheritance(self, job, node):
+        if node.context_name.split('.')[0] == 'Pipeline':
+            node_name = '.'.join(node.context_name.split('.')[1:])
+
+        else:
+            node_name = node.context_name
+
+        new_inheritance_dict = {}
+        if node_name in self.project.node_inheritance_history:
+            for inherit_dict in self.project.node_inheritance_history[node_name]:
+                dict_found = False
+                for inheritance_dict_key in inherit_dict.keys():
+                    for param_key, param_value in job.param_dict.items():
+                        if inheritance_dict_key == param_value and not dict_found:
+                            new_inheritance_dict.update(inherit_dict)
+                            dict_found = True
+        if not new_inheritance_dict:
+            process = node
+            if isinstance(process, ProcessNode):
+                process = process.process
+            job.inheritance_dict = getattr(process, 'inheritance_dict', {})
+        else:
+            job.inheritance_dict = new_inheritance_dict
+
+    def update_node_list(self):
+        """
+        Update the list of nodes in workflow
+        """
+        if self.workflow is not None:
+            for job in self.workflow.jobs:
+                if hasattr(job, 'process'):
+                    node = job.process()
+                    if node not in self.node_list:
+                        self.node_list.append(node)
 
     def updateProcessLibrary(self, filename):
         """
@@ -2747,7 +2849,7 @@ class RunWorker(QThread):
         print('- Pipeline running ...\n')
 
         try:
-            exec_id, pipeline = engine.start(pipeline, get_pipeline=True)
+            exec_id, pipeline = engine.start(pipeline, workflow=self.pipeline_manager.workflow, get_pipeline=True)
             self.exec_id = exec_id
             while self.status in (swconstants.WORKFLOW_NOT_STARTED,
                                   swconstants.WORKFLOW_IN_PROGRESS):

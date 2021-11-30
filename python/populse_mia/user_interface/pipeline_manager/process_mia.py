@@ -324,28 +324,27 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             self.complete_parameters_mia(process_inputs)
             self.completion_progress = self.completion_progress_total
 
-        project = self.get_project(in_process)
-        if project is not None:
-            # record completion order to perform 2nd pass tags recording and
-            # indexation
-            if not hasattr(project, 'process_order'):
-                project.process_order = []
+            # we must keep a copy of inheritance dict,
+            # since it changes at each iteration and is not included in workflow
+            # TODO: a better solution would be to save for each node the inheritance between plugs
+            # and not between filenames (that changes over iteration)
+            project = self.get_project(in_process)
+            if project is not None:
+                # record completion order to perform 2nd pass tags recording and
+                # indexation
+                if not hasattr(project, 'node_inheritance_history'):
+                    project.node_inheritance_history = {}
 
-            node = self.process
+                node = self.process
 
-            if isinstance(node, Pipeline):
-                node = node.pipeline_node
+                if isinstance(node, Pipeline):
+                    node = node.pipeline_node
 
-            # Create a copy of current node to populate process_order
-            # Without copying the node, in iteration mode, each iterated node replace previous one in process_order,
-            # because it is only a reference to it
-            process_order_node = copy.deepcopy(node)
-            for trait_name, trait in six.iteritems(node.user_traits()):
-                setattr(process_order_node, trait_name, copy.deepcopy(getattr(node, trait_name)))
-                process_order_node.add_trait(trait_name, node.trait(trait_name))
-
-            # project.process_order.append(node) # OLD VERSION
-            project.process_order.append(process_order_node)
+                # Create a copy of current inheritance dict
+                if node_name not in project.node_inheritance_history:
+                    project.node_inheritance_history[node_name] = []
+                if hasattr(node, 'inheritance_dict'):
+                    project.node_inheritance_history[node_name].append(node.inheritance_dict)
 
     def complete_parameters_mia(self, process_inputs={}):
         '''
@@ -369,6 +368,7 @@ class MIAProcessCompletionEngine(ProcessCompletionEngine):
             is_plugged = None  # we cannot get this info
 
         try:
+            # set inheritance dict to the node
             initResult_dict = process.list_outputs(is_plugged=is_plugged)
 
         except Exception as e:
