@@ -40,6 +40,7 @@ from PyQt5.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
 from soma.controller import trait_ids
 
 # capsul imports
+from capsul.pipeline.process_iteration import ProcessIteration
 from capsul.qt_gui.widgets.attributed_process_widget import (
                                                         AttributedProcessWidget)
 
@@ -419,6 +420,7 @@ class CapsulNodeController(QWidget):
         self.main_window = main_window
         self.node_name = ""
         self.visibles_tags = []
+        self.pipeline = pipeline_manager_tab.pipelineEditorTabs.get_current_pipeline()
 
         # Layouts
         v_box_final = QVBoxLayout()
@@ -447,12 +449,13 @@ class CapsulNodeController(QWidget):
         :param pipeline: current pipeline
         """
         self.node_name = node_name
+        self.pipeline = pipeline
         # The pipeline global inputs and outputs node name cannot be modified
         if self.node_name not in ('inputs', 'outputs'):
             self.line_edit_node_name.setText(self.node_name)
             self.line_edit_node_name.setReadOnly(False)
             self.line_edit_node_name.returnPressed.connect(
-                partial(self.update_node_name, pipeline))
+                self.update_node_name)
         else:
             self.line_edit_node_name.setText('Pipeline inputs/outputs')
             self.line_edit_node_name.setReadOnly(True)
@@ -543,7 +546,7 @@ class CapsulNodeController(QWidget):
         self.value_changed.emit(["plug_value", self.node_name, old_value,
                                  plug_name, plug_name_type, new_value])
 
-    def update_node_name(self, pipeline, new_node_name=None,
+    def update_node_name(self, new_node_name=None,
                          old_node_name=None, from_undo=False,
                          from_redo=False):
         """Change the name of the selected node and updates the pipeline.
@@ -552,7 +555,6 @@ class CapsulNodeController(QWidget):
         a new node that has the same traits as the selected one and create
         new links that are the same than the selected node.
 
-        :param pipeline: current pipeline
         :param new_node_name: new node name (is None except when this method
          is called from an undo/redo)
         :param old_node_name: old node name (is None except when this method
@@ -569,23 +571,28 @@ class CapsulNodeController(QWidget):
             old_node_name = self.node_name
 
         # Copying the old node
-        old_node = pipeline.nodes[old_node_name]
+        old_node = self.pipeline.nodes[old_node_name]
 
-        if new_node_name in list(pipeline.nodes.keys()):
+        if isinstance(self.process, ProcessIteration):
+            if not new_node_name.startswith('iterated_'):
+                new_node_name = 'iterated_' + new_node_name
+                self.line_edit_node_name.setText(new_node_name)
+
+        if new_node_name in list(self.pipeline.nodes.keys()):
             print("\nUpdate of the node name from '{0}' to '{1}': impossible, "
                   "the node '{1}' already exists !".format(old_node_name,
                                                            new_node_name))
 
         else:
-            pipeline.rename_node(old_node_name, new_node_name)
+            self.pipeline.rename_node(old_node_name, new_node_name)
 
             # Updating the node_name attribute
             self.node_name = new_node_name
-            pipeline.update_nodes_and_plugs_activation()
+            self.pipeline.update_nodes_and_plugs_activation()
 
             # To undo/redo
             self.value_changed.emit(["node_name",
-                                     pipeline.nodes[new_node_name],
+                                     self.pipeline.nodes[new_node_name],
                                      new_node_name, old_node_name])
 
             # For history
@@ -597,7 +604,7 @@ class CapsulNodeController(QWidget):
                 history_maker.append
                   
             else:
-                history_maker.append(pipeline.nodes[new_node_name])
+                history_maker.append(self.pipeline.nodes[new_node_name])
                 history_maker.append(new_node_name)
                 history_maker.append(old_node_name)
                 
@@ -933,6 +940,7 @@ class NodeController(QWidget):
         self.scan_list = scan_list
         self.main_window = main_window
         self.node_name = ""
+        self.pipeline = pipeline_manager_tab.pipelineEditorTabs.get_current_pipeline()
 
         # Layouts
         self.v_box_final = QVBoxLayout()
@@ -1002,12 +1010,12 @@ class NodeController(QWidget):
         label_node_name.setText('Node name:')
 
         self.line_edit_node_name = QLineEdit()
-
+        self.pipeline = pipeline
         # The pipeline global inputs and outputs node name cannot be modified
         if self.node_name not in ('inputs', 'outputs'):
             self.line_edit_node_name.setText(self.node_name)
             self.line_edit_node_name.returnPressed.connect(
-                partial(self.update_node_name, pipeline))
+                self.update_node_name)
 
         else:
             self.line_edit_node_name.setText('Pipeline inputs/outputs')
@@ -1147,35 +1155,39 @@ class NodeController(QWidget):
                 if label.text() == plug_name:
                     return idx
 
-    def update_node_name(self, pipeline, new_node_name=None):
+    def update_node_name(self, new_node_name=None):
         """Change the name of the selected node and updates the pipeline.
 
         Because the nodes are stored in a dictionary, we have to create
         a new node that has the same traits as the selected one and create
         new links that are the same than the selected node.
 
-        :param pipeline: current pipeline
         :param new_node_name: new node name (is None except when this method
                               is called from an undo/redo)
         """
         # Copying the old node
-        old_node = pipeline.nodes[self.node_name]
+        old_node = self.pipeline.nodes[self.node_name]
         old_node_name = self.node_name
 
         if not new_node_name:
             new_node_name = self.line_edit_node_name.text()
 
-        if new_node_name in list(pipeline.nodes.keys()):
+        if isinstance(self.pipeline.list_process_in_pipeline[0], ProcessIteration):
+            if not new_node_name.startswith('iterated_'):
+                new_node_name = 'iterated_' + new_node_name
+                self.line_edit_node_name.setText(new_node_name)
+
+        if new_node_name in list(self.pipeline.nodes.keys()):
             print("Node name already in pipeline")
 
         else:
-            pipeline.rename_node(old_node_name, new_node_name)
+            self.pipeline.rename_node(old_node_name, new_node_name)
             # Updating the node_name attribute
             self.node_name = new_node_name
 
             # To undo/redo
             self.value_changed.emit(["node_name",
-                                     pipeline.nodes[new_node_name],
+                                     self.pipeline.nodes[new_node_name],
                                      new_node_name, old_node_name])
 
             self.main_window.statusBar().showMessage(
