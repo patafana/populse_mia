@@ -111,6 +111,8 @@ class PipelineManagerTab(QWidget):
         - finish_execution:
         - garbage_collect:
         - get_capsul_engine:
+        - get_missing_mandatory_parameters: check on missing parameters for
+          each job
         - get_pipeline_or_process:
         - initialize: clean previous initialization then initialize the current
           pipeline
@@ -133,10 +135,13 @@ class PipelineManagerTab(QWidget):
         - stop_execution:
         - undo: undo the last action made on the current pipeline editor
         - update_auto_inheritance:
+        - update_node_list: update the list of nodes in workflow
         - updateProcessLibrary: update the library of processes when a
           pipeline is saved
         - update_project: update the project attribute of several objects
         - update_scans_list: update the user-selected list of scans
+        - update_user_buttons_states: Update the visibility of initialize/
+          run/save actions according to pipeline state
         - update_user_mode: update the visibility of widgets/actions
           depending of the chosen mode
 
@@ -1195,8 +1200,11 @@ class PipelineManagerTab(QWidget):
         self.project.cleanup_orphan_bricks()
         self.project.cleanup_orphan_nonexisting_files()
         self.main_window.data_browser.table_data.update_table()
-        self.run_pipeline_action.setDisabled(True)
-        self.init_pipeline_action.setDisabled(False)
+        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
+                    'initialized') and
+                self.pipelineEditorTabs.get_current_editor().initialized):
+            self.pipelineEditorTabs.get_current_editor().initialized = False
+        self.update_user_buttons_states()
 
     def get_capsul_engine(self):
         """
@@ -1226,6 +1234,8 @@ class PipelineManagerTab(QWidget):
         return pipeline
 
     def get_missing_mandatory_parameters(self):
+        """check on missing parameters for
+          each job"""
         missing_inputs = []
         for node in self.node_list:
             for item in node.get_missing_mandatory_parameters():
@@ -2612,25 +2622,7 @@ class PipelineManagerTab(QWidget):
         :param iteration_list: current list of scans in the iteration table
         """
 
-        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
-                    'initialized') and
-                      self.pipelineEditorTabs.get_current_editor().initialized):
-            self.run_pipeline_action.setDisabled(False)
-
-        else:
-            self.run_pipeline_action.setDisabled(True)
-
-        if self.iterationTable.check_box_iterate.isChecked():
-            self.save_pipeline_as_action.setDisabled(True)
-            self.save_pipeline_action.setDisabled(True)
-
-        else:
-            self.save_pipeline_as_action.setDisabled(False)
-            self.save_pipeline_action.setDisabled(False)
-            
-
-        #self.run_pipeline_action.setDisabled(True)
-        self.init_pipeline_action.setDisabled(False)
+        self.update_user_buttons_states()
 
         c_e = self.pipelineEditorTabs.get_current_editor()
         pipeline = self.pipelineEditorTabs.get_current_pipeline()
@@ -2660,7 +2652,7 @@ class PipelineManagerTab(QWidget):
         else:
             if has_iteration:
                 # get the pipeline out from the iteration node
-                new_pipeline =  pipeline.nodes[iteration_name].process.process
+                new_pipeline = pipeline.nodes[iteration_name].process.process
                 c_e.set_pipeline(new_pipeline)
                 self.displayNodeParameters('inputs', new_pipeline)
 
@@ -2671,7 +2663,29 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.scan_list = \
                 self.project.session.get_documents_names(COLLECTION_CURRENT)
         self.pipelineEditorTabs.update_scans_list()
-       
+
+    def update_user_buttons_states(self):
+        """
+        Update the visibility of initialize/run/save actions according to pipeline state
+        """
+        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
+                    'initialized') and
+                self.pipelineEditorTabs.get_current_editor().initialized):
+            self.run_pipeline_action.setDisabled(False)
+
+        else:
+            self.run_pipeline_action.setDisabled(True)
+
+        if self.iterationTable.check_box_iterate.isChecked():
+            self.save_pipeline_as_action.setDisabled(True)
+            self.save_pipeline_action.setDisabled(True)
+
+        else:
+            self.save_pipeline_as_action.setDisabled(False)
+            self.save_pipeline_action.setDisabled(False)
+
+        self.init_pipeline_action.setDisabled(False)
+
     def update_user_mode(self):
         """
         Update the visibility of widgets/actions depending of the chosen mode
