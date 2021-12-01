@@ -54,8 +54,10 @@ class PopulseFileControlWidget(FileControlWidget):
 
         project = user_data.get('project')
         scan_list = user_data.get('scan_list')
+        connected_inputs = user_data.get('connected_inputs', set())
         main_window = user_data.get('main_window')
-        if project and scan_list:
+        if project and scan_list and not trait.output \
+                and control_name not in connected_inputs:
             # Create a browse button
             button = Qt.QPushButton("Filter", widget)
             button.setObjectName('filter_button')
@@ -225,7 +227,9 @@ class PopulseOffscreenListFileControlWidget(OffscreenListFileControlWidget):
         project = user_data.get('project')
         scan_list = user_data.get('scan_list')
         main_window = user_data.get('main_window')
-        if project and scan_list:
+        connected_inputs = user_data.get('connected_inputs', set())
+        if project and scan_list and not trait.output \
+                and control_name not in connected_inputs:
             # Create a browse button
             button = Qt.QPushButton("Filter", widget)
             button.setObjectName('filter_button')

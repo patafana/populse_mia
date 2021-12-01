@@ -463,6 +463,15 @@ class CapsulNodeController(QWidget):
             del item
             self.process_widget = None
 
+        # get the list of inputs connected from outputs of upstream nodes
+        # in order to disable their "filter" file button
+        node = pipeline.nodes.get(node_name)
+        connected_inputs = set()
+        if node is not None:
+            for plug_name, plug in node.plugs.items():
+                if not plug.output and plug.links_from:
+                    connected_inputs.add(plug_name)
+
         userlevel = Config().get_user_level()
         self.process = process
         self.process_widget = AttributedProcessWidget(
@@ -477,7 +486,8 @@ class CapsulNodeController(QWidget):
             user_data={'project': self.project,
                        'scan_list': self.scan_list,
                        'main_window': self.main_window,
-                       'node_controller': self},
+                       'node_controller': self,
+                       'connected_inputs': connected_inputs},
             scroll=False,
             userlevel=userlevel)
         
