@@ -789,7 +789,7 @@ class FilterWidget(QWidget):
                           fields, links, conditions, self.rapid_search.text())
             self.process.filter = filt
 
-        self.set_output_value()
+        #self.set_output_value()
         self.close()
 
     def reset_search_bar(self):
@@ -838,28 +838,28 @@ class FilterWidget(QWidget):
         # Rows updated
         self.table_data.update_visualized_rows(old_scan_list)
 
-    def set_output_value(self):
-        """Set the output of the filter to the output of the node."""
-
-        result_names = []
-        filter = self.table_data.get_current_filter()
-        for i in range(len(filter)):
-            scan_name = filter[i]
-            tag_name = self.push_button_tag_filter.text().replace('&', '')
-            value = self.project.session.get_value(COLLECTION_CURRENT,
-                                                   scan_name, tag_name)
-            if tag_name == TAG_FILENAME:
-                value = os.path.abspath(os.path.join(self.project.folder,
-                                                     value))
-            result_names.append(value)
-
-        result_files = []
-        for result_name in result_names:
-            full_path = os.path.abspath(os.path.join(self.project.folder,
-                                                     result_name))
-            result_files.append(full_path)
-
-        self.node.set_plug_value("output", result_files)
+#    def set_output_value(self):
+#        """Set the output of the filter to the output of the node."""
+#
+#        result_names = []
+#        filter = self.table_data.get_current_filter()
+#        for i in range(len(filter)):
+#            scan_name = filter[i]
+#            tag_name = self.push_button_tag_filter.text().replace('&', '')
+#            value = self.project.session.get_value(COLLECTION_CURRENT,
+#                                                   scan_name, tag_name)
+#            if tag_name == TAG_FILENAME:
+#                value = os.path.abspath(os.path.join(self.project.folder,
+#                                                     value))
+#            result_names.append(value)
+#
+#        result_files = []
+#        for result_name in result_names:
+#            full_path = os.path.abspath(os.path.join(self.project.folder,
+#                                                     result_name))
+#            result_files.append(full_path)
+#
+#        self.node.set_plug_value("output", result_files)
 
     def update_tag_to_filter(self):
         """Update the tag to Filter."""
