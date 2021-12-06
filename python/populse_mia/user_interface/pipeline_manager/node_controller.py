@@ -690,7 +690,7 @@ class FilterWidget(QWidget):
 
         scan_list = []
         # The scan list to filter corresponds to the input of the Input Filter
-        if self.process.input and self.process is not Undefined:
+        if self.process.input and self.process.input is not Undefined:
             for scan in self.process.input:
                 path, file_name = os.path.split(scan)
                 path, second_folder = os.path.split(path)
