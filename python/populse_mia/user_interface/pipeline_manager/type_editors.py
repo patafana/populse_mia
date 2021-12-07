@@ -55,9 +55,19 @@ class PopulseFileControlWidget(FileControlWidget):
         project = user_data.get('project')
         scan_list = user_data.get('scan_list')
         connected_inputs = user_data.get('connected_inputs', set())
+
+        def is_number(x):
+            try:
+                int(x)
+                return True
+            except ValueError:
+                return False
+
         main_window = user_data.get('main_window')
+        # files in a list don't get a Filter button.
         if project and scan_list and not trait.output \
-                and control_name not in connected_inputs:
+                and control_name not in connected_inputs \
+                and not is_number(control_name):
             # Create a browse button
             button = Qt.QPushButton("Filter", widget)
             button.setObjectName('filter_button')
