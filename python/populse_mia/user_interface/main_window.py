@@ -1299,8 +1299,9 @@ class MainWindow(QMainWindow):
                 self.pipeline_manager.pipelineEditorTabs.scan_list = scans
             self.pipeline_manager.pipelineEditorTabs.update_scans_list()
             self.pipeline_manager.update_user_buttons_states()
-            if self.pipeline_manager.iterationTable.iterated_tag:
-                self.pipeline_manager.iterationTable.update_iterated_tag()
+            if self.pipeline_manager.pipelineEditorTabs.get_current_editor().iterated_tag:
+                self.pipeline_manager.iterationTable.update_iterated_tag(
+                    self.pipeline_manager.pipelineEditorTabs.get_current_editor().iterated_tag)
 
             # Pipeline Manager
             # The pending modifications must be saved before

@@ -969,11 +969,13 @@ class PipelineManagerTab(QWidget):
         # plugs which should be connected to a database filter: add some
         # Input_Filter nodes for them, and connect them to the special
         # database_scans input
+        in_filter_not_found = False
         for plug in database_plugs:
             try:
                 in_filter = engine.get_process_instance(
                     'mia_processes.bricks.tools.Input_Filter')
             except ValueError:
+                in_filter_not_found = True
                 print('Input filter not found in library.')
                 break
             node_name = '%s_filter' % plug
@@ -991,6 +993,8 @@ class PipelineManagerTab(QWidget):
                     node_name, 'input', pipeline_parameter='database_scans')
                 it_pipeline.reorder_traits(['database_scans'] + old_traits)
 
+        if not in_filter_not_found:
+            self.pipelineEditorTabs.get_current_editor().iterated = True
         compl = ProcessCompletionEngine.get_completion_engine(it_pipeline)
         return it_pipeline
 
@@ -2672,14 +2676,14 @@ class PipelineManagerTab(QWidget):
                     'initialized') and
                 self.pipelineEditorTabs.get_current_editor().initialized):
             self.run_pipeline_action.setDisabled(False)
-
         else:
             self.run_pipeline_action.setDisabled(True)
 
-        if self.iterationTable.check_box_iterate.isChecked():
+        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
+                    'iterated') and
+                self.pipelineEditorTabs.get_current_editor().iterated):
             self.save_pipeline_as_action.setDisabled(True)
             self.save_pipeline_action.setDisabled(True)
-
         else:
             self.save_pipeline_as_action.setDisabled(False)
             self.save_pipeline_action.setDisabled(False)

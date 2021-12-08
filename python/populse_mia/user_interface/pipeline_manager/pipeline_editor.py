@@ -1184,6 +1184,11 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
         p_e.initialized = False
+        p_e.iterated = False
+        p_e.iterated_tag = None
+        p_e.tag_values_list = []
+        p_e.all_tag_values_list = []
+        p_e.all_tag_values_list = []
         p_e.node_parameters = {}
         p_e.node_parameters_tmp = {}
 
@@ -1275,6 +1280,10 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             p_e.open_filter.connect(self.open_filter)
             p_e.export_to_db_scans.connect(self.export_to_db_scans)
             p_e.initialized = False
+            p_e.iterated = False
+            p_e.iterated_tag = None
+            p_e.tag_values_list = []
+            p_e.all_tag_values_list = []
             p_e.node_parameters = {}
             p_e.node_parameters_tmp = {}
 
@@ -1594,6 +1603,9 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         p_e.open_filter.connect(self.open_filter)
         p_e.export_to_db_scans.connect(self.export_to_db_scans)
         p_e.initialized = False
+        p_e.iterated = False
+        p_e.iterated_tag = None
+        p_e.tag_values_list = []
         p_e.node_parameters = {}
         p_e.node_parameters_tmp = {}
 
@@ -1761,6 +1773,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
         """Set the current tab index and disable the run pipeline action."""
         
         self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
+
         self.setCurrentIndex(index)
         self.previousIndex = index
         self.update_current_node()
@@ -1789,6 +1802,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
             if self.get_current_editor().initialized:
                 self.main_window.pipeline_manager.run_pipeline_action\
                     .setDisabled(False)
+
         try:
             for node_name, node in self.get_current_pipeline().nodes.items():
                 self.main_window.pipeline_manager.displayNodeParameters(
@@ -1802,6 +1816,8 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
                 .setDisabled(False)
 
         self.update_iteration_checkbox()
+        if self.get_current_editor():
+            self.main_window.pipeline_manager.iterationTable.update_iterated_tag(self.get_current_editor().iterated_tag)
 
     def update_history(self, editor):
         """Update undo/redo history of an editor.

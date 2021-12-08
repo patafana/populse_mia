@@ -2245,6 +2245,7 @@ class TestMIAPipelineManager(unittest.TestCase):
         iteration_table = self.main_window.pipeline_manager.iterationTable
         QTimer.singleShot(1000, self.execute_QDialogAccept)
         iteration_table.check_box_iterate.setChecked(True)
+        iteration_table.update_selected_tag("BandWidth")
         iteration_table.update_iterated_tag("BandWidth")
         self.assertEqual(iteration_table.iterated_tag_label.text(),
                          "BandWidth:")
