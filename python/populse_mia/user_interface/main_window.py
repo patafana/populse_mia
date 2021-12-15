@@ -245,6 +245,14 @@ class MainWindow(QMainWindow):
             if size:
                 self.resize(size[0], size[1])
 
+    @staticmethod
+    def last_window_closed():
+        # if the ipython console has been run, something prevents Qt from
+        # quitting after the window is closed. The cause is not known yet.
+        # so: force exit the event loop.
+        from soma.qt_gui.qt_backend import Qt
+        Qt.QTimer.singleShot(10, Qt.qApp.exit)
+
     def add_clinical_tags(self):
         """Add the clinical tags to the database and the data browser"""
 
@@ -312,14 +320,6 @@ class MainWindow(QMainWindow):
 
         if self.data_viewer:
             self.data_viewer.clear()
-
-        #super().close()
-        if can_exit:
-            # if the ipython console has been run, something prevents Qt from
-            # quitting after the window is closed. The cause is not known yet.
-            # so: force quit...
-            from soma.qt_gui.qt_backend import Qt
-            Qt.QTimer.singleShot(10, Qt.qApp.exit)
 
     def create_view_actions(self):
         """Create the actions and their shortcuts in each menu"""
@@ -1166,12 +1166,10 @@ class MainWindow(QMainWindow):
                     _ipsubprocs.append(pd)
                 pd.start()
 
-                from soma.qt_gui.qt_backend.Qt import qApp
-
-                from soma.qtgui.api import QtThreadCall
-                import functools
-                #QtThreadCall().push(qApp.exit)
-                QtThreadCall().push(functools.partial(print, 'totore', file=sys.stderr))
+                # hack the lastWindowClosed event because it becomes inactive
+                # otherwise
+                QApplication.instance().lastWindowClosed.connect(
+                    self.last_window_closed)
 
     @staticmethod
     def run_ipconsole_kernel(mode='qtconsole'):
