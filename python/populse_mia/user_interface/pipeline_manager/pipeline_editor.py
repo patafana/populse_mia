@@ -140,11 +140,14 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["delete_link", (source_node_name, source_plug_name),
                          (dest_node_name, dest_plug_name), active, weak_link]
         self.update_history(history_maker, from_undo, from_redo)
-        
-        if not (self.main_window.pipeline_manager.iterationTable.
-                                                 check_box_iterate).isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                                                                           True)
+
+        # Commented on January, 4th 2020
+        # if not (self.main_window.pipeline_manager.iterationTable.
+        #                                          check_box_iterate).isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #                                                                    True)
+        # End - commented on January, 4th 2020
+
         self.main_window.statusBar().showMessage(
             'Link {0} has been deleted.'.format(link))
 
@@ -306,10 +309,12 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["add_link", link]
 
         self.update_history(history_maker, from_undo=False, from_redo=False)
-        if not self.main_window.pipeline_manager.iterationTable \
-                .check_box_iterate.isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+        # Commented on January, 4th 2020
+        # if not self.main_window.pipeline_manager.iterationTable \
+        #         .check_box_iterate.isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #         True)
+        # End - commented on January, 4th 2020
         self.main_window.statusBar().showMessage(
             'Link {0} has been added.'.format(link))
 
@@ -406,10 +411,12 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["add_link", link]
 
         self.update_history(history_maker, from_undo, from_redo)
-        if not self.main_window.pipeline_manager.iterationTable\
-                .check_box_iterate.isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                True)
+        # commented on January, 4th 2020
+        # if not self.main_window.pipeline_manager.iterationTable\
+        #         .check_box_iterate.isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #         True)
+        # End - commented on January, 4th 2020
         self.main_window.statusBar().showMessage(
             'Link {0} has been added.'.format(link))
 
@@ -464,10 +471,13 @@ class PipelineEditor(PipelineDevelopperView):
 
         self.update_history(history_maker, from_undo, from_redo)
 
-        if not (self.main_window.pipeline_manager.
-                iterationTable.check_box_iterate.isChecked)():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                                                                           True)
+        # Commented on January, 4th 2020
+        # if not (self.main_window.pipeline_manager.
+        #         iterationTable.check_box_iterate.isChecked)():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #                                                                    True)
+        # End - commented on January, 4th 2020
+
         self.main_window.statusBar().showMessage("Node {0} has been "
                                                  "added.".format(node_name))
 
@@ -707,11 +717,14 @@ class PipelineEditor(PipelineDevelopperView):
         history_maker = ["delete_process", node_name, process, links]
 
         self.update_history(history_maker, from_undo, from_redo)
-        
-        if not (self.main_window.pipeline_manager.iterationTable
-                .check_box_iterate).isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                                                                           True)
+
+        # Commented on January, 4th 2020
+        # if not (self.main_window.pipeline_manager.iterationTable
+        #         .check_box_iterate).isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #                                                                    True)
+        # End - commented on January, 4th 2020
+
         self.main_window.statusBar().showMessage(
             "Node {0} has been deleted.".format(node_name))
 
@@ -766,11 +779,14 @@ class PipelineEditor(PipelineDevelopperView):
         # For history
         history_maker = ["export_plugs", parameter_list, node_name]
         self.update_history(history_maker, from_undo, from_redo)
-        
-        if not (self.main_window.pipeline_manager.iterationTable.
-                                                 check_box_iterate).isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
-                                                                           True)
+
+        # Commented on January, 4th 2020
+        # if not (self.main_window.pipeline_manager.iterationTable.
+        #                                          check_box_iterate).isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action.setDisabled(
+        #                                                                    True)
+        # End - commented on January, 4th 2020
+
         self.main_window.statusBar().showMessage(
             "Plugs {0} have been exported.".format(str(parameter_list)))
 
@@ -1772,7 +1788,7 @@ class PipelineEditorTabs(QtWidgets.QTabWidget):
     def set_tab_index(self, index):
         """Set the current tab index and disable the run pipeline action."""
         
-        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
+        # self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True) # commented on January, 4th 2020
 
         self.setCurrentIndex(index)
         self.previousIndex = index

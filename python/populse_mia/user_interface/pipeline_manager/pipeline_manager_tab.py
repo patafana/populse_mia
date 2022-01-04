@@ -249,16 +249,20 @@ class PipelineManagerTab(QWidget):
             self.saveParameters)
 
         sources_images_dir = config.getSourceImageDir()
-        self.init_pipeline_action = QAction(
-            QIcon(os.path.join(sources_images_dir, 'init32.png')),
-            "Initialize pipeline", self)
-        self.init_pipeline_action.triggered.connect(self.initialize)
+        # commented on January, 4th 2020
+        # initialization button was deleted to avoid issues of indexation into the database.
+        # initialization is now performed just befor run in run_pipeline_action
+        # self.init_pipeline_action = QAction(
+        #     QIcon(os.path.join(sources_images_dir, 'init32.png')),
+        #     "Initialize pipeline", self)
+        # self.init_pipeline_action.triggered.connect(self.initialize)
+        # End - commented on January, 4th 2020
 
         self.run_pipeline_action = QAction(
             QIcon(os.path.join(sources_images_dir, 'run32.png')),
             "Run pipeline", self)
         self.run_pipeline_action.triggered.connect(self.runPipeline)
-        self.run_pipeline_action.setDisabled(True)
+        # self.run_pipeline_action.setDisabled(True) # commented on January, 4th 2020
 
         self.stop_pipeline_action = QAction(
             QIcon(os.path.join(sources_images_dir, 'stop32.png')),
@@ -1079,7 +1083,7 @@ class PipelineManagerTab(QWidget):
             self.pipelineEditorTabs.get_current_editor()].append(history_maker)
         #self.pipelineEditorTabs.redos[
         #    self.pipelineEditorTabs.get_current_editor()].clear()
-        self.run_pipeline_action.setDisabled(True)
+        # self.run_pipeline_action.setDisabled(True) # commented on January, 4th 2020
 
         # Cause a segmentation fault
         # from capsul.qt_gui.widgets.pipeline_developper_view import NodeGWidget
@@ -1278,7 +1282,7 @@ class PipelineManagerTab(QWidget):
         # If the initialization fail, the run pipeline action is disabled
         # The run pipeline action is enabled only when an initialization is
         # successful
-        self.run_pipeline_action.setDisabled(True)
+        # self.run_pipeline_action.setDisabled(True) # commented on January, 4th 2020
         self.init_clicked = True
         self.pipelineEditorTabs.update_current_node()
         self.pipelineEditorTabs.get_current_editor().node_parameters \
@@ -1661,7 +1665,7 @@ class PipelineManagerTab(QWidget):
         self.tags_menu.addAction(self.load_pipeline_parameters_action)
         self.tags_menu.addAction(self.save_pipeline_parameters_action)
         self.tags_menu.addSeparator()
-        self.tags_menu.addAction(self.init_pipeline_action)
+        # self.tags_menu.addAction(self.init_pipeline_action) # commented on January, 4th 2020
         self.tags_menu.addAction(self.run_pipeline_action)
         self.tags_menu.addAction(self.stop_pipeline_action)
         self.tags_menu.addAction(self.show_pipeline_status_action)
@@ -1672,12 +1676,7 @@ class PipelineManagerTab(QWidget):
             QtWidgets.QToolButton.MenuButtonPopup)
         self.tags_tool_button.setMenu(self.tags_menu)
 
-        #self.init_button = QToolButton()
-        #self.init_button.setDefaultAction(self.init_pipeline_action)
-        #self.run_button = QToolButton()
-        #self.run_button.setDefaultAction(self.run_pipeline_action)
-        #self.stop_button = QToolButton()
-        self.menu_toolbar.addAction(self.init_pipeline_action)
+        # self.menu_toolbar.addAction(self.init_pipeline_action) # commented on January, 4th 2020
         self.menu_toolbar.addAction(self.run_pipeline_action)
         self.menu_toolbar.addAction(self.stop_pipeline_action)
         self.menu_toolbar.addAction(self.show_pipeline_status_action)
@@ -1795,7 +1794,8 @@ class PipelineManagerTab(QWidget):
 
         # get obsolete bricks (done) referenced from current outputs
         print('obsolete bricks:', obsolete)
-        self.project.cleanup_orphan_bricks(obsolete)
+        # self.project.cleanup_orphan_bricks(obsolete)
+        self.project.cleanup_orphan_bricks()  # modified on 4th January 2022
         self.project.cleanup_orphan_nonexisting_files()
 
         QtThreadCall().push(
@@ -1981,87 +1981,92 @@ class PipelineManagerTab(QWidget):
 
         from soma_workflow import constants as swconstants
 
-        name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
-        if name == '': name = 'NoName'
-        self.brick_list = []
-        self.main_window.statusBar().showMessage(
-            'Pipeline "{0}" is getting run. Please wait.'.format(name))
-        QApplication.processEvents()
-        self.key = {}
-        self.ignore = {}
-        self.ignore_node = False
+        # Added on January, 4th 2020
+        # Initialize the pipeline
+        self.initialize()
+        if self.test_init:
+            # End - added on January, 4th 2020
+            name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
+            if name == '': name = 'NoName'
+            self.brick_list = []
+            self.main_window.statusBar().showMessage(
+                'Pipeline "{0}" is getting run. Please wait.'.format(name))
+            QApplication.processEvents()
+            self.key = {}
+            self.ignore = {}
+            self.ignore_node = False
 
-        self.last_run_pipeline = self.get_pipeline_or_process()
-        self.last_status = swconstants.WORKFLOW_NOT_STARTED
-        self.last_run_log = None
-        self.last_pipeline_name = self.pipelineEditorTabs.get_current_filename()
-        if self.last_pipeline_name == '': self.last_pipeline_name = 'NoName'
+            self.last_run_pipeline = self.get_pipeline_or_process()
+            self.last_status = swconstants.WORKFLOW_NOT_STARTED
+            self.last_run_log = None
+            self.last_pipeline_name = self.pipelineEditorTabs.get_current_filename()
+            if self.last_pipeline_name == '': self.last_pipeline_name = 'NoName'
 
-        #if self.iterationTable.check_box_iterate.isChecked():
-            #iterated_tag = self.iterationTable.iterated_tag
-            #tag_values = self.iterationTable.tag_values_list
+            #if self.iterationTable.check_box_iterate.isChecked():
+                #iterated_tag = self.iterationTable.iterated_tag
+                #tag_values = self.iterationTable.tag_values_list
 
-            #pipeline_progress = dict()
-            #pipeline_progress['size'] = len(tag_values)
-            #pipeline_progress['counter'] = 1
-            #pipeline_progress['tag'] = iterated_tag
-            #for tag_value in tag_values:
-                #self.brick_list = []
-                ## Status bar update
-                #pipeline_progress['tag_value'] = tag_value
+                #pipeline_progress = dict()
+                #pipeline_progress['size'] = len(tag_values)
+                #pipeline_progress['counter'] = 1
+                #pipeline_progress['tag'] = iterated_tag
+                #for tag_value in tag_values:
+                    #self.brick_list = []
+                    ## Status bar update
+                    #pipeline_progress['tag_value'] = tag_value
 
-                #idx_combo_box = self.iterationTable.combo_box.findText(
-                    #tag_value)
-                #self.iterationTable.combo_box.setCurrentIndex(
-                    #idx_combo_box)
-                #self.iterationTable.update_table()
+                    #idx_combo_box = self.iterationTable.combo_box.findText(
+                        #tag_value)
+                    #self.iterationTable.combo_box.setCurrentIndex(
+                        #idx_combo_box)
+                    #self.iterationTable.update_table()
 
-                #self.init_pipeline()
+                    #self.init_pipeline()
+                    #self.main_window.statusBar().showMessage(
+                        #'Pipeline "{0}" is getting run for {1} {2}. '
+                        #'Please wait.'.format(name, iterated_tag, tag_value))
+                    #QApplication.processEvents()
+                    #self.progress = RunProgress(self, pipeline_progress)
+                    ##self.progress.show()
+                    ##self.progress.exec()
+                    #pipeline_progress['counter'] += 1
+                    #self.init_clicked = False
+
+
+                    ## # self.init_pipeline(self.pipeline)
+                    ## idx = self.progress.value()
+                    ## idx += 1
+                    ## self.progress.setValue(idx)
+                    ## QApplication.processEvents()
+
                 #self.main_window.statusBar().showMessage(
-                    #'Pipeline "{0}" is getting run for {1} {2}. '
-                    #'Please wait.'.format(name, iterated_tag, tag_value))
-                #QApplication.processEvents()
-                #self.progress = RunProgress(self, pipeline_progress)
-                ##self.progress.show()
-                ##self.progress.exec()
-                #pipeline_progress['counter'] += 1
-                #self.init_clicked = False
+                    #'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
+                        #name, iterated_tag, tag_values))
 
+            #else:
 
-                ## # self.init_pipeline(self.pipeline)
-                ## idx = self.progress.value()
-                ## idx += 1
-                ## self.progress.setValue(idx)
-                ## QApplication.processEvents()
+            self.progress = RunProgress(self)
+            self.progress.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                        QtWidgets.QSizePolicy.Fixed)
+            self.hLayout.addWidget(self.progress)
+            #self.progress.show()
+            #self.progress.exec()
+            self.stop_pipeline_action.setEnabled(True)
+            config = Config()
+            sources_images_dir = config.getSourceImageDir()
 
-            #self.main_window.statusBar().showMessage(
-                #'Pipeline "{0}" has been run for {1} {2}. Please wait.'.format(
-                    #name, iterated_tag, tag_values))
+            mmovie = QMovie(
+                os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
+            self._mmovie = mmovie
+            mmovie.stop()
+            mmovie.frameChanged.connect(self._set_anim_frame)
+            mmovie.start()
 
-        #else:
-            
-        self.progress = RunProgress(self)
-        self.progress.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
-                                    QtWidgets.QSizePolicy.Fixed)
-        self.hLayout.addWidget(self.progress)
-        #self.progress.show()
-        #self.progress.exec()
-        self.stop_pipeline_action.setEnabled(True)
-        config = Config()
-        sources_images_dir = config.getSourceImageDir()
+            self.progress.worker.finished.connect(self.finish_execution)
+            self.progress.start()
 
-        mmovie = QMovie(
-            os.path.join(sources_images_dir, 'rotatingBrainVISA.gif'))
-        self._mmovie = mmovie
-        mmovie.stop()
-        mmovie.frameChanged.connect(self._set_anim_frame)
-        mmovie.start()
-
-        self.progress.worker.finished.connect(self.finish_execution)
-        self.progress.start()
-
-        self.init_clicked = False
-        self.run_pipeline_action.setDisabled(True)
+            self.init_clicked = False
+            # self.run_pipeline_action.setDisabled(True) # Commented on January, 4th 2020
 
     def saveParameters(self):
         """
@@ -2668,12 +2673,18 @@ class PipelineManagerTab(QWidget):
         """
         Update the visibility of initialize/run/save actions according to pipeline state
         """
-        if (hasattr(self.pipelineEditorTabs.get_current_editor(),
-                    'initialized') and
-                self.pipelineEditorTabs.get_current_editor().initialized):
-            self.run_pipeline_action.setDisabled(False)
-        else:
-            self.run_pipeline_action.setDisabled(True)
+        # Commented on January, 4th 2020
+        # With disabling of init button, run button is always available
+        # if (hasattr(self.pipelineEditorTabs.get_current_editor(),
+        #             'initialized') and
+        #         self.pipelineEditorTabs.get_current_editor().initialized):
+        #     self.run_pipeline_action.setDisabled(False)
+        # else:
+        #     self.run_pipeline_action.setDisabled(True)
+        #
+        # self.init_pipeline_action.setDisabled(False)
+        self.run_pipeline_action.setDisabled(False)
+        # End - Commented on January, 4th 2020
 
         if (hasattr(self.pipelineEditorTabs.get_current_editor(),
                     'iterated') and
@@ -2683,8 +2694,6 @@ class PipelineManagerTab(QWidget):
         else:
             self.save_pipeline_as_action.setDisabled(False)
             self.save_pipeline_action.setDisabled(False)
-
-        self.init_pipeline_action.setDisabled(False)
 
     def update_user_mode(self):
         """
