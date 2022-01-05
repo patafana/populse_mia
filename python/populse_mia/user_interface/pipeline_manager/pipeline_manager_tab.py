@@ -2001,7 +2001,6 @@ class PipelineManagerTab(QWidget):
         # Added on January, 4th 2020
         # Initialize the pipeline
         self.initialize()
-        return
         if self.test_init:
             # End - added on January, 4th 2020
             name = os.path.basename(self.pipelineEditorTabs.get_current_filename())

@@ -24,6 +24,7 @@ Contains:
 import ast
 import os
 import traceback
+from functools import partial
 
 # PyQt5 imports
 from PyQt5 import QtWidgets, QtCore
@@ -1470,19 +1471,55 @@ class TableDataBrowser(QTableWidget):
                             widget.moveToThread(
                                 QApplication.instance().thread())
                             layout = QVBoxLayout()
+                            content_area = None
+                            content_layout = None
+                            toggle_button = None
                             for brick_number in range(0, len(current_value)):
                                 brick_uuid = current_value[brick_number]
 
                                 brick_name = self.project.session.get_value(
                                     COLLECTION_BRICK, brick_uuid, BRICK_NAME)
                                 if brick_name:
-                                    brick_name_button = QPushButton(brick_name)
-                                    brick_name_button.moveToThread(
-                                        QApplication.instance().thread())
-                                    self.bricks[brick_name_button] = brick_uuid
-                                    brick_name_button.clicked.connect(
-                                        self.show_brick_history)
-                                    layout.addWidget(brick_name_button)
+                                    if brick_number == 0:
+                                        brick_name_button = QPushButton(brick_name)
+                                        brick_name_button.moveToThread(
+                                            QApplication.instance().thread())
+                                        self.bricks[brick_name_button] = brick_uuid
+                                        brick_name_button.clicked.connect(self.show_brick_history)
+                                        layout.addWidget(brick_name_button)
+                                    else:
+                                        if brick_number == 1:
+                                            # expandable widget
+                                            toggle_button = QToolButton(text='older', checkable=True, checked=False)
+                                            toggle_button.moveToThread(
+                                                QApplication.instance().thread())
+                                            toggle_button.setStyleSheet("QToolButton { border: none; }")
+                                            toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+                                            toggle_button.setArrowType(QtCore.Qt.RightArrow)
+                                            layout.addWidget(toggle_button)
+
+                                            content_layout = QtWidgets.QVBoxLayout()
+                                            content_layout.setContentsMargins(0, 0, 0, 0)
+                                            content_area = QtWidgets.QScrollArea()
+                                            content_area.setStyleSheet(
+                                                "QScrollArea { background-color: rgba(255, 255, 255, 0); }")
+                                            content_area.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                                                            QtWidgets.QSizePolicy.Fixed)
+                                            content_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+                                            content_area.setFixedHeight(0)
+
+                                        brick_name_button = QPushButton(brick_name)
+                                        brick_name_button.moveToThread(
+                                            QApplication.instance().thread())
+                                        self.bricks[brick_name_button] = brick_uuid
+                                        brick_name_button.clicked.connect(self.show_brick_history)
+                                        content_layout.addWidget(brick_name_button)
+
+                            if content_area is not None:
+                                content_area.setLayout(content_layout)
+                                layout.addWidget(content_area)
+                                toggle_button.pressed.connect(partial(self.show_older_bricks, content_area, widget))
+
                             widget.setLayout(layout)
                             self.setCellWidget(row, column, widget)
 
@@ -2155,6 +2192,23 @@ class TableDataBrowser(QTableWidget):
             self.project, brick_uuid, self.data_browser,
             self.data_browser.parent)
         self.show_brick_popup.show()
+
+    def show_older_bricks(self, content_area, all_area):
+        content_height = content_area.layout().sizeHint().height()
+        checked = self.sender().isChecked()
+        self.sender().setArrowType(QtCore.Qt.DownArrow if not checked else QtCore.Qt.RightArrow)
+
+        box_height = all_area.layout().sizeHint().height()
+
+        if not checked:
+            box_height += content_height
+            content_area.setFixedHeight(content_height)
+            all_area.setFixedHeight(box_height)
+        else:
+            box_height -= content_height
+            content_area.setFixedHeight(0)
+            all_area.setFixedHeight(box_height)
+        self.resizeRowsToContents()
 
     def sort_column(self, order):
         """Sort the current column.
