@@ -135,6 +135,7 @@ class PipelineManagerTab(QWidget):
         - stop_execution:
         - undo: undo the last action made on the current pipeline editor
         - update_auto_inheritance:
+        - update_job_history: retrieve the list of all previous job dependencies in pipeline
         - update_node_list: update the list of nodes in workflow
         - updateProcessLibrary: update the library of processes when a
           pipeline is saved
@@ -401,6 +402,7 @@ class PipelineManagerTab(QWidget):
                     trait = process.trait(plug_name)
                     self.add_plug_value_to_database(plug_value,
                                                     job.uuid,
+                                                    job.brick_history,
                                                     node_name,
                                                     plug_name,
                                                     full_name,
@@ -430,13 +432,14 @@ class PipelineManagerTab(QWidget):
     #    self.previewBlock.centerOn(0, 0)
     #    self.find_process(name_item)
 
-    def add_plug_value_to_database(self, p_value, brick_id, node_name,
+    def add_plug_value_to_database(self, p_value, brick_id, brick_history, node_name,
                                    plug_name, full_name, job, trait, inputs,
                                    attributes):
         """Add the plug value to the database.
 
         :param p_value: plug value, a file name or a list of file names (any)
         :param brick_id: brick id in the database (str)
+        :param brick_history: bricks id history in the database (str)
         :param node_name: name of the node (str)
         :param plug_name: name of the plug (str)
         :param full_name: full name of the node, including parent
@@ -463,7 +466,7 @@ class PipelineManagerTab(QWidget):
                             new_attributes[k] = v[-1]
                     else:
                         new_attributes[k] = v
-                self.add_plug_value_to_database(elt, brick_id, node_name,
+                self.add_plug_value_to_database(elt, brick_id, brick_history, node_name,
                                                 plug_name, full_name, job,
                                                 inner_trait, inputs,
                                                 new_attributes)
@@ -508,6 +511,9 @@ class PipelineManagerTab(QWidget):
             bricks = []
         if brick_id not in bricks:
             bricks.append(brick_id)
+        for brid in brick_history:
+            if brid not in bricks:
+                bricks.append(brid)
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
         if file_extension == '.gz':
@@ -1532,9 +1538,6 @@ class PipelineManagerTab(QWidget):
                         if node_name.split('.')[0] == 'Pipeline':
                             node_name = '.'.join(node_name.split('.')[1:])
 
-                        self.update_auto_inheritance(job, node)
-                        self.update_inheritance(job, node)
-
                         # Adding the brick to the bricks history
                         if not isinstance(node, (PipelineNode, Pipeline)):
                             # check if brick_id has already been assigned
@@ -1554,15 +1557,6 @@ class PipelineManagerTab(QWidget):
                                 self.project.session.add_document(COLLECTION_BRICK,
                                                                   brick_id)
                             except ValueError:
-                                # # id is not unique. It happens in iterations
-                                # # FIXME: we need a better way to handle UUIDs in
-                                # # iterated processes
-                                # brick_id = str(uuid.uuid4())
-                                # job.uuid = brick_id
-                                # self.brick_list[-1] = brick_id
-                                # # then try again
-                                # self.project.session.add_document(COLLECTION_BRICK,
-                                #                                   brick_id)
                                 init_result = False
                                 init_messages.append('Error while setting job uuid on '
                                                      '"{0}" brick.'.format(node_name))
@@ -1570,10 +1564,29 @@ class PipelineManagerTab(QWidget):
                             self.project.session.set_values(
                                 COLLECTION_BRICK, brick_id,
                                 {BRICK_NAME: node_name,
-                                BRICK_INIT_TIME: datetime.datetime.now(),
-                                BRICK_INIT: "Not Done",
-                                BRICK_EXEC: "Not Done"})
+                                 BRICK_INIT_TIME: datetime.datetime.now(),
+                                 BRICK_INIT: "Not Done",
+                                 BRICK_EXEC: "Not Done"})
 
+            for job in self.workflow.jobs:
+                if hasattr(job, 'process'):
+                    node = job.process()
+                    process = node
+                    if isinstance(node, ProcessNode):
+                        process = node.process
+                    # trick to eliminate "ReduceJob" in jobs
+                    # would it be better to test if process is a ReduceNode ?
+                    if hasattr(process, 'context_name'):
+                        node_name = getattr(process, 'context_name', node.name)
+                        if node_name.split('.')[0] == 'Pipeline':
+                            node_name = '.'.join(node_name.split('.')[1:])
+    
+                        self.update_auto_inheritance(job, node)
+                        self.update_inheritance(job, node)
+
+                        job.brick_history = self.update_job_history(job)
+
+                        if not isinstance(node, (PipelineNode, Pipeline)):    
                             self._register_node_io_in_database(job, node, pipeline_name)
 
         self.register_completion_attributes(pipeline)
@@ -1984,6 +1997,7 @@ class PipelineManagerTab(QWidget):
         # Added on January, 4th 2020
         # Initialize the pipeline
         self.initialize()
+
         if self.test_init:
             # End - added on January, 4th 2020
             name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
@@ -2495,6 +2509,28 @@ class PipelineManagerTab(QWidget):
         if auto_inheritance_dict:
             job.auto_inheritance_dict = auto_inheritance_dict
             # print('auto_inheritance_dict for', node.name, ':', auto_inheritance_dict)
+
+    def update_job_history(self, job):
+        dependencies_list = []
+        for dep in self.workflow.dependencies:
+            if dep[1] is job:
+                if hasattr(dep[0], 'process'):
+                    node = dep[0].process()
+                    process = node
+                    if isinstance(node, ProcessNode):
+                        process = node.process
+                    # trick to eliminate "ReduceJob" in jobs
+                    # would it be better to test if process is a ReduceNode ?
+                    if hasattr(process, 'context_name'):
+                        # Adding the brick to the bricks history
+                        if not isinstance(node, (PipelineNode, Pipeline)):
+                            if dep[0] not in dependencies_list:
+                                dependencies_list.append(dep[0].uuid)
+                                sub_dependencies_list = self.update_job_history(dep[0])
+                                for sub_dep in sub_dependencies_list:
+                                    if sub_dep not in dependencies_list:
+                                        dependencies_list.append(sub_dep)
+        return dependencies_list
 
     def update_inheritance(self, job, node):
         if node.context_name.split('.')[0] == 'Pipeline':
