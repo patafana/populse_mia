@@ -505,15 +505,19 @@ class PipelineManagerTab(QWidget):
             self.project.session.add_document(COLLECTION_INITIAL, p_value)
 
         # Adding the new brick to the output files
-        bricks = self.project.session.get_value(
-            COLLECTION_CURRENT, p_value, TAG_BRICKS)
-        if bricks is None:
-            bricks = []
+        bricks = []
         if brick_id not in bricks:
             bricks.append(brick_id)
         for brid in brick_history:
             if brid not in bricks:
                 bricks.append(brid)
+        old_bricks = self.project.session.get_value(
+            COLLECTION_CURRENT, p_value, TAG_BRICKS)
+        if old_bricks is not None:
+            for brid in old_bricks:
+                if brid not in bricks:
+                    bricks.append(brid)
+
         # Type tag
         filename, file_extension = os.path.splitext(p_value)
         if file_extension == '.gz':
@@ -1997,7 +2001,7 @@ class PipelineManagerTab(QWidget):
         # Added on January, 4th 2020
         # Initialize the pipeline
         self.initialize()
-
+        return
         if self.test_init:
             # End - added on January, 4th 2020
             name = os.path.basename(self.pipelineEditorTabs.get_current_filename())
