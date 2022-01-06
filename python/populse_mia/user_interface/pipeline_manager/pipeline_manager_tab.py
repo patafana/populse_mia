@@ -50,7 +50,7 @@ from capsul.engine import WorkflowExecutionError
 from capsul.pipeline.pipeline_workflow import workflow_from_pipeline
 from capsul.pipeline import pipeline_tools
 from capsul.qt_gui.widgets.pipeline_developper_view import (
-    PipelineDevelopperView)
+    PipelineDeveloperView)
 
 
 # Soma_workflow import
@@ -222,7 +222,7 @@ class PipelineManagerTab(QWidget):
         self.iterationTable.iteration_table_updated.connect(
             self.update_scans_list)
 
-        #self.previewBlock = PipelineDevelopperView(
+        #self.previewBlock = PipelineDeveloperView(
         #    pipeline=None, allow_open_controller=False,
         #    show_sub_pipelines=True, enable_edition=False)
 

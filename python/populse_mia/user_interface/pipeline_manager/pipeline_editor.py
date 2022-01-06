@@ -40,7 +40,7 @@ from capsul.api import (get_process_instance, Process, PipelineNode, Switch,
                         capsul_engine, Node)
 from capsul.pipeline.pipeline_nodes import ProcessNode
 from capsul.qt_gui.widgets.pipeline_developper_view import (
-                                            NodeGWidget, PipelineDevelopperView)
+                                            NodeGWidget, PipelineDeveloperView)
 from capsul.pipeline.xml import save_xml_pipeline
 from capsul.pipeline.python_export import save_py_pipeline
 
@@ -57,7 +57,7 @@ from populse_mia.software_properties import verCmp
 unicode = str
 
 
-class PipelineEditor(PipelineDevelopperView):
+class PipelineEditor(PipelineDeveloperView):
     """View to edit a pipeline graphically.
 
     .. Methods:
@@ -84,7 +84,7 @@ class PipelineEditor(PipelineDevelopperView):
 
     pipeline_saved = QtCore.pyqtSignal(str)
     """The signal that will be emitted when the pipeline is saved."""
-    pipeline_modified = QtCore.pyqtSignal(PipelineDevelopperView)
+    pipeline_modified = QtCore.pyqtSignal(PipelineDeveloperView)
     """The signal that will be emitted when the pipeline is modified."""
 
     def __init__(self, project, main_window):
@@ -94,7 +94,7 @@ class PipelineEditor(PipelineDevelopperView):
         :param main_window: current main window
         """
 
-        PipelineDevelopperView.__init__(self, pipeline=None,
+        PipelineDeveloperView.__init__(self, pipeline=None,
                                         allow_open_controller=True,
                                         show_sub_pipelines=True,
                                         enable_edition=True)
@@ -135,7 +135,7 @@ class PipelineEditor(PipelineDevelopperView):
         self._current_link_def = (source_node, source_plug, dest_node,
                                   dest_plug)
         # Calling the original method
-        PipelineDevelopperView._del_link(self)
+        PipelineDeveloperView._del_link(self)
         # For history
         history_maker = ["delete_link", (source_node_name, source_plug_name),
                          (dest_node_name, dest_plug_name), active, weak_link]
@@ -303,7 +303,7 @@ class PipelineEditor(PipelineDevelopperView):
         """
 
         # Calling the original method
-        link = PipelineDevelopperView._release_grab_link(self, event, ret=True)
+        link = PipelineDeveloperView._release_grab_link(self, event, ret=True)
 
         # For history
         history_maker = ["add_link", link]
@@ -706,7 +706,7 @@ class PipelineEditor(PipelineDevelopperView):
                     links.append(link_to_add)
 
         # Calling the original method
-        PipelineDevelopperView.del_node(self, node_name)
+        PipelineDeveloperView.del_node(self, node_name)
 
         # For history
         process = node
