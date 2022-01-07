@@ -653,13 +653,18 @@ class PipelineEditor(PipelineDeveloperView):
         if not node_name:
             node_name = self.current_node_name
 
-        node = pipeline.nodes[node_name]
+        invert_io = False
+        if node_name in ('inputs', 'outputs'):
+            node = pipeline.pipeline_node
+            invert_io = True
+        else:
+            node = pipeline.nodes[node_name]
 
         # Collecting the links from the node that is being deleted
         links = []
         for plug_name, plug in node.plugs.items():
 
-            if plug.output:
+            if plug.output or (invert_io and not plug.output):
 
                 for link_to in plug.links_to:
                     (dest_node_name, dest_parameter,
@@ -706,7 +711,7 @@ class PipelineEditor(PipelineDeveloperView):
                     links.append(link_to_add)
 
         # Calling the original method
-        PipelineDeveloperView.del_node(self, node_name)
+        super().del_node(node_name)
 
         # For history
         process = node
