@@ -65,6 +65,7 @@ from populse_db.database import (
     FIELD_TYPE_DATE, FIELD_TYPE_TIME, FIELD_TYPE_LIST_DATE,
     FIELD_TYPE_LIST_DATETIME, FIELD_TYPE_LIST_TIME, FIELD_TYPE_LIST_INTEGER,
     FIELD_TYPE_LIST_STRING, FIELD_TYPE_LIST_FLOAT, FIELD_TYPE_LIST_BOOLEAN)
+from functools import partial
 
 # Variable shown everywhere when no value for the tag
 not_defined_value = "*Not Defined*"
@@ -1013,6 +1014,9 @@ class TableDataBrowser(QTableWidget):
                                     self.bricks[brick_name_button] = brick_uuid
                                     brick_name_button.clicked.connect(
                                         self.show_brick_history)
+                                    brick_name_button.clicked.connect(
+                                        partial(self.show_data_history,
+                                                scan['FileName']))
                                     layout.addWidget(brick_name_button)
                                 widget.setLayout(layout)
                                 self.setCellWidget(rowCount, column, widget)
@@ -1482,6 +1486,9 @@ class TableDataBrowser(QTableWidget):
                                     self.bricks[brick_name_button] = brick_uuid
                                     brick_name_button.clicked.connect(
                                         self.show_brick_history)
+                                    brick_name_button.clicked.connect(
+                                        partial(self.show_data_history,
+                                                scan['FileName']))
                                     layout.addWidget(brick_name_button)
                             widget.setLayout(layout)
                             self.setCellWidget(row, column, widget)
@@ -2155,6 +2162,20 @@ class TableDataBrowser(QTableWidget):
             self.project, brick_uuid, self.data_browser,
             self.data_browser.parent)
         self.show_brick_popup.show()
+
+    def show_data_history(self, scan):
+        """Show data history in a separate window."""
+        print('show_data_history:', scan)
+        from populse_mia.data_manager import data_history_inspect
+        pipeline = data_history_inspect.data_history_pipeline(scan,
+                                                              self.project)
+        if pipeline is not None:
+            from capsul.qt_gui.widgets.pipeline_developer_view \
+                import PipelineDeveloperView
+            win = PipelineDeveloperView(pipeline, allow_open_controller=True)
+            win.auto_dot_node_positions()
+            win.show()
+            self._data_histopry_view = win
 
     def sort_column(self, order):
         """Sort the current column.
