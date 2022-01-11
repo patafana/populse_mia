@@ -36,6 +36,21 @@ def data_history_pipeline(filename, project):
                 if src not in pipeline.traits():
                     pipeline.export_parameter(link[2].node_name, link[3], src)
                     src = None
+                elif pipeline.trait(src).output:
+                    # already taken as an output: export under another name
+                    done = False
+                    n = 0
+                    while not done:
+                        src2 = '%s_%d' % (src, n)
+                        if src2 not in pipeline.traits():
+                            pipeline.export_parameter(
+                                link[2].node_name, link[3], src2)
+                            src = None
+                            done = True
+                        elif not pipeline.trait(src2).output:
+                            src = src2
+                            done = True
+                        n += 1
             else:
                 src = '%s.%s' % (link[0].node_name, link[1])
             if link[2] is None:
@@ -43,6 +58,21 @@ def data_history_pipeline(filename, project):
                 if dst not in pipeline.traits():
                     pipeline.export_parameter(link[0].node_name, link[1], dst)
                     dst = None
+                elif not pipeline.trait(dst).output:
+                    # already taken as an input: export under another name
+                    done = False
+                    n = 0
+                    while not done:
+                        dst2 = '%s_%d' % (dst, n)
+                        if dst2 not in pipeline.traits():
+                            pipeline.export_parameter(
+                                link[0].node_name, link[1], dst2)
+                            dst = None
+                            done = True
+                        elif pipeline.trait(dst2).output:
+                            dst = dst2
+                            done = True
+                        n += 1
             else:
                 dst = '%s.%s' % (link[2].node_name, link[3])
             if src is not None and dst is not None:
