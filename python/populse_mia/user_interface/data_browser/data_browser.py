@@ -1291,7 +1291,9 @@ class TableDataBrowser(QTableWidget):
             self.add_path()
             self.itemChanged.disconnect()
         elif action == self.action_remove_scan:
-            msg.setText("You are about to remove a scan from the project.")
+            msg.setText("You are about to remove a scan from the project."
+                        "\n\nBe careful! this action is definitive and cannot be undone "
+                        "(the data will be completely deleted)")
             msg.buttonClicked.connect(msg.close)
             msg.buttons()[0].clicked.connect(self.remove_scan)
             msg.exec()
@@ -1851,8 +1853,8 @@ class TableDataBrowser(QTableWidget):
 
         points = self.selectedIndexes()
 
-        history_maker = []
-        history_maker.append("remove_scans")
+        # history_maker = []
+        # history_maker.append("remove_scans")
         scans_removed = []
         values_removed = []
         scan_list = self.data_browser.main_window.pipeline_manager.scan_list
@@ -1908,15 +1910,19 @@ class TableDataBrowser(QTableWidget):
                 self.project.session.remove_document(
                     COLLECTION_INITIAL, scan_path)
 
+                full_scan_path = self.project.folder + '/' + scan_path
+                if os.path.isfile(full_scan_path):
+                    os.remove(full_scan_path)
+
         for scan in scans_removed:
             scan_name = getattr(scan, TAG_FILENAME)
             self.removeRow(self.get_scan_row(scan_name))
             self.project.unsavedModifications = True
 
-        history_maker.append(scans_removed)
-        history_maker.append(values_removed)
-        self.project.undos.append(history_maker)
-        self.project.redos.clear()
+        # history_maker.append(scans_removed)
+        # history_maker.append(values_removed)
+        # self.project.undos.append(history_maker)
+        # self.project.redos.clear()
         self.resizeColumnsToContents()
 
     def reset_cell(self):

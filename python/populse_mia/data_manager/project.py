@@ -438,6 +438,13 @@ class Project():
         """Redo the last action made by the user on the project.
 
         :param table: table on which to apply the modifications
+
+        Actions that can be undone:
+            - add_tag
+            - remove_tags
+            - add_scans
+            - modified_values
+            - modified_visibilities
         """
         # To avoid circular imports
         from populse_mia.user_interface.data_browser.data_browser import (
@@ -522,23 +529,23 @@ class Project():
                 table.add_rows(self.session.get_documents_names(
                     COLLECTION_CURRENT))
 
-            if action == "remove_scans":
-                # To remove a scan, we only need the FileName of the scan
-                # The second element is the list of removed scans (Path class)
-                scans_removed = to_redo[1]
-                for i in range(0, len(scans_removed)):
-                    # We reput each scan, keeping the same values
-                    scan_to_remove = getattr(
-                        scans_removed[i], TAG_FILENAME)
-                    self.session.remove_document(
-                        COLLECTION_CURRENT, scan_to_remove)
-                    self.session.remove_document(
-                        COLLECTION_INITIAL, scan_to_remove)
-                    table.scans_to_visualize.remove(scan_to_remove)
-                    table.removeRow(table.get_scan_row(scan_to_remove))
-                    table.itemChanged.disconnect()
-                    table.update_colors()
-                    table.itemChanged.connect(table.change_cell_color)
+            # if action == "remove_scans":
+            #     # To remove a scan, we only need the FileName of the scan
+            #     # The second element is the list of removed scans (Path class)
+            #     scans_removed = to_redo[1]
+            #     for i in range(0, len(scans_removed)):
+            #         # We reput each scan, keeping the same values
+            #         scan_to_remove = getattr(
+            #             scans_removed[i], TAG_FILENAME)
+            #         self.session.remove_document(
+            #             COLLECTION_CURRENT, scan_to_remove)
+            #         self.session.remove_document(
+            #             COLLECTION_INITIAL, scan_to_remove)
+            #         table.scans_to_visualize.remove(scan_to_remove)
+            #         table.removeRow(table.get_scan_row(scan_to_remove))
+            #         table.itemChanged.disconnect()
+            #         table.update_colors()
+            #         table.itemChanged.connect(table.change_cell_color)
 
             if action == "modified_values":  # Not working
                 # To modify the values, we need the cells,
@@ -733,6 +740,13 @@ class Project():
         """Undo the last action made by the user on the project.
 
         :param table: table on which to apply the modifications
+
+        Actions that can be undone:
+            - add_tag
+            - remove_tags
+            - add_scans
+            - modified_values
+            - modified_visibilities
         """
 
         # To avoid circular imports
@@ -804,28 +818,28 @@ class Project():
                 table.itemChanged.disconnect()
                 table.update_colors()
                 table.itemChanged.connect(table.change_cell_color)
-            if action == "remove_scans":
-                # To reput a removed scan, we need the scans names,
-                # and all the values associated
-                # The second element is the list of removed scans (Scan class)
-                scans_removed = to_undo[1]
-                for i in range(0, len(scans_removed)):
-                    # We reput each scan, keeping the same values
-                    scan_to_reput = scans_removed[i]
-                    self.session.add_document(
-                        COLLECTION_CURRENT, getattr(
-                            scan_to_reput, TAG_FILENAME))
-                    self.session.add_document(
-                        COLLECTION_INITIAL, getattr(
-                            scan_to_reput, TAG_FILENAME))
-                    table.scans_to_visualize.append(getattr(
-                        scan_to_reput, TAG_FILENAME))
-
-                # The third element is the list of removed values
-                values_removed = to_undo[2]
-                self.reput_values(values_removed)
-                table.add_rows(self.session.get_documents_names(
-                    COLLECTION_CURRENT))
+            # if action == "remove_scans":
+            #     # To reput a removed scan, we need the scans names,
+            #     # and all the values associated
+            #     # The second element is the list of removed scans (Scan class)
+            #     scans_removed = to_undo[1]
+            #     for i in range(0, len(scans_removed)):
+            #         # We reput each scan, keeping the same values
+            #         scan_to_reput = scans_removed[i]
+            #         self.session.add_document(
+            #             COLLECTION_CURRENT, getattr(
+            #                 scan_to_reput, TAG_FILENAME))
+            #         self.session.add_document(
+            #             COLLECTION_INITIAL, getattr(
+            #                 scan_to_reput, TAG_FILENAME))
+            #         table.scans_to_visualize.append(getattr(
+            #             scan_to_reput, TAG_FILENAME))
+            #
+            #     # The third element is the list of removed values
+            #     values_removed = to_undo[2]
+            #     self.reput_values(values_removed)
+            #     table.add_rows(self.session.get_documents_names(
+            #         COLLECTION_CURRENT))
             if action == "modified_values":
                 # To revert a value changed in the databrowser,
                 # we need two things:
