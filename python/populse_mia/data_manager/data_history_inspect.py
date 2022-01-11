@@ -284,11 +284,11 @@ def get_history_brick_process(brick_id, project, before_exec_time=None):
     proc.exec_time = exec_time
 
     for name, value in inputs.items():
-        proc.add_trait(name, traits.Any(output=False))
+        proc.add_trait(name, traits.Any(output=False, optional=True))
         setattr(proc, name, value)
 
     for name, value in outputs.items():
-        proc.add_trait(name, traits.Any(output=True))
+        proc.add_trait(name, traits.Any(output=True, optional=True))
         setattr(proc, name, value)
 
     return proc
