@@ -263,6 +263,8 @@ def get_history_brick_process(brick_id, project, before_exec_time=None):
 
     session = project.session
     binfo = session.get_document(COLLECTION_BRICK, brick_id)
+    if binfo is None:
+        return None
     #print(brick_id, ':', binfo[BRICK_NAME])
     #print(binfo.keys())
     inputs = binfo[BRICK_INPUTS]
