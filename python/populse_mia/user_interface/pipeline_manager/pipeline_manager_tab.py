@@ -87,6 +87,7 @@ from traits.api import TraitListObject, Undefined
 from traits.trait_errors import TraitError
 import traits.api as traits
 import functools
+import json
 
 
 class PipelineManagerTab(QWidget):
@@ -311,6 +312,14 @@ class PipelineManagerTab(QWidget):
     def _register_node_io_in_database(self, job, node, pipeline_name=''):
         """bla bla bla"""
 
+        def _serialize_tmp(item):
+            import soma_workflow.client as swc
+            if item in (Undefined, [Undefined]):
+                return '<undefined'
+            if isinstance(item, swc.TemporaryPath):
+                return '<temp>'
+            raise TypeError
+
         if isinstance(node, (PipelineNode, Pipeline)):
             # only leaf processes produce output data
             return
@@ -366,14 +375,20 @@ class PipelineManagerTab(QWidget):
         # Adding I/O to database history
         for key in inputs:
 
-            if inputs[key] in [Undefined, [Undefined]]:
-                inputs[key] = "<undefined>"
+            # filter Undefined / temp
+            # this is an overhead since we convert to/from json, and it will
+            # be converted again in the database. But the "default" function
+            # for json is not in the database API.
+            code = json.dumps(inputs[key], default=_serialize_tmp)
+            inputs[key] = json.loads(code)
 
         for key in outputs:
-            value = outputs[key]
 
-            if value in [Undefined, [Undefined]]:
-                outputs[key] = "<undefined>"
+            # filter Undefined / temp
+            # this is an overhead since we convert to/from json, and it will
+            # be converted again in the database.
+            code = json.dumps(outputs[key], default=_serialize_tmp)
+            outputs[key] = json.loads(code)
 
         node_name = node.name
 
@@ -1244,8 +1259,27 @@ class PipelineManagerTab(QWidget):
           each job"""
         missing_inputs = []
         for node in self.node_list:
+            job = None
             for item in node.get_missing_mandatory_parameters():
-                missing_inputs.append(item)
+                # we must also check that the parameter is not a temporary
+                # in the workflow
+                if job is None:
+                    job = [j for j in self.workflow.jobs
+                           if hasattr(j, 'process') and j.process() is node]
+                    if len(job) != 0:
+                        job = job[0]
+                    else:
+                        job = None
+                    if job:
+                        value = job.param_dict.get(item)
+                        if value not in (None, Undefined, []):
+                            # gets a non-null value in the workflow
+                            continue
+                if node is self.get_current_pipeline().pipeline_node:
+                    item_name = item
+                else:
+                    item_name = '%s.%s' % (node.context_name, item)
+                missing_inputs.append(item_name)
 
         return missing_inputs
 
