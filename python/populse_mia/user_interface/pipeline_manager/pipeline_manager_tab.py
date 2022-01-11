@@ -1630,7 +1630,8 @@ class PipelineManagerTab(QWidget):
 
             process = pipeline
 
-            if isinstance(pipeline, Pipeline):
+            if isinstance(pipeline, Pipeline) \
+                    and node_controller_node_name in pipeline.nodes:
                 process = pipeline.nodes[node_controller_node_name].process
 
             self.nodeController.display_parameters(
