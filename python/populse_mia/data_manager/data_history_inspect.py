@@ -26,7 +26,7 @@ def data_history_pipeline(filename, project):
         for proc in procs.values():
             name = proc.name
             if name in pipeline.nodes:
-                name = '%s_%s' % (proc.name, proc.uuid)
+                name = '%s_%s' % (proc.name, proc.uuid.replace('-', '_'))
             proc.node_name = name
             pipeline.add_process(name, proc)
 
@@ -46,7 +46,10 @@ def data_history_pipeline(filename, project):
             else:
                 dst = '%s.%s' % (link[2].node_name, link[3])
             if src is not None and dst is not None:
-                pipeline.add_link('%s->%s' % (src, dst))
+                try:
+                    pipeline.add_link('%s->%s' % (src, dst))
+                except ValueError as e:
+                    print(e)
 
         return pipeline
 
@@ -54,7 +57,7 @@ def data_history_pipeline(filename, project):
         return None
 
 
-def get_direct_proc_ancestors(filename, project, procs):
+def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None):
     session = project.session
     bricks = session.get_value(COLLECTION_CURRENT, filename, TAG_BRICKS)
     print('bricks for:', filename, ':', bricks)
@@ -65,16 +68,37 @@ def get_direct_proc_ancestors(filename, project, procs):
     if bricks is not None:
         for brick in bricks:
             if brick not in procs:
-                proc = get_history_brick_process(brick, project)
+                proc = get_history_brick_process(
+                    brick, project, before_exec_time=before_exec_time)
                 if proc is None:
                     continue
 
                 procs[brick] = proc
                 new_procs[brick] = proc
             else:
+                proc = procs[brick]
+                if before_exec_time and proc.exec_time > before_exec_time:
+                    continue
                 new_procs[brick] = procs[brick]
 
-    return new_procs
+    # keep last run(s)
+    later_date = None
+    keep_procs = {}
+    for uuid, proc in new_procs.items():
+        date = proc.exec_time
+        if later_date is None:
+            later_date = date
+            keep_procs[uuid] = proc
+        elif date > later_date:
+            later_date = date
+            keep_procs = {uuid: proc}
+        elif date == later_date:
+            # ambiguity: keep all equivalent
+            keep_proc[uuid] = proc
+        else:
+            print('drop earlier run:', proc.name, uuid)
+
+    return keep_procs
 
 
 def get_data_history_processes(filename, project):
@@ -85,13 +109,32 @@ def get_data_history_processes(filename, project):
     new_procs = get_direct_proc_ancestors(filename, project, procs)
     done_procs = set()
 
-    todo = list(new_procs.values())
+    # keep only the oldest to begin with
+    later_date = None
+    keep_procs = {}
+    for uuid, proc in new_procs.items():
+        date = proc.exec_time
+        if later_date is None:
+            later_date = date
+            keep_procs[uuid] = proc
+        elif date > later_date:
+            later_date = date
+            keep_procs = {uuid: proc}
+        elif date == later_date:
+            # ambiguity: keep all equivalent
+            keep_proc[uuid] = proc
+        else:
+            print('drop earlier run:', proc.name, uuid)
+
+    todo = list(keep_procs.values())
 
     while todo:
         proc = todo.pop(0)
+        if proc in done_procs:
+            continue
         done_procs.add(proc)
 
-        print('-- ancestors for:', proc.uuid, proc.name)
+        print('-- ancestors for:', proc.uuid, proc.name, proc)
         values_w_files = {}
         for name in proc.user_traits():
             trait = proc.trait(name)
@@ -105,8 +148,8 @@ def get_data_history_processes(filename, project):
 
         for name, (value, filenames) in values_w_files.items():
             for nfilename in filenames:
-                prev_procs = get_direct_proc_ancestors(nfilename, project,
-                                                       procs)
+                prev_procs = get_direct_proc_ancestors(
+                    nfilename, project, procs, before_exec_time=proc.exec_time)
 
                 n_procs = [pproc for pproc in prev_procs.values()
                            if pproc not in done_procs]
@@ -125,16 +168,18 @@ def get_data_history_processes(filename, project):
                                     or data_in_value(pval, nfilename, project):
                                 links.add((pproc, pname, proc, name))
 
-                if len(n_procs) == 0:
+                if len(prev_procs) == 0 or prev_procs == {proc.uuid: proc}:
+                    # the param has no previous processing or just the current
+                    # self-modifing process: connect it to main inputs
                     links.add((None, name, proc, name))
 
-        for proc in new_procs.values():
-            for name in proc.user_traits():
-                trait = proc.trait(name)
-                if trait.output:
-                    value = getattr(proc, name)
-                    if data_in_value(value, filename, project):
-                        links.add((proc, name, None, name))
+    for proc in keep_procs.values():
+        for name in proc.user_traits():
+            trait = proc.trait(name)
+            if trait.output:
+                value = getattr(proc, name)
+                if data_in_value(value, filename, project):
+                    links.add((proc, name, None, name))
 
     return procs, links
 
@@ -182,26 +227,31 @@ def get_filenames_in_value(value, project):
     return filenames
 
 
-def get_history_brick_process(brick_id, project):
+def get_history_brick_process(brick_id, project, before_exec_time=None):
     """
     """
 
     session = project.session
     binfo = session.get_document(COLLECTION_BRICK, brick_id)
-    print(brick_id, ':', binfo[BRICK_NAME])
-    print(binfo.keys())
+    #print(brick_id, ':', binfo[BRICK_NAME])
+    #print(binfo.keys())
     inputs = binfo[BRICK_INPUTS]
-    #print('inputs:', inputs)
     outputs = binfo[BRICK_OUTPUTS]
-    #print('outputs:', outputs)
     exec_status = binfo[BRICK_EXEC]
-    print('exec:', exec_status)
+    #print('exec:', exec_status)
     if exec_status != 'Done':
         return None
+    exec_time = binfo[BRICK_EXEC_TIME]
+    print('brick_id exec_time:', type(exec_time), exec_time, ', before:', before_exec_time)
+    if before_exec_time and exec_time > before_exec_time:
+        # ignore later runs
+        return None
+    print(brick_id, ':', binfo[BRICK_NAME])
 
     proc = Process()
     proc.name = binfo[BRICK_NAME].split('.')[-1]
     proc.uuid = brick_id
+    proc.exec_time = exec_time
 
     for name, value in inputs.items():
         proc.add_trait(name, traits.Any(output=False))
