@@ -1917,14 +1917,12 @@ class PipelineManagerTab(QWidget):
                         source = tot_plug_name[1][0]
                         dest = ('', tot_plug_name[0][1])
 
-                    c_e.scene.add_link(source, dest, active=True, weak=False)
-
                     # Writing a string to represent the link
                     source_parameters = ".".join(source)
                     dest_parameters = ".".join(dest)
                     link = "->".join((source_parameters, dest_parameters))
 
-                    c_e.scene.pipeline.add_link(link)
+                    c_e.scene.pipeline.add_link(link, allow_export=True)
                     c_e.scene.update_pipeline()
 
                 if multi_export:
@@ -2286,34 +2284,28 @@ class PipelineManagerTab(QWidget):
                         multi_export = True
                         tot_pip_plug_name.append(tot_plug_name[0][1])
 
-                    c_e._export_plug(temp_plug_name=node_plug_name[0],
-                                     weak_link=False,
-                                     optional=optional,
-                                     from_undo=True,
-                                     pipeline_parameter=pip_plug_name[1],
-                                     multi_export=multi_export)
-
                     # Connecting all the plugs that were connected
                     # to the original plugs.
 
-                    # Checking if the original plug is a pipeline
-                    # input or output to adapt the links to add.
-                    if  tot_plug_name[0][0] == 'inputs':
-                        source = ('', tot_plug_name[0][1])
-                        dest = tot_plug_name[1][0]
+                    if tot_plug_name[1] and tot_plug_name[0]:
+                        # Checking if the original plug is a pipeline
+                        # input or output to adapt the links to add.
+                        if  tot_plug_name[0][0] == 'inputs':
+                            print(tot_plug_name)
+                            source = ('', tot_plug_name[0][1])
+                            dest = tot_plug_name[1][0]
 
-                    else:
-                        source = tot_plug_name[1][0]
-                        dest = ('', tot_plug_name[0][1])
+                        else:
+                            source = tot_plug_name[1][0]
+                            dest = ('', tot_plug_name[0][1])
 
-                    c_e.scene.add_link(source, dest, active=True, weak=False)
+                        # Writing a string to represent the link
+                        source_parameters = ".".join(source)
+                        dest_parameters = ".".join(dest)
+                        link = "->".join((source_parameters, dest_parameters))
 
-                    # Writing a string to represent the link
-                    source_parameters = ".".join(source)
-                    dest_parameters = ".".join(dest)
-                    link = "->".join((source_parameters, dest_parameters))
+                        c_e.scene.pipeline.add_link(link, allow_export=True)
 
-                    c_e.scene.pipeline.add_link(link)
                     c_e.scene.update_pipeline()
 
                 if multi_export:
@@ -2347,9 +2339,14 @@ class PipelineManagerTab(QWidget):
                 dest = to_undo[2]
                 active = to_undo[3]
                 weak = to_undo[4]
-                c_e.add_link(source, dest, active, weak, from_undo=True)
-                # link = source[0] + "." + source[1] +
-                # "->" + dest[0] + "." + dest[1]
+                if not source[0]:
+                    source = [source[1]]
+                if not dest[0]:
+                    dest = [dest[1]]
+                link = '%s->%s' % ('.'.join(source), ".".join(dest))
+                print('link:', link)
+                c_e.scene.pipeline.add_link(link, weak,
+                                            allow_export=True)
 
             c_e.scene.pipeline.update_nodes_and_plugs_activation()
             self.nodeController.update_parameters()
