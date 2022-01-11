@@ -1910,9 +1910,15 @@ class TableDataBrowser(QTableWidget):
                 self.project.session.remove_document(
                     COLLECTION_INITIAL, scan_path)
 
-                full_scan_path = self.project.folder + '/' + scan_path
-                if os.path.isfile(full_scan_path):
-                    os.remove(full_scan_path)
+                full_scan_paths = [os.path.join(self.project.folder, scan_path)]
+
+                if scan_path.endswith(".nii"):
+                    full_scan_paths.append(full_scan_paths[0][:-4] + ".json")
+
+                for full_scan_path in full_scan_paths:
+
+                    if os.path.isfile(full_scan_path):
+                        os.remove(full_scan_path)
 
         for scan in scans_removed:
             scan_name = getattr(scan, TAG_FILENAME)

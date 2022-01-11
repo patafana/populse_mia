@@ -1631,12 +1631,14 @@ class TestMIADataBrowser(unittest.TestCase):
         self.main_window.data_browser.table_data.remove_scan()
         self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)), 8)
         self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL)), 8)
-        self.main_window.action_undo.trigger()
-        self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)), 9)
-        self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL)), 9)
-        self.main_window.action_redo.trigger()
-        self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)), 8)
-        self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL)), 8)
+        # Since 8486fda commit, it is no longer possible to undo a document
+        # removal (the data is permanently deleted).
+        #self.main_window.action_undo.trigger()
+        #self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)), 9)
+        #self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL)), 9)
+        #self.main_window.action_redo.trigger()
+        #self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_CURRENT)), 8)
+        #self.assertEqual(len(self.main_window.project.session.get_documents_names(COLLECTION_INITIAL)), 8)
 
         # Testing add tag undo/redo
         self.main_window.data_browser.add_tag_action.trigger()
