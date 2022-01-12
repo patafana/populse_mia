@@ -1255,8 +1255,8 @@ def verify_processes():
 
         if (isinstance(proc_content, dict)) and ('Paths' in proc_content):
 
-            for item in proc_content['Paths']:  # Save the path to the packages
-                final_pckgs["Paths"] = proc_content['Paths']
+            # Save the path to the packages
+            final_pckgs["Paths"] = proc_content['Paths']
 
         if (isinstance(proc_content, dict)) and ('Versions' in proc_content):
             for item in proc_content['Versions']:
