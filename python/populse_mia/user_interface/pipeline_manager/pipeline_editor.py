@@ -385,7 +385,7 @@ class PipelineEditor(PipelineDeveloperView):
                                        tuple((i[0][1] for i in tot_plug_name))))
 
     def add_link(self, source, dest, active, weak,
-                 from_undo=False, from_redo=False):
+                 from_undo=False, from_redo=False, allow_export=False):
         """Add a link between two nodes.
 
         :param source: tuple containing the node and plug source names
@@ -397,14 +397,15 @@ class PipelineEditor(PipelineDeveloperView):
         :param from_redo: boolean that is True if the action has been made
            using a redo
         """
-        self.scene.add_link(source, dest, active, weak)
+        #self.scene.add_link(source, dest, active, weak,
+                            #allow_export=allow_export)
 
         # Writing a string to represent the link
         source_parameters = ".".join(source)
         dest_parameters = ".".join(dest)
         link = "->".join((source_parameters, dest_parameters))
 
-        self.scene.pipeline.add_link(link)
+        self.scene.pipeline.add_link(link, allow_export=allow_export)
         self.scene.update_pipeline()
 
         # For history

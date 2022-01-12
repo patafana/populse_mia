@@ -2345,14 +2345,8 @@ class PipelineManagerTab(QWidget):
                 dest = to_undo[2]
                 active = to_undo[3]
                 weak = to_undo[4]
-                if not source[0]:
-                    source = [source[1]]
-                if not dest[0]:
-                    dest = [dest[1]]
-                link = '%s->%s' % ('.'.join(source), ".".join(dest))
-                print('link:', link)
-                c_e.scene.pipeline.add_link(link, weak,
-                                            allow_export=True)
+                c_e.add_link(source, dest, active, weak, from_undo=True,
+                             allow_export=True)
 
             c_e.scene.pipeline.update_nodes_and_plugs_activation()
             self.nodeController.update_parameters()
