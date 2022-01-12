@@ -29,8 +29,8 @@ from packaging import version
 
 
 # PyQt5 imports
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtGui import QIcon, QCursor
+from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QAction,
                              QMainWindow, QMessageBox, QMenu,
                              QPushButton, QApplication, QLabel)
@@ -58,6 +58,7 @@ from populse_mia.user_interface.data_viewer.data_viewer_tab import (
     DataViewerTab)
 import threading
 import sys
+import time
 
 CLINICAL_TAGS = ["Site", "Spectro", "MR", "PatientRef", "Pathology", "Age",
                  "Sex", "Message"]
@@ -216,6 +217,7 @@ class MainWindow(QMainWindow):
         self.action_import = QAction(QIcon(os.path.join(sources_images_dir,
                                                         'Blue.png')),
                                      'Import', self)
+        self.action_check_database = QAction('Check the wole database', self)
         self.action_see_all_projects = QAction('See all projects', self)
         self.action_project_properties = QAction('Project properties', self)
         self.action_software_preferences = QAction('MIA preferences', self)
@@ -365,6 +367,7 @@ class MainWindow(QMainWindow):
         self.action_create.triggered.connect(self.create_project_pop_up)
         self.action_open.triggered.connect(self.open_project_pop_up)
         self.action_exit.triggered.connect(self.close)
+        self.action_check_database.triggered.connect(self.check_database)
         self.action_open_shell.triggered.connect(self.open_shell)
         self.action_save.triggered.connect(self.save)
         self.action_save_as.triggered.connect(self.save_as)
@@ -394,6 +397,7 @@ class MainWindow(QMainWindow):
         # Actions in the "File" menu
         self.menu_file.addAction(self.action_create)
         self.menu_file.addAction(self.action_open)
+        self.menu_file.addAction(self.action_check_database)
 
         self.action_save_project.triggered.connect(self.saveChoice)
         self.action_save_project_as.triggered.connect(self.save_project_as)
@@ -1321,24 +1325,6 @@ class MainWindow(QMainWindow):
 
                         return False
 
-                    problem_list = data_loader.verify_scans(temp_database)
-
-                    # Message if invalid files
-                    if problem_list:
-                        str_msg = ""
-                        for element in problem_list:
-                            str_msg += element + "\n\n"
-                        msg = QMessageBox()
-                        msg.setIcon(QMessageBox.Warning)
-                        msg.setText(
-                            "These files have been modified or removed since "
-                            "they have been converted for the first time:")
-                        msg.setInformativeText(str_msg)
-                        msg.setWindowTitle("Warning")
-                        msg.setStandardButtons(QMessageBox.Ok)
-                        msg.buttonClicked.connect(msg.close)
-                        msg.exec()
-
                     # project removed from the opened projects list
                     config = Config()
                     opened_projects = config.get_opened_projects()
@@ -1387,6 +1373,35 @@ class MainWindow(QMainWindow):
                 msg.buttonClicked.connect(msg.close)
                 msg.exec()
                 return False
+
+    def check_database(self):
+        if self.project is None:
+            return
+
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+
+        print('verify scans...')
+        t0 = time.time()
+        problem_list = data_loader.verify_scans(self.project)
+        print('check time:', time.time() - t0)
+
+        QApplication.restoreOverrideCursor()
+
+        # Message if invalid files
+        if problem_list:
+            str_msg = ""
+            for element in problem_list:
+                str_msg += element + "\n\n"
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText(
+                "These files have been modified or removed since "
+                "they have been converted for the first time:")
+            msg.setInformativeText(str_msg)
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.buttonClicked.connect(msg.close)
+            msg.exec()
 
     def tab_changed(self):
         """Update the window when the tab is changed"""
