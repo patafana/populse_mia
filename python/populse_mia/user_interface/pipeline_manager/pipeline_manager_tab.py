@@ -2284,6 +2284,13 @@ class PipelineManagerTab(QWidget):
                         multi_export = True
                         tot_pip_plug_name.append(tot_plug_name[0][1])
 
+                    c_e._export_plug(temp_plug_name=node_plug_name[0],
+                                     weak_link=False,
+                                     optional=optional,
+                                     from_undo=True,
+                                     pipeline_parameter=pip_plug_name[1],
+                                     multi_export=multi_export)
+
                     # Connecting all the plugs that were connected
                     # to the original plugs.
 
@@ -2291,7 +2298,6 @@ class PipelineManagerTab(QWidget):
                         # Checking if the original plug is a pipeline
                         # input or output to adapt the links to add.
                         if  tot_plug_name[0][0] == 'inputs':
-                            print(tot_plug_name)
                             source = ('', tot_plug_name[0][1])
                             dest = tot_plug_name[1][0]
 
