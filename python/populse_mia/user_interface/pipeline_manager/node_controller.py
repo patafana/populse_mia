@@ -364,6 +364,22 @@ class PlugFilter(QWidget):
                 fields.model().sort(0)
                 fields.addItem("All visualized tags")
 
+
+class AttributesFilter(PlugFilter):
+    """Filter widget used on an attributes set for completion.
+
+    The widget displays a browser with the selected files of the database,
+    a rapid search and an advanced search to filter these files. Once the
+    filtering is done, the result (as a list of files) is set to the plug.
+    """
+    attributes_selected = pyqtSignal(dict)
+
+    def ok_clicked(self):
+        """Close the widget"""
+        print('OK')
+        self.close()
+        attributes = {}
+
         points = self.table_data.selectedIndexes()
 
         # If the user has selected some items
@@ -388,21 +404,6 @@ class PlugFilter(QWidget):
                     attributes.setdefault(tag_name, []).append(value)
 
         self.attributes_selected.emit(attributes)
-
-
-class AttributesFilter(PlugFilter):
-    """Filter widget used on an attributes set for completion.
-
-    The widget displays a browser with the selected files of the database,
-    a rapid search and an advanced search to filter these files. Once the
-    filtering is done, the result (as a list of files) is set to the plug.
-    """
-    attributes_selected = pyqtSignal(dict)
-
-    def ok_clicked(self):
-        """Close the widget"""
-        self.close()
-        attributes = {}
 
 
 # Node controller V2 style
