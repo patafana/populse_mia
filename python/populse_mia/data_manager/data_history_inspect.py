@@ -25,11 +25,12 @@ def data_history_pipeline(filename, project):
     if procs:
         pipeline = Pipeline()
         for proc in procs.values():
-            name = proc.name
-            if name in pipeline.nodes:
-                name = '%s_%s' % (proc.name, proc.uuid.replace('-', '_'))
-            proc.node_name = name
-            pipeline.add_process(name, proc)
+            if getattr(proc, 'used', False):
+                name = proc.name
+                if name in pipeline.nodes:
+                    name = '%s_%s' % (proc.name, proc.uuid.replace('-', '_'))
+                proc.node_name = name
+                pipeline.add_process(name, proc)
 
         for link in links:
             if link[0] is None:
@@ -89,7 +90,7 @@ def data_history_pipeline(filename, project):
 
 
 def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None,
-                              only_oldest=True):
+                              only_oldest=True, org_proc=None):
     session = project.session
     bricks = session.get_value(COLLECTION_CURRENT, filename, TAG_BRICKS)
     print('bricks for:', filename, ':', bricks)
@@ -118,6 +119,9 @@ def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None,
         later_date = None
         keep_procs = {}
         for uuid, proc in new_procs.items():
+            if org_proc and proc is org_proc:
+                # ignore origin proc for date sorting
+                continue
             date = proc.exec_time
             if later_date is None:
                 later_date = date
@@ -127,9 +131,12 @@ def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None,
                 keep_procs = {uuid: proc}
             elif date == later_date:
                 # ambiguity: keep all equivalent
-                keep_proc[uuid] = proc
+                keep_procs[uuid] = proc
             else:
                 print('drop earlier run:', proc.name, uuid)
+        if org_proc and org_proc.uuid in new_procs:
+            # set back origin process, if it's in the list
+            keep_procs[org_proc.uuid] = org_proc
     else:
         keep_procs = new_procs
 
@@ -144,7 +151,7 @@ def get_proc_ancestors_via_tmp(proc, project, procs):
     For this, try to match processes in the output files history bricks
     '''
     new_procs = {}
-    links = {}
+    links = set()
     dlink = None
     tmp_filename = '<temp>'
 
@@ -172,7 +179,7 @@ def get_proc_ancestors_via_tmp(proc, project, procs):
                     del hprocs[proc.uuid]
                 sprocs = find_procs_with_output(hprocs.values(), tmp_filename,
                                                 project)
-                for exec_time in sorted(sprocs):
+                for exec_time in sorted(sprocs, reverse=True):
                     for hproc, param in sprocs[exec_time]:
                         new_procs[hproc.uuid] = hproc
                         if dlink is None:
@@ -188,9 +195,8 @@ def get_proc_ancestors_via_tmp(proc, project, procs):
         # not found in data history: search the entire bricks histories
         session = project.session
         print('temp history not found from output filenames...')
-        print('bricks total:', len(session.get_documents_names(COLLECTION_BRICK)))
 
-        print('test bricks older than:', proc.exec_time)
+        #print('test bricks older than:', proc.exec_time)
         # filtering for date <= doesn't seem to work as I expect...
         #bricks = session.filter_documents(
             #COLLECTION_BRICK, '{%s} <= "%s"' % (BRICK_EXEC_TIME, proc.exec_time))
@@ -202,14 +208,15 @@ def get_proc_ancestors_via_tmp(proc, project, procs):
                 continue
             if brick[BRICK_EXEC_TIME] > proc.exec_time:
                 continue
-            print('try brick:', brick[BRICK_NAME])
+            #print('try brick:', brick[BRICK_NAME])
             outputs = brick[BRICK_OUTPUTS]
             for name, value in outputs.items():
                 if data_in_value(value, tmp_filename, project):
                     candidates.setdefault(brick[BRICK_EXEC_TIME], []).append(
                         (brick, name))
+                    #print('CANDIDATE.')
                     break
-        for exec_time in sorted(candidates):
+        for exec_time in sorted(candidates, reverse=True):
             for brick, name in candidates[exec_time]:
                 brick_id = brick[BRICK_ID]
                 hproc = procs.get(brick_id)
@@ -252,7 +259,7 @@ def get_data_history_processes(filename, project):
     new_procs = get_direct_proc_ancestors(filename, project, procs)
     done_procs = set()
 
-    # keep only the oldest to begin with
+    # keep only the latest to begin with
     later_date = None
     keep_procs = {}
     for uuid, proc in new_procs.items():
@@ -276,8 +283,9 @@ def get_data_history_processes(filename, project):
         if proc in done_procs:
             continue
         done_procs.add(proc)
+        proc.used = True
 
-        print('-- ancestors for:', proc.uuid, proc.name, proc)
+        print('-- ancestors for:', proc.uuid, proc.name, proc.exec_time)
         values_w_files = {}
         for name in proc.user_traits():
             trait = proc.trait(name)
@@ -295,27 +303,33 @@ def get_data_history_processes(filename, project):
                     print('temp file used -- history is broken')
                     prev_procs, prev_links = get_proc_ancestors_via_tmp(
                         proc, project, procs)
+                    links.update(prev_links)
+
+                    n_procs = [pproc for pproc in prev_procs.values()
+                              if pproc not in done_procs]
+                    todo += n_procs
                 else:
                     prev_procs = get_direct_proc_ancestors(
                         nfilename, project, procs,
-                        before_exec_time=proc.exec_time)
+                        before_exec_time=proc.exec_time, org_proc=proc)
 
-                n_procs = [pproc for pproc in prev_procs.values()
-                           if pproc not in done_procs]
-                todo += n_procs
+                    n_procs = [pproc for pproc in prev_procs.values()
+                              if pproc not in done_procs]
+                    todo += n_procs
 
-                # connect outputs of prev_procs which are identical to
-                print('look for value', value, 'in', prev_procs.keys())
-                for pproc in prev_procs.values():
-                    print('- in', pproc.name)
-                    for pname in pproc.user_traits():
-                        ptrait = pproc.trait(pname)
-                        if ptrait.output:
-                            print(pname, 'is an output')
-                            pval = getattr(pproc, pname, project)
-                            if pval == value \
-                                    or data_in_value(pval, nfilename, project):
-                                links.add((pproc, pname, proc, name))
+                    # connect outputs of prev_procs which are identical to
+                    print('look for value', value, 'in', prev_procs.keys())
+                    for pproc in prev_procs.values():
+                        print('- in', pproc.name)
+                        for pname in pproc.user_traits():
+                            ptrait = pproc.trait(pname)
+                            if ptrait.output:
+                                print(pname, 'is an output')
+                                pval = getattr(pproc, pname, project)
+                                if pval == value \
+                                        or data_in_value(pval, nfilename,
+                                                         project):
+                                    links.add((pproc, pname, proc, name))
 
                 if len(prev_procs) == 0 or prev_procs == {proc.uuid: proc}:
                     # the param has no previous processing or just the current
@@ -397,7 +411,7 @@ def get_history_brick_process(brick_id, project, before_exec_time=None):
     if exec_status != 'Done':
         return None
     exec_time = binfo[BRICK_EXEC_TIME]
-    print('brick_id exec_time:', type(exec_time), exec_time, ', before:', before_exec_time)
+    print(brick_id, 'exec_time:', type(exec_time), exec_time, ', before:', before_exec_time)
     if before_exec_time and exec_time > before_exec_time:
         # ignore later runs
         return None
