@@ -5,6 +5,7 @@
 from populse_mia.data_manager.project import (BRICK_EXEC, BRICK_EXEC_TIME,
                                               BRICK_INIT, BRICK_INIT_TIME,
                                               BRICK_INPUTS, BRICK_NAME,
+                                              BRICK_ID,
                                               BRICK_OUTPUTS, COLLECTION_BRICK,
                                               COLLECTION_CURRENT,
                                               COLLECTION_INITIAL, TAG_BRICKS,
@@ -87,7 +88,8 @@ def data_history_pipeline(filename, project):
         return None
 
 
-def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None):
+def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None,
+                              only_oldest=True):
     session = project.session
     bricks = session.get_value(COLLECTION_CURRENT, filename, TAG_BRICKS)
     print('bricks for:', filename, ':', bricks)
@@ -111,24 +113,135 @@ def get_direct_proc_ancestors(filename, project, procs, before_exec_time=None):
                     continue
                 new_procs[brick] = procs[brick]
 
-    # keep last run(s)
-    later_date = None
-    keep_procs = {}
-    for uuid, proc in new_procs.items():
-        date = proc.exec_time
-        if later_date is None:
-            later_date = date
-            keep_procs[uuid] = proc
-        elif date > later_date:
-            later_date = date
-            keep_procs = {uuid: proc}
-        elif date == later_date:
-            # ambiguity: keep all equivalent
-            keep_proc[uuid] = proc
-        else:
-            print('drop earlier run:', proc.name, uuid)
+    if only_oldest:
+        # keep last run(s)
+        later_date = None
+        keep_procs = {}
+        for uuid, proc in new_procs.items():
+            date = proc.exec_time
+            if later_date is None:
+                later_date = date
+                keep_procs[uuid] = proc
+            elif date > later_date:
+                later_date = date
+                keep_procs = {uuid: proc}
+            elif date == later_date:
+                # ambiguity: keep all equivalent
+                keep_proc[uuid] = proc
+            else:
+                print('drop earlier run:', proc.name, uuid)
+    else:
+        keep_procs = new_procs
 
     return keep_procs
+
+
+def get_proc_ancestors_via_tmp(proc, project, procs):
+    '''
+    Try to get upstream process(es) for proc, connected via a temp value
+    ("<temp>").
+
+    For this, try to match processes in the output files history bricks
+    '''
+    new_procs = {}
+    links = {}
+    dlink = None
+    tmp_filename = '<temp>'
+
+    def _get_tmp_param(proc):
+        for param, trait in proc.user_traits().items():
+            if not trait.output:
+                value = getattr(proc, param)
+                if data_in_value(value, tmp_filename, project):
+                    return (proc, param)
+        return (None, None)  # failed...
+
+    # look first from proc outputs history (which is more direct, less error-
+    # prone, and a more limited search)
+    for name, trait in proc.user_traits().items():
+        if trait.output:
+            value = getattr(proc, name)
+            filenames = get_filenames_in_value(value, project,
+                                               allow_temp=False)
+            for filename in filenames:
+                hprocs = get_direct_proc_ancestors(
+                    filename, project, procs, before_exec_time=proc.exec_time,
+                    only_oldest=False)
+                if proc.uuid in hprocs:
+                    # exclude the current proc
+                    del hprocs[proc.uuid]
+                sprocs = find_procs_with_output(hprocs.values(), tmp_filename,
+                                                project)
+                for exec_time in sorted(sprocs):
+                    for hproc, param in sprocs[exec_time]:
+                        new_procs[hproc.uuid] = hproc
+                        if dlink is None:
+                            dlink = _get_tmp_param(proc)
+                        links.add((hproc, param, dlink[0], dlink[1]))
+                        # we have found a link (starting with the older): stop
+                        break
+                    if len(new_procs) != 0:
+                        break
+                # if found, should we still process other filenames ?
+
+    if len(new_procs) == 0:
+        # not found in data history: search the entire bricks histories
+        session = project.session
+        print('temp history not found from output filenames...')
+        print('bricks total:', len(session.get_documents_names(COLLECTION_BRICK)))
+
+        print('test bricks older than:', proc.exec_time)
+        # filtering for date <= doesn't seem to work as I expect...
+        #bricks = session.filter_documents(
+            #COLLECTION_BRICK, '{%s} <= "%s"' % (BRICK_EXEC_TIME, proc.exec_time))
+        candidates = {}
+        bricks = session.get_documents(COLLECTION_BRICK)
+        for brick in bricks:
+            #if brick
+            if brick[BRICK_EXEC] != 'Done':
+                continue
+            if brick[BRICK_EXEC_TIME] > proc.exec_time:
+                continue
+            print('try brick:', brick[BRICK_NAME])
+            outputs = brick[BRICK_OUTPUTS]
+            for name, value in outputs.items():
+                if data_in_value(value, tmp_filename, project):
+                    candidates.setdefault(brick[BRICK_EXEC_TIME], []).append(
+                        (brick, name))
+                    break
+        for exec_time in sorted(candidates):
+            for brick, name in candidates[exec_time]:
+                brick_id = brick[BRICK_ID]
+                hproc = procs.get(brick_id)
+                if hproc is None:
+                    hproc = get_history_brick_process(brick_id, project)
+                    procs[brick_id] = hproc
+                new_procs[brick_id] = hproc
+                if dlink is None:
+                    dlink = _get_tmp_param(proc)
+                links.add((hproc, name, dlink[0], dlink[1]))
+                print('found:', hproc.name, name)
+                break
+            break
+
+    return new_procs, links
+
+
+def find_procs_with_output(procs, filename, project):
+    '''
+    Returns
+    -------
+    sprocs: dict
+        exec_time: [(process, param_name), ...]
+    '''
+    sprocs = {}
+    for proc in procs:
+        for name, trait in proc.user_traits().items():
+            if trait.output:
+                value = getattr(proc, name)
+                if data_in_value(value, filename, project):
+                    sprocs.setdefault(proc.exec_time, []).append((proc, name))
+    return sprocs
 
 
 def get_data_history_processes(filename, project):
@@ -178,8 +291,14 @@ def get_data_history_processes(filename, project):
 
         for name, (value, filenames) in values_w_files.items():
             for nfilename in filenames:
-                prev_procs = get_direct_proc_ancestors(
-                    nfilename, project, procs, before_exec_time=proc.exec_time)
+                if nfilename == '<temp>':
+                    print('temp file used -- history is broken')
+                    prev_procs, prev_links = get_proc_ancestors_via_tmp(
+                        proc, project, procs)
+                else:
+                    prev_procs = get_direct_proc_ancestors(
+                        nfilename, project, procs,
+                        before_exec_time=proc.exec_time)
 
                 n_procs = [pproc for pproc in prev_procs.values()
                            if pproc not in done_procs]
@@ -216,8 +335,10 @@ def get_data_history_processes(filename, project):
 
 def data_in_value(value, filename, project):
     if isinstance(value, str):
-        proj_dir = osp.join(osp.abspath(osp.normpath(project.folder)), '')
-        return value == osp.join(proj_dir, filename)
+        if filename != '<temp>':
+            proj_dir = osp.join(osp.abspath(osp.normpath(project.folder)), '')
+            filename = osp.join(proj_dir, filename)
+        return value == filename
     if isinstance(value, (list, tuple)):
         for val in value:
             if data_in_value(val, filename, project):
@@ -230,7 +351,9 @@ def data_in_value(value, filename, project):
     return False
 
 
-def is_data_entry(filename, project):
+def is_data_entry(filename, project, allow_temp=True):
+    if allow_temp and filename == '<temp>':
+        return filename
     proj_dir = osp.join(osp.abspath(osp.normpath(project.folder)), '')
     if not filename.startswith(proj_dir):
         return None
@@ -240,13 +363,13 @@ def is_data_entry(filename, project):
     return None
 
 
-def get_filenames_in_value(value, project):
+def get_filenames_in_value(value, project, allow_temp=True):
     values = [value]
     filenames = set()
     while values:
         value = values.pop(0)
         if isinstance(value, str):
-            nvalue = is_data_entry(value, project)
+            nvalue = is_data_entry(value, project, allow_temp=allow_temp)
             if nvalue:
                 filenames.add(nvalue)
         elif isinstance(value, (list, tuple)):
