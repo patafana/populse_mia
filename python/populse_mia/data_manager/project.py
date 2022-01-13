@@ -1076,12 +1076,12 @@ class Project():
 
     def update_data_history(self, data):
         """
-        Cleanup earlier history of given data by removing in their bricks list
+        Cleanup earlier history of given data by removing in their bricks list:
         those which correspond to obsolete runs (data has been re-written by
         more recent runs). This function only updates data status (bricks
         list), it does not remove obsolete bricks from the database.
 
-        :return: a set of obsolete bricks thay may become orphan.
+        :return: a set of obsolete bricks that may become orphan.
         """
         #
         scan_bricks = list(self.session.get_documents(
