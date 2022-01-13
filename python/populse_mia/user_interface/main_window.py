@@ -605,22 +605,41 @@ class MainWindow(QMainWindow):
         # Opens the conversion software to convert the MRI files in Nifti/Json
         config = Config()
         home = expanduser("~")
-        code_exit = subprocess.call(['java', '-Xmx4096M', '-jar',
-                                      config.get_mri_conv_path(),
-                                     '[ProjectsDir] '+ home,
-                                     '[ExportNifti] ' + os.path.join(
-                                         self.project.folder, 'data',
-                                         'raw_data'),
-                                     '[ExportToMIA] PatientName-StudyName-'
-                                     'CreationDate-SeqNumber-Protocol-'
-                                     'SequenceName-AcquisitionTime',
-                                     'CloseAfterExport',
-                                     '[ExportOptions] 00013'])
+        print('\nmri_conv opening ...\n')
+
+        try:
+            code_exit = subprocess.call(['java', '-Xmx4096M', '-jar',
+                                         config.get_mri_conv_path(),
+                                         '[ProjectsDir] '+ home,
+                                         '[ExportNifti] ' + os.path.join(
+                                             self.project.folder, 'data',
+                                             'raw_data'),
+                                         '[ExportToMIA] PatientName-StudyName-'
+                                         'CreationDate-SeqNumber-Protocol-'
+                                         'SequenceName-AcquisitionTime',
+                                         'CloseAfterExport',
+                                         '[ExportOptions] 00013'])
+
+            if code_exit != 0 and code_exit != 100:
+                raise ValueError('mri_conv did not run properly!')
+
+        except ValueError:
+            print("\nTrial with a lower maximum heap size ...\n")
+            code_exit = subprocess.call(['java', '-Xmx1024M', '-jar',
+                                         config.get_mri_conv_path(),
+                                         '[ProjectsDir] '+ home,
+                                         '[ExportNifti] ' + os.path.join(
+                                             self.project.folder, 'data',
+                                             'raw_data'),
+                                         '[ExportToMIA] PatientName-StudyName-'
+                                         'CreationDate-SeqNumber-Protocol-'
+                                         'SequenceName-AcquisitionTime',
+                                         'CloseAfterExport',
+                                         '[ExportOptions] 00013'])
 
         # 'NoLogExport'if we don't want log export
 
         if code_exit == 0:
-
             # Database filled
             new_scans = data_loader.read_log(self.project, self)
 
