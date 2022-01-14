@@ -968,7 +968,7 @@ class Project():
 
         return values
 
-    def get_data_history(self, path, timepoint=None):
+    def get_data_history(self, path):
         """
         Get the processing history for the given data file.
 
@@ -982,106 +982,22 @@ class Project():
         :return: history (dict)
         """
 
-        def latest_before(datetimes, timepoint):
-            dbest = None
-            ibest = None
-            for i, d in enumerate(datetimes):
-                if d is not None:
-                    delta = timepoint - d
-                    if (delta >= timedelta(0)
-                        and (dbest is None or delta < dbest)):
-                        dbest = delta
-                        ibest = i
-            return ibest
+        from . import data_history_inspect
 
-        def latest_brick_before(bricks, timepoint):
-            dates = [b[BRICK_EXEC_TIME] for b in bricks]
-            return latest_before(dates, timepoint)
-
-        parents = set()
-        procs = set()
-        proj_dir = os.path.join(os.path.abspath(
-            os.path.normpath(self.folder)), '')
-        pl = len(proj_dir)
-
-        if timepoint is None:
-            timepoint = datetime.now()
-
-        my_path = path
-        todo = [(path, timepoint)]
-        obsolete = set()
-
-        while todo:
-            path, timepoint = todo.pop(0)
-            bricks = self.session.get_document(
-                COLLECTION_CURRENT, path, fields=[TAG_BRICKS], as_list=True)
-            if not bricks or not bricks[0]:
-                continue
-
-            bricks = bricks[0]
-            # print('bricks:', bricks)
-            brick_docs = list(self.session.get_documents(
-                COLLECTION_BRICK, document_ids=bricks))
-            best = latest_brick_before(brick_docs, timepoint)
-            if best is None:
-                continue
-
-            brick = brick_docs[best]
-            brid = brick[BRICK_ID]
-
-            if path == my_path:
-                obsolete = set(b.ID for b in brick_docs
-                               if b is not None and b.Exec == 'Done')
-            bid = set(b.ID for b in brick_docs)
-            dropped = [b for b in bricks if b not in bid]
-            obsolete.update(dropped)
-
-            #for brid in reversed(bricks):  # process from newer to older
-
-            if brid in procs:
-                continue
-            procs.add(brid)
-            #brick = self.session.get_document(COLLECTION_BRICK, brid)
-            if brick.Exec != 'Done':
-                # not run, this brick has not produced outputs
-                continue
-            brick_timepoint = brick[BRICK_EXEC_TIME]
-
-            inputs = brick[BRICK_INPUTS]
-            values = []
-            tval = list(inputs.values())
-            while tval:
-                value = tval.pop(0)
-                if isinstance(value, list):
-                    tval += value
-                    continue
-                if not isinstance(value, str):
-                    continue
-                aval = os.path.abspath(os.path.normpath(value))
-                if not aval.startswith(proj_dir):
-                    continue
-
-                values.append(aval[pl:])
-
-            values = [value for value in values
-                      if value not in parents]
-            parents.update(values)
-            todo += [(v, brick_timepoint) for v in values]
-
-        obsolete = obsolete.difference(procs)
-
-        return {'parent_files': parents,
-                'processes': procs,
-                'obsolete': obsolete}
+        return data_history_inspect.get_data_history(path, self)
 
     def update_data_history(self, data):
         """
-        Cleanup earlier history of given data by removing in their bricks list:
-        those which correspond to obsolete runs (data has been re-written by
-        more recent runs). This function only updates data status (bricks
+        Cleanup earlier history of given data by removing from their bricks
+        list those which correspond to obsolete runs (data has been re-written
+        by more recent runs). This function only updates data status (bricks
         list), it does not remove obsolete bricks from the database.
 
-        :return: a set of obsolete bricks that may become orphan.
+        Returns
+        -------
+        a set of obsolete bricks that might become orphan: they are not used
+        any longer in input data history, and were in the previous ones. But
+        they still can be used in other data.
         """
         #
         scan_bricks = list(self.session.get_documents(
@@ -1091,19 +1007,23 @@ class Project():
                        if brick and brick[0] is not None}
 
         obsolete = set()
+        used = set()
         for output in data:
-            old_bricks = scan_bricks.get(output)
             o_hist = self.get_data_history(output)
-            obsolete.update(o_hist['obsolete'])
+            p_hist = o_hist['processes']
+            used.update(p_hist)
+            old_bricks = scan_bricks.get(output)
             if old_bricks:
                 new_bricks = [brid for brid in old_bricks
-                              if brid in o_hist['processes']]
+                              if brid in p_hist]
                 if len(new_bricks) != len(old_bricks):
                     print('update file history for:', output, ':', old_bricks,
                           '->', new_bricks)
                     self.session.set_value(
                         COLLECTION_CURRENT, output, TAG_BRICKS, new_bricks)
 
+        for bricks in scan_bricks.values():
+            obsolete.update(brick for brick in bricks if brick not in used)
         return obsolete
 
 

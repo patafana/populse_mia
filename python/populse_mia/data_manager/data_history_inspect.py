@@ -129,9 +129,45 @@ def get_data_history_bricks(filename, project):
     '''
 
     procs, links = get_data_history_processes(filename, project)
-    bricks = {proc.brick for proc in procs if proc.used}
+    bricks = {proc.brick for proc in procs.values() if proc.used}
     return bricks
 
+
+def get_data_history(filename, project):
+    """
+    Get the processing history for the given data file. Based on
+    :func:`get_data_history_processes`.
+
+    The history dict contains several elements:
+
+    - `parent_files`: set of other data used (directy or indirectly) to
+      produce the data.
+    - `processes`: processing bricks set from each ancestor data which
+      lead to the given one. Elements are process (brick) UUIDs.
+
+    Returns
+    -------
+    history: dict
+    """
+    procs, links = get_data_history_processes(filename, project)
+
+    # parse input files
+
+    parent_files = set()
+    for proc in procs.values():
+        if not proc.used:
+            continue
+        for value in proc.brick[BRICK_INPUTS].values():
+            filenames = get_filenames_in_value(value, project,
+                                               allow_temp=False)
+            parent_files.update(filenames)
+
+
+    bricks = {proc.brick[BRICK_ID] for proc in procs.values() if proc.used}
+    history = {'processes': bricks,
+               'parent_files': parent_files}
+
+    return history
 
 def get_data_history_processes(filename, project):
     '''

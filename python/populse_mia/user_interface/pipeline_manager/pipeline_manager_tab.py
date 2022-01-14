@@ -1825,13 +1825,11 @@ class PipelineManagerTab(QWidget):
                 {BRICK_EXEC: 'Done', BRICK_EXEC_TIME: exec_date})
 
         # now cleanup earlier history of data
-        # temporarily disabled 2022/01/13 (Denis) to avoid breaking
-        # history graphs
-        #obsolete = self.project.update_data_history(outputs)
+        obsolete = self.project.update_data_history(outputs)
 
         # get obsolete bricks (done) referenced from current outputs
         print('obsolete bricks:', obsolete)
-        # self.project.cleanup_orphan_bricks(obsolete)
+        self.project.cleanup_orphan_bricks(obsolete)
         # temporarily disabled 2022/01/13 (Denis) to avoid breaking
         # history graphs
         #self.project.cleanup_orphan_bricks()  # modified on 4th January 2022
