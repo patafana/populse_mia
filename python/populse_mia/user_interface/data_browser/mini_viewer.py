@@ -616,7 +616,8 @@ class MiniViewer(QWidget):
             for idx, file_path in enumerate(self.file_paths.copy()):
 
                 try:
-                    chk = nib.as_closest_canonical(nib.load(file_path))
+                    chk = nib.as_closest_canonical(nib.load(file_path, mmap=False))
+                    #chk = nib.as_closest_canonical(nib.load(file_path))
                     #chk = nib.load(file_path)
 
                 except nib.filebasedimages.ImageFileError as e:
