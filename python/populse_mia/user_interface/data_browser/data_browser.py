@@ -1014,9 +1014,10 @@ class TableDataBrowser(QTableWidget):
                                     self.bricks[brick_name_button] = brick_uuid
                                     brick_name_button.clicked.connect(
                                         self.show_brick_history)
-                                    brick_name_button.clicked.connect(
-                                        partial(self.show_data_history,
-                                                scan['FileName']))
+                                    if 'FileName' in scan:
+                                        brick_name_button.clicked.connect(
+                                            partial(self.show_data_history,
+                                                    scan['FileName']))
                                     layout.addWidget(brick_name_button)
                                 widget.setLayout(layout)
                                 self.setCellWidget(rowCount, column, widget)
