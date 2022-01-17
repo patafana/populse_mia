@@ -1901,6 +1901,9 @@ class PopUpPreferences(QDialog):
         if config.isControlV1() is True:
             self.control_checkbox.setChecked(1)
 
+        self.control_checkbox_changed = False
+        self.control_checkbox.stateChanged.connect(self.control_checkbox_toggled)
+
         h_box_control = QtWidgets.QHBoxLayout()
         h_box_control.addWidget(self.control_checkbox)
         h_box_control.addWidget(self.control_label)
@@ -2442,6 +2445,9 @@ class PopUpPreferences(QDialog):
             elif change.new_psswd.text() != change.new_psswd_conf.text():
                 self.change_admin_psswd("The new passwords are not the same.")
 
+    def control_checkbox_toggled(self):
+        self.control_checkbox_changed = not self.control_checkbox_changed
+
     def edit_config_file(self):
         """Create a window to view, edit the mia configuration file."""
         config = Config()
@@ -2655,6 +2661,20 @@ class PopUpPreferences(QDialog):
 
         else:
             config.setControlV1(False)
+
+        if self.control_checkbox_changed:
+            self.msg = QMessageBox()
+            self.msg.setIcon(QMessageBox.Warning)
+            self.msg.setText("Controller version changed")
+            self.msg.setInformativeText(
+                "The controller version has been changed, MIA must be restarted to take this change into consideration")
+            self.msg.setWindowTitle("Warning")
+            self.msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            returnValue = self.msg.exec()
+            if returnValue != QMessageBox.Ok:
+                QApplication.restoreOverrideCursor()
+                self.control_checkbox.toggle()
+                return
 
         # Max thumbnails number at the data browser bottom
         max_thumbnails = min(max(self.max_thumbnails_box.value(), 1), 15)
