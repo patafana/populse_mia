@@ -1901,8 +1901,8 @@ class PopUpPreferences(QDialog):
         if config.isControlV1() is True:
             self.control_checkbox.setChecked(1)
 
-        self.control_checkbox_changed = False
-        self.control_checkbox.stateChanged.connect(self.control_checkbox_toggled)
+        self.control_checkbox_changed = main_window.get_controller_version()
+        self.control_checkbox.clicked.connect(partial(self.control_checkbox_toggled, main_window))
 
         h_box_control = QtWidgets.QHBoxLayout()
         h_box_control.addWidget(self.control_checkbox)
@@ -2445,8 +2445,31 @@ class PopUpPreferences(QDialog):
             elif change.new_psswd.text() != change.new_psswd_conf.text():
                 self.change_admin_psswd("The new passwords are not the same.")
 
-    def control_checkbox_toggled(self):
-        self.control_checkbox_changed = not self.control_checkbox_changed
+    def control_checkbox_toggled(self, main_window):
+        self.control_checkbox.toggle()
+
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Warning)
+        self.msg.setText("Controller version change")
+        self.msg.setWindowTitle("Warning")
+        self.msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+        if not self.control_checkbox_changed:
+            self.msg.setInformativeText(
+                "To change the controller, MIA must be restarted."
+                "Would you like to plan the change for next start-up?")
+        else:
+            self.msg.setInformativeText(
+                "Change of controller is already planned for next start-up."
+                "Would you like to cancel this change?")
+
+        return_value = self.msg.exec()
+        if return_value == QMessageBox.Yes:
+            self.control_checkbox_changed = not self.control_checkbox_changed
+            main_window.set_controller_version()
+
+        QApplication.restoreOverrideCursor()
+
 
     def edit_config_file(self):
         """Create a window to view, edit the mia configuration file."""
@@ -2661,20 +2684,6 @@ class PopUpPreferences(QDialog):
 
         else:
             config.setControlV1(False)
-
-        if self.control_checkbox_changed:
-            self.msg = QMessageBox()
-            self.msg.setIcon(QMessageBox.Warning)
-            self.msg.setText("Controller version changed")
-            self.msg.setInformativeText(
-                "The controller version has been changed, MIA must be restarted to take this change into consideration")
-            self.msg.setWindowTitle("Warning")
-            self.msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = self.msg.exec()
-            if returnValue != QMessageBox.Ok:
-                QApplication.restoreOverrideCursor()
-                self.control_checkbox.toggle()
-                return
 
         # Max thumbnails number at the data browser bottom
         max_thumbnails = min(max(self.max_thumbnails_box.value(), 1), 15)
