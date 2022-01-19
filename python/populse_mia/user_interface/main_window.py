@@ -184,6 +184,8 @@ class MainWindow(QMainWindow):
 
         self.saved_projects_actions = []
 
+        self.controller_version_changed = False
+
         # Define main window view
         self.create_view_window()
 
@@ -310,6 +312,23 @@ class MainWindow(QMainWindow):
             if self.project.folder in opened_projects:
                 opened_projects.remove(self.project.folder)
             config.set_opened_projects(opened_projects)
+
+            # Change controller version if needed
+            if self.controller_version_changed:
+                self.msg = QMessageBox()
+                self.msg.setIcon(QMessageBox.Warning)
+                self.msg.setText("Controller version change")
+                self.msg.setInformativeText(
+                    "A change of controller version is planned for next start-up."
+                    "Do you confirm that you would like to perform this change?")
+                self.msg.setWindowTitle("Warning")
+                self.msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+                return_value = self.msg.exec()
+
+                if return_value == QMessageBox.Yes:
+                    config.setControlV1(not config.isControlV1())
+                self.msg.close()
+
             config.saveConfig()
             self.remove_raw_files_useless()
 
@@ -322,6 +341,12 @@ class MainWindow(QMainWindow):
 
         if self.data_viewer:
             self.data_viewer.clear()
+
+    def set_controller_version(self):
+        self.controller_version_changed = not self.controller_version_changed
+
+    def get_controller_version(self):
+        return self.controller_version_changed
 
     def create_view_actions(self):
         """Create the actions and their shortcuts in each menu"""

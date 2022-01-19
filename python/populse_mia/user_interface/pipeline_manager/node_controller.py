@@ -1138,22 +1138,26 @@ class NodeController(QWidget):
             del self.main_window.pipeline_manager.pipelineEditorTabs \
                 .get_current_editor().node_parameters_tmp["outputs"]
 
-        if self.main_window.pipeline_manager.pipelineEditorTabs\
-        .get_current_editor().node_parameters_tmp ==  \
-                self.main_window.pipeline_manager.pipelineEditorTabs\
-        .get_current_editor().node_parameters and \
-                self.main_window.pipeline_manager.test_init and \
-                self.main_window.pipeline_manager.pipelineEditorTabs\
-                        .get_current_editor().initialized:
-            self.main_window.pipeline_manager.run_pipeline_action \
-                .setDisabled(False)
-        else:
-            self.main_window.pipeline_manager.run_pipeline_action\
-                .setDisabled(True)
-        if self.main_window.pipeline_manager.iterationTable\
-                .check_box_iterate.isChecked():
-            self.main_window.pipeline_manager.run_pipeline_action\
-                .setDisabled(False)
+        # Commented on January, 4th 2020
+        # if self.main_window.pipeline_manager.pipelineEditorTabs\
+        # .get_current_editor().node_parameters_tmp ==  \
+        #         self.main_window.pipeline_manager.pipelineEditorTabs\
+        # .get_current_editor().node_parameters and \
+        #         self.main_window.pipeline_manager.test_init and \
+        #         self.main_window.pipeline_manager.pipelineEditorTabs\
+        #                 .get_current_editor().initialized:
+        #     self.main_window.pipeline_manager.run_pipeline_action \
+        #         .setDisabled(False)
+        # else:
+        #    self.main_window.pipeline_manager.run_pipeline_action\
+        #         .setDisabled(True)
+        # if self.main_window.pipeline_manager.iterationTable\
+        #         .check_box_iterate.isChecked():
+        #     self.main_window.pipeline_manager.run_pipeline_action\
+        #         .setDisabled(False)
+
+        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(False)
+        # End - commented on January, 4th 2020
 
         self.setLayout(self.v_box_final)
 
@@ -1239,7 +1243,7 @@ class NodeController(QWidget):
         :param process: process of the node
         """
 
-        self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True)
+        # self.main_window.pipeline_manager.run_pipeline_action.setDisabled(True) # commented on January, 4th 2020
 
         if process is None:
             try:
