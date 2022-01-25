@@ -127,8 +127,8 @@ class DictionaryTreeModel(QAbstractItemModel):
         if node.childCount() > 0:
             return Qt.ItemIsEnabled | Qt.ItemIsSelectable
         else:
-            return Qt.ItemIsEnabled | Qt.ItemIsSelectable | \
-                   Qt.ItemIsDragEnabled
+            return (Qt.ItemIsEnabled | Qt.ItemIsSelectable |
+                    Qt.ItemIsDragEnabled)
 
     def getNode(self, index):
         """Return a Node() from given index."""
@@ -280,7 +280,8 @@ class InstallProcesses(QDialog):
         install
         - install: installs the selected file/folder on Populse_MIA
             **Contains: Private function:**
-                - _add_package: Add a package and its modules to the package tree
+                - _add_package: Add a package and its modules to
+                  the package tree
                 - _change_pattern_in_folder: Changing all 'old_pattern' pattern
                   to 'new_pattern' in the 'path' folder
 
@@ -543,16 +544,14 @@ class InstallProcesses(QDialog):
 
             try:
                 packages = process_dic["Packages"]
-            except KeyError:
-                packages = {}
-            except TypeError:
+
+            except (KeyError, TypeError):
                 packages = {}
 
             try:
                 paths = process_dic["Paths"]
-            except KeyError:
-                paths = []
-            except TypeError:
+
+            except (KeyError, TypeError):
                 paths = []
 
             # Saving all the install packages names and checking if
@@ -1649,8 +1648,8 @@ class PackageLibraryDialog(QDialog):
                                 break
 
                         except KeyError:
-                            errors = 'No package, module or class named ' \
-                                     + _2add + ' !'
+                            errors = ('No package, module or class '
+                                      'named {}!'.format(_2add))
                             break
 
                     old_part = part
@@ -1735,8 +1734,17 @@ class PackageLibraryDialog(QDialog):
         are empty.
 
         :param index: recursive index to move between modules
+        :param to_delete: the brick (class) do delete (ex. test.Test)
+        :param remove: (boolean) if True, remove the brick(s) from the
+                       package tree
+        :param loop: (boolean) to loop silently (if True no confirmation
+                     is requested before deletion)
+
+        :return: the list of deleted brick (class)
 
         """
+
+        deleted_packages = []
         self.packages = self.package_library.package_tree
         config = Config()
 
@@ -1754,7 +1762,7 @@ class PackageLibraryDialog(QDialog):
             self.msg.setStandardButtons(QMessageBox.Ok)
             self.msg.buttonClicked.connect(self.msg.close)
             self.msg.show()
-            return
+            return deleted_packages
 
         if to_delete.split(".")[0] in ["nipype", "mia_processes", "capsul"]:
             self.msg = QMessageBox()
@@ -1768,11 +1776,11 @@ class PackageLibraryDialog(QDialog):
             self.msg.setStandardButtons(QMessageBox.Ok)
             self.msg.buttonClicked.connect(self.msg.close)
             self.msg.show()
-            return
+            return deleted_packages
 
         if index == 1 and loop is False:
-            msgtext = "Do you really want to delete the package " + \
-                      to_delete + " ?"
+            msgtext = ("Do you really want to delete the "
+                       "package {}?".format(to_delete))
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             title = "populse_mia - Warning: Delete package"
@@ -1788,93 +1796,244 @@ class PackageLibraryDialog(QDialog):
                 path = os.path.abspath(os.path.join(config.get_mia_path(),
                                                     'processes',
                                                     *pkg_list[0:index]))
-                self.delete_package(index + 1, to_delete)
-                
+                sub_deleted_packages = self.delete_package(index + 1,
+                                                           to_delete)
+
+                for sub_pkg in sub_deleted_packages:
+
+                    if sub_pkg not in deleted_packages:
+                        deleted_packages.append(sub_pkg)
+
                 if os.path.exists(path):
+                    del_path = False
 
                     if ((len(glob.glob(os.path.join(path, "*"))) == 0) or
                                                       (index == len(pkg_list))):
-                        shutil.rmtree(path)
+                        del_path = True
 
+                    else:
+                        is_import = False
+
+                        for root, dirs, files in os.walk(path):
+
+                            if '__init__.py' in files:
+
+                                with open(os.path.join(root,
+                                                       '__init__.py'),
+                                          'r') as f:
+                                    lines = f.readlines()
+
+                                for line in lines:
+
+                                    if (not line.startswith("#") and
+                                                              "import" in line):
+                                        is_import = True
+
+                        if (not is_import and
+                                   os.path.split(path)[-1] != "User_processes"):
+                            del_path = True
+
+                    if del_path:
+                        shutil.rmtree(path)
                         self.main_window.statusBar().showMessage('{0} was '
                                 'deleted ({1} library) ...'.format(path, 
                                                 os.path.split(path)[-1]))
                         print('\nDeleting {0} '
-                              '...'.format(os.path.split(path)[-1]))
+                              '...'.format(".".join(path.split(os.sep)[
+                                    path.split(os.sep).index('processes')+1:])))
 
-                        if index > 0:
-
-                            if remove:
-                                self.remove_package_with_text(".".join(
-                                                      pkg_list[0:index]), False)
+                        if index > 0 and remove:
+                            self.remove_package_with_text(".".join(
+                                                      pkg_list[0:index]),
+                                                          False)
 
                 else:
                     init = os.path.abspath(os.path.join(config.get_mia_path(),
                                                         'processes',
-                                                        *pkg_list[0:index-1],
+                                                        *pkg_list[:index-1],
                                                         "__init__.py"))
 
                     if os.path.isfile(init):
-                        
+
                         with open(init, 'r') as f:
                             lines = f.readlines()
 
-                        with open(init, 'w') as f:
+                        import_line = False
+                        imports_in_init = dict()
+                        imports_string = ''
 
-                            for line in lines:
+                        for line in lines:
 
-                                if re.search("import..?" +
-                                             pkg_list[index-1] +
-                                             ".?\n",
-                                             line):
-                                    filename = line.split(" ")[1] + ".py"
+                            if ((line.startswith("#") is False) and
+                                                            ("import" in line)):
+                                from_package = line.split(" ")[1]
+                                from_package = from_package[1:]
+                                imports_in_init[from_package] = []
 
-                                    if os.path.isfile(os.path.join(
-                                                         os.path.split(init)[0],
-                                                                 filename[1:])):
-                                        file2del = os.path.join(os.path.split(
-                                                        init)[0], filename[1:])
-                                        os.remove(file2del)
-                                        (self.main_window.statusBar().
-                                         showMessage)('{0} was deleted ({1} '
-                                        'brick) ...'.format(file2del, 
-                                                            pkg_list[index-1]))
+                        for line in lines:
 
+                            if ((line.startswith("#") is False) and
+                                             (("import" in line) or
+                                                        (import_line is True))):
+
+                                if "from" in line:
+                                    from_package = line.split(" ")[1]
+                                    from_package = from_package[1:]
+                                    imports_string = "".join([imports_string,
+                                                              line.split(
+                                                                  "import")[1]])
+
+                                elif import_line is True:
+                                    imports_string = imports_string + line
+
+                                if "(" in line:
+                                    import_line = True
+
+                                if ")" in line:
+                                    import_line = False
+
+                                if import_line is False:
+                                    imports = imports_string.split(",")
+                                    imports = [' '.join(i.split()) for i
+                                                                     in imports]
+
+                                    for imp in imports:
+                                        imports_in_init[from_package].append(
+                                            imp.replace('(',
+                                                        '').replace(')',
+                                                                    ''))
+
+                                    imports_string = ''
+
+                        if not imports_in_init:
+                            print("\nThe {} brick seems to be corrupted and is "
+                                  "not accessible ...".format(to_delete))
+
+                        for key in imports_in_init:
+
+                            if pkg_list[index-1] in imports_in_init[key]:
+                                filename = key + ".py"
+                                delete_all = True
+
+                                if len(imports_in_init[key]) > 1:
+                                    msgtext = ("The brick (class) {0} alone "
+                                               "cannot be deleted because it "
+                                               "belongs to {1} module that "
+                                               "contains following brick(s)"
+                                               ":".format(pkg_list[index-1],
+                                                '.'.join(pkg_list[:index-1] +
+                                                         [key])))
+
+                                    for brick in imports_in_init[key]:
+                                        msgtext = msgtext + "\n  - " + brick
+
+                                    msg = QMessageBox()
+                                    msg.setText(msgtext)
+                                    msg.setIcon(QMessageBox.Warning)
+                                    title = ("populse_mia - Warning: "
+                                             "Delete package")
+                                    msg.setWindowTitle(title)
+                                    msg.setStandardButtons(QMessageBox.Yes |
+                                                           QMessageBox.No)
+                                    button_delete = msg.button(QtGui.
+                                                               QMessageBox.Yes)
+                                    button_delete.setText('Delete all')
+                                    button_cancel = msg.button(QtGui.
+                                                               QMessageBox.No)
+                                    button_cancel.setText('Cancel')
+                                    returnValue = msg.exec()
+
+                                    if returnValue == QMessageBox.No:
+                                        delete_all = False
+
+                                if delete_all is True:
+                                    dir_init = os.path.split(init)[0]
+                                    file2del = os.path.join(dir_init, filename)
+
+                                    if os.path.isfile(file2del):
                                         name = file2del.split(os.sep)[
                                             file2del.split(
                                                 os.sep).index('processes')+1:-1]
-                                        name.append(str(pkg_list[index-1]))
-                                        print('\nDeleting {0} '
-                                              '...'.format('.'.join(name)))
+                                        name = ".".join(name)
+
+                                        for pkg in imports_in_init[key]:
+                                            deleted_packages.append(
+                                                                ".".join([name,
+                                                                          pkg]))
+
+                                        for pkg in deleted_packages:
+                                            print('\nDeleting {0} '
+                                              '...'.format(pkg))
+
+                                        os.remove(file2del)
+                                        (self.main_window.statusBar().
+                                         showMessage)('{0} was deleted ({1} '
+                                                      'brick(s)) '
+                                                      '...'.format(file2del,
+                                               ", ".join(imports_in_init[key])))
 
                                     if remove:
-                                        self.remove_package_with_text(
-                                        ".".join(pkg_list[0:index]), False)
 
-                                elif pkg_list[index-1] in line.split():
-                                    new_imp = line.split(" ")
+                                        for pkg in deleted_packages:
+                                            self.remove_package_with_text(pkg,
+                                                                          False)
 
-                                    for j in new_imp:
+                                    # rewrite __init_.py to wipe module
+                                    import_line = False
 
-                                        if pkg_list[index-1] in j:
-                                            new_imp.remove(j)
-                                            
-                                    txt = re.sub(",\s*?\n?$", "\n", " ".join(
-                                                                       new_imp))
+                                    with open(init, 'w') as f:
 
-                                    f.write(txt)
+                                        for line in lines:
 
-                                    if remove:
-                                        self.remove_package_with_text(
-                                        ".".join(pkg_list[0:index]), False)
+                                            if key in line:
 
-                                else:
+                                                if "(" in line:
+                                                    import_line = True
 
-                                    f.write(line)
+                                            elif import_line is True:
+
+                                                if ")" in line:
+                                                    import_line = False
+
+                                            elif import_line is False:
+                                                f.write(line)
+
+                                    # if all packages have been deleted,
+                                    # cleaning up empty files
+                                    with open(init, 'r') as f:
+                                        lines = f.readlines()
+
+                                    is_import = False
+
+                                    for line in lines:
+
+                                        if (not line.startswith("#") and
+                                                              "import" in line):
+                                            is_import = True
+
+                                    if (not is_import and
+                                               pkg_list[0] != "User_processes"):
+                                        os.remove(init)
+
+                                        for elt in os.listdir(dir_init):
+
+                                            if elt == '__pycache__':
+                                                shutil.rmtree(
+                                                    os.path.join(dir_init,
+                                                                 elt),
+                                                             ignore_errors=True)
+
+                                            if os.path.isfile(
+                                                    os.path.join(dir_init,
+                                                                 elt)):
+                                                os.remove(os.path.join(dir_init,
+                                                                       elt))
 
             self.package_library.package_tree = self.packages
             self.package_library.generate_tree()
             self.save(False)
+
+            return deleted_packages
 
     def delete_package_with_text(self, _2del=False, update_view=True):
         """Delete a package from the line edit's text.
@@ -1986,23 +2145,30 @@ class PackageLibraryDialog(QDialog):
 
         pkg_to_delete = list(self.delete_dic.keys())
         reply = None
+        deleted_packages = []
         for i in pkg_to_delete:
-            if reply is None:
-                msgtext = ('Do you really want to delete '
-                           'the "{0}" package?'.format(i))
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                title = "populse_mia - Warning: Delete package"
-                reply = msg.question(self, title, msgtext, QMessageBox.Yes|
-                                     QMessageBox.No|QMessageBox.YesToAll|
-                                     QMessageBox.NoToAll)
-            if reply == QMessageBox.YesToAll or reply == QMessageBox.Yes:
-                self.delete_package(to_delete=i, remove=False, loop=True)
-            # TODO Do we want to reinitialize the initial state ?
-            elif reply == QMessageBox.NoToAll or reply == QMessageBox.No:
-                self.add_package_with_text(i)
-            if reply == QMessageBox.No or reply == QMessageBox.Yes:
-                reply = None
+            if i not in deleted_packages:
+                if reply is None:
+                    msgtext = ('Do you really want to delete '
+                               'the "{0}" package?'.format(i))
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Warning)
+                    title = "populse_mia - Warning: Delete package"
+                    reply = msg.question(self, title, msgtext, QMessageBox.Yes|
+                                         QMessageBox.No|QMessageBox.YesToAll|
+                                         QMessageBox.NoToAll)
+                if reply == QMessageBox.YesToAll or reply == QMessageBox.Yes:
+                    sub_deleted_packages = self.delete_package(to_delete=i,
+                                                               remove=False,
+                                                               loop=True)
+                    for sub_pkg in sub_deleted_packages:
+                        if sub_pkg not in deleted_packages:
+                            deleted_packages.append(sub_pkg)
+                # TODO Do we want to reinitialize the initial state ?
+                elif reply == QMessageBox.NoToAll or reply == QMessageBox.No:
+                    self.add_package_with_text(i)
+                if reply == QMessageBox.No or reply == QMessageBox.Yes:
+                    reply = None
         self.save()
 
     #def remove_package(self, package, check_flag=True):
@@ -2179,9 +2345,10 @@ class PackageLibraryDialog(QDialog):
         self.process_config["Paths"] = list(set(self.paths))
         config = Config()
 
-        with open(os.path.join(config.get_mia_path(), 'properties',
-                               'process_config.yml'), 'w', encoding='utf8') \
-                as configfile:
+        with open(os.path.join(config.get_mia_path(),
+                               'properties',
+                               'process_config.yml'),
+                  'w', encoding='utf8') as configfile:
             yaml.dump(self.process_config, configfile,
                       default_flow_style=False, allow_unicode=True)
             self.signal_save.emit()
@@ -2195,9 +2362,11 @@ class PackageLibraryDialog(QDialog):
         config = Config()
         self.process_config["Packages"] = self.packages
         self.process_config["Paths"] = self.paths
-        with open(os.path.join(config.get_mia_path(), 'properties',
-                               'process_config.yml'), 'w', encoding='utf8') \
-                as stream:
+
+        with open(os.path.join(config.get_mia_path(),
+                               'properties',
+                               'process_config.yml'),
+                  'w', encoding='utf8') as stream:
             yaml.dump(self.process_config, stream, default_flow_style=False,
                       allow_unicode=True)
         #self.update_config()
@@ -2261,17 +2430,22 @@ class ProcessLibrary(QTreeView):
     def keyPressEvent(self, event):
         """Event when the delete key is pressed."""
         config = Config()
-        if event.key() == QtCore.Qt.Key_Delete and \
-                not config.get_user_mode():
+
+        if event.key() == QtCore.Qt.Key_Delete and not config.get_user_mode():
+
             for idx in self.selectedIndexes():
+
                 if idx.isValid:
                     model = idx.model()
                     idx = idx.sibling(idx.row(), 0)
                     node = idx.internalPointer()
+
                     if node is not None:
                         txt = node.data(idx.column())
-                        self.pkg_library.package_library.package_tree = \
-                        self.pkg_library.load_config()['Packages'] 
+                        (self.pkg_library.
+                             package_library.
+                                 package_tree) = (self.pkg_library.
+                                                      load_config)()['Packages']
                         self.pkg_library.delete_package(to_delete=txt)
 
     def load_dictionary(self, d):
@@ -2483,9 +2657,11 @@ class ProcessLibraryWidget(QWidget):
 
         self.process_config["Packages"] = self.packages
         self.process_config["Paths"] = self.paths
-        with open(os.path.join(config.get_mia_path(), 'properties',
-                               'process_config.yml'), 'w', encoding='utf8') \
-                as stream:
+
+        with open(os.path.join(config.get_mia_path(),
+                               'properties',
+                               'process_config.yml'),
+                  'w', encoding='utf8') as stream:
             yaml.dump(self.process_config, stream, default_flow_style=False,
                       allow_unicode=True)
 
