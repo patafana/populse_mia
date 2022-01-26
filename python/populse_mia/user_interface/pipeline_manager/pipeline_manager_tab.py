@@ -1275,7 +1275,7 @@ class PipelineManagerTab(QWidget):
                         if value not in (None, Undefined, []):
                             # gets a non-null value in the workflow
                             continue
-                if node is self.get_current_pipeline().pipeline_node:
+                if node is self.pipelineEditorTabs.get_current_pipeline().pipeline_node:
                     item_name = item
                 else:
                     item_name = '%s.%s' % (node.context_name, item)
