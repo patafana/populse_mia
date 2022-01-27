@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         - del_clinical_tags: Remove the clinical tags to the database and the
                              data browser
         - documentation: open the documentation in a web browser
+        - get_controller_version: returns controller_version_changed attribute
         - import_data: call the import software (MRI File Manager)
         - install_processes_pop_up: open the install processes pop-up
         - open_project_pop_up: open a pop-up to open a project and updates
@@ -136,6 +137,7 @@ class MainWindow(QMainWindow):
         - save_project_as: open a pop-up to save the current project as
         - saveChoice: checks if the project needs to be saved as or just saved
         - see_all_projects: open a pop-up to show the recent projects
+        - set_controller_version: Reverses controller_version_changed attribute
         - software_preferences_pop_up: open the MIA2 preferences pop-up
         - switch_project: switches project if it's possible
         - tab_changed: method called when the tab is changed
@@ -314,15 +316,19 @@ class MainWindow(QMainWindow):
             config.set_opened_projects(opened_projects)
 
             # Change controller version if needed
-            if self.controller_version_changed:
+            if self.controller_version_changed:                
                 self.msg = QMessageBox()
                 self.msg.setIcon(QMessageBox.Warning)
                 self.msg.setText("Controller version change")
                 self.msg.setInformativeText(
-                    "A change of controller version is planned for next start-up."
-                    "Do you confirm that you would like to perform this change?")
+                    "A change of controller version, from {0} to {1}, "
+                    "is planned for next start-up. Do you confirm that "
+                    "you would like to perform this "
+                    "change?".format("V1" if config.isControlV1() else "V2",
+                                     "V2" if config.isControlV1() else "V1"))
                 self.msg.setWindowTitle("Warning")
-                self.msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+                self.msg.setStandardButtons(QMessageBox.Yes |
+                                            QMessageBox.Cancel)
                 return_value = self.msg.exec()
 
                 if return_value == QMessageBox.Yes:
@@ -341,12 +347,6 @@ class MainWindow(QMainWindow):
 
         if self.data_viewer:
             self.data_viewer.clear()
-
-    def set_controller_version(self):
-        self.controller_version_changed = not self.controller_version_changed
-
-    def get_controller_version(self):
-        return self.controller_version_changed
 
     def create_view_actions(self):
         """Create the actions and their shortcuts in each menu"""
@@ -608,6 +608,13 @@ class MainWindow(QMainWindow):
         """Open the documentation in a web browser."""
         webbrowser.open(
             'https://populse.github.io/populse_mia/html/index.html')
+
+    def get_controller_version(self):
+        """ Gives the value of the controller_version_changed attribute.
+
+        :return: Boolean
+        """
+        return self.controller_version_changed
 
     def install_processes_pop_up(self, folder=False):
         """Open the install processes pop-up.
@@ -1153,6 +1160,13 @@ class MainWindow(QMainWindow):
                 self.saved_projects_list = self.saved_projects.addSavedProject(
                                                                       file_path)
             self.update_recent_projects_actions()
+
+    def set_controller_version(self):
+        """ Reverses the value of the controller_version_changed attribute.
+
+        From False to True and vice versa
+        """
+        self.controller_version_changed = not self.controller_version_changed
 
     def software_preferences_pop_up(self):
         """Open the MIA preferences pop-up."""
